@@ -146,6 +146,40 @@ class KmdVideoLearningController extends Controller
                 ->where('video_id', $videoId)
                 ->first();
 
+            // ===== Validasi server-side supaya time & completed tidak bisa dipalsukan dari client =====
+            // (mis. dikirim manual lewat console/devtools tanpa benar-benar menonton videonya)
+            $video = KmdVideo::find($videoId);
+            $duration = $video ? (int) $video->durations : 0;
+            $toleransi = 5; // detik, buffer untuk delay jaringan/buffering
+
+            if ($time < 0) {
+                $time = 0;
+            }
+
+            // Batasi time maksimum sesuai durasi asli video
+            if ($duration > 0 && $time > $duration + $toleransi) {
+                $time = $duration + $toleransi;
+            }
+
+            if ($existingProgress) {
+                // Batasi lompatan waktu berdasarkan waktu nyata yang berlalu sejak update terakhir,
+                // supaya tidak bisa klaim "sudah nonton X menit" hanya dalam beberapa detik
+                $elapsedSeconds = now()->diffInSeconds($existingProgress->watched_at);
+                $maxPlausibleTime = (int) $existingProgress->last_time + $elapsedSeconds + $toleransi;
+                if ($time > $maxPlausibleTime) {
+                    $time = $maxPlausibleTime;
+                }
+            } else {
+                // Belum pernah ada progress sebelumnya, tidak boleh langsung klaim "completed"
+                $completed = false;
+            }
+
+            // Video baru dianggap selesai jika waktu tonton sudah mendekati durasi aslinya
+            if ($duration > 0 && $time < $duration - $toleransi) {
+                $completed = false;
+            }
+            // ===== Akhir validasi server-side =====
+
             // Tentukan status baru berdasarkan kondisi dan status lama
             if ($existingProgress && $existingProgress->status === 'completed') {
                 // Jika sudah completed, jangan turunkan status
