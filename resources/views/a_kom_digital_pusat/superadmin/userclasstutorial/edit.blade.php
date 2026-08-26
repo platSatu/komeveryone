@@ -52,6 +52,12 @@
                                     value="{{ $data->classTutorial->topic ?? 'Belum terdaftar' }}" disabled>
                             </div>
 
+                             <!-- <div class="col-md-12 mb-3">
+                                <label for="status_progress" class="form-label">Status Progress</label>
+                                <input type="text" id="status_progress" class="form-control" name="status_progress"
+                                    value="{{ $data->classTutorial->status_progress  }}">
+                            </div> -->
+
                             <div class="col-md-12 mb-3">
                                 <label for="kelas_tutorial_baru" class="form-label">Pindahkan ke Kelas Baru</label>
                                 <select name="class_tutorial_id" id="kelas_tutorial_baru" class="form-control" required>

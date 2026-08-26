@@ -230,7 +230,8 @@ class PersembahanController extends Controller
     try {
         Log::info('generateSnapToken: function called');
 
-        $user = Auth::guard('kom')->user();
+        //$user = Auth::guard('kom')->user();
+         $user = Auth::user();
 
         if (!$user) {
             return response()->json(['error' => 'User belum login.'], 401);

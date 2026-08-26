@@ -27,7 +27,8 @@ class ValidasiKodeBukuController extends Controller
             'no_books' => 'required|string'
         ]);
 
-        $user = Auth::guard('kom')->user();
+        //$user = Auth::guard('kom')->user();
+        $user = Auth::user();
         if (!$user) {
             return response()->json(['status' => 'error', 'message' => 'Login terlebih dahulu.']);
         }

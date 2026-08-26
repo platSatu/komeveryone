@@ -85,6 +85,15 @@
                                         </thead>
                                         <tbody>
                                             @forelse($userClassTutorials as $index => $userClass)
+                                                @php
+                                                    // Data absensi yang sudah pernah diinput admin cabang sebelumnya
+                                                    // (null kalau peserta ini belum pernah diabsen sama sekali)
+                                                    $existingAbsensi = $userClass->absensi;
+                                                    $currentStatus = $existingAbsensi->status ?? 'normal';
+                                                    // Begitu peserta pernah ditandai HADIR, terkunci permanen --
+                                                    // tidak bisa diubah lagi lewat form ini (lihat KelasService::storeAbsensi)
+                                                    $isLocked = (bool) optional($existingAbsensi)->hadir;
+                                                @endphp
                                                 <tr>
                                                     <td class="text-center">{{ $index + 1 }}</td>
                                                     <td>
@@ -103,33 +112,54 @@
                                                         <input type="hidden" name="absensi[{{ $userClass->id }}][user_id]"
                                                             value="{{ $userClass->user_id }}">
 
-                                                        <div class="btn-group" role="group">
-                                                            <input type="radio" class="btn-check"
+                                                        @if ($isLocked)
+                                                            <span class="badge bg-success">
+                                                                <i class="fas fa-lock me-1"></i>Hadir (Terkunci)
+                                                            </span>
+                                                            {{-- Tetap kirim value lama supaya validasi request tetap lolos;
+                                                                 backend akan mengabaikan perubahan untuk peserta ini --}}
+                                                            <input type="hidden"
                                                                 name="absensi[{{ $userClass->id }}][kehadiran]"
-                                                                id="hadir_{{ $userClass->id }}" value="hadir" required>
-                                                            <label class="btn btn-outline-success"
-                                                                for="hadir_{{ $userClass->id }}">
-                                                                <i class="fas fa-check me-1"></i>Hadir
-                                                            </label>
-                                                            &nbsp;&nbsp;&nbsp;
-                                                            <input type="radio" class="btn-check"
-                                                                name="absensi[{{ $userClass->id }}][kehadiran]"
-                                                                id="tidak_hadir_{{ $userClass->id }}" value="tidak_hadir">
-                                                            <label class="btn btn-outline-danger"
-                                                                for="tidak_hadir_{{ $userClass->id }}">
-                                                                <i class="fas fa-times me-1"></i>Tidak Hadir
-                                                            </label>
+                                                                value="hadir">
+                                                            <input type="hidden"
+                                                                name="absensi[{{ $userClass->id }}][status]"
+                                                                value="{{ $currentStatus }}">
+                                                        @else
+                                                            <div class="btn-group" role="group">
+                                                                <input type="radio" class="btn-check"
+                                                                    name="absensi[{{ $userClass->id }}][kehadiran]"
+                                                                    id="hadir_{{ $userClass->id }}" value="hadir" required
+                                                                    {{ optional($existingAbsensi)->hadir ? 'checked' : '' }}>
+                                                                <label class="btn btn-outline-success"
+                                                                    for="hadir_{{ $userClass->id }}">
+                                                                    <i class="fas fa-check me-1"></i>Hadir
+                                                                </label>
+                                                                &nbsp;&nbsp;&nbsp;
+                                                                <input type="radio" class="btn-check"
+                                                                    name="absensi[{{ $userClass->id }}][kehadiran]"
+                                                                    id="tidak_hadir_{{ $userClass->id }}"
+                                                                    value="tidak_hadir"
+                                                                    {{ optional($existingAbsensi)->tidak_hadir ? 'checked' : '' }}>
+                                                                <label class="btn btn-outline-danger"
+                                                                    for="tidak_hadir_{{ $userClass->id }}">
+                                                                    <i class="fas fa-times me-1"></i>Tidak Hadir
+                                                                </label>
 
-                                                        </div>
+                                                            </div>
+                                                        @endif
                                                     </td>
                                                     <td>
-                                                        <select name="absensi[{{ $userClass->id }}][status]"
-                                                            class="form-select form-select-sm form-control">
-                                                            <option value="normal">Normal</option>
-                                                            <option value="sakit">Sakit</option>
-                                                            <option value="izin">Izin</option>
-                                                            <option value="alpha">Alpha</option>
-                                                        </select>
+                                                        @if ($isLocked)
+                                                            <span class="text-muted">{{ ucfirst($currentStatus) }}</span>
+                                                        @else
+                                                            <select name="absensi[{{ $userClass->id }}][status]"
+                                                                class="form-select form-select-sm form-control">
+                                                                <option value="normal" @selected($currentStatus === 'normal')>Normal</option>
+                                                                <option value="sakit" @selected($currentStatus === 'sakit')>Sakit</option>
+                                                                <option value="izin" @selected($currentStatus === 'izin')>Izin</option>
+                                                                <option value="alpha" @selected($currentStatus === 'alpha')>Alpha</option>
+                                                            </select>
+                                                        @endif
                                                     </td>
                                                 </tr>
                                             @empty
@@ -221,5 +251,3 @@
     @endif
 @endsection
 
-{{-- @push('styles')
-@endpush --}}

@@ -269,7 +269,7 @@
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         const selectRayon = document.getElementById('select-rayon');
-        const hiddenInput = document.getElementById('asal_gereja');
+        // const hiddenInput = document.getElementById('asal_gereja');
 
         // Inisialisasi Select2
         $(selectRayon).select2({
@@ -292,18 +292,27 @@
         });
 
         // Saat pilihan dipilih → update hidden input
+        // $(selectRayon).on('select2:select', function (e) {
+        //     const val = e.params.data.id;
+        //     hiddenInput.value = val;
+        // });
         $(selectRayon).on('select2:select', function (e) {
-            const val = e.params.data.id;
-            hiddenInput.value = val;
+            console.log('Selected:', e.params.data.id);
         });
 
         // Saat form disubmit, validasi harus sudah pilih rayon
+        // document.querySelector('form').addEventListener('submit', function (e) {
+        //     if (!selectRayon.value) {
+        //         e.preventDefault();
+        //         alert("Silakan pilih nama gereja Anda.");
+        //         $(selectRayon).focus();
+        //     }
+        // });
         document.querySelector('form').addEventListener('submit', function (e) {
-            if (!selectRayon.value) {
-                e.preventDefault();
-                alert("Silakan pilih nama gereja Anda.");
-                $(selectRayon).focus();
-            }
+
+            console.log('Native:', selectRayon.value);
+            console.log('jQuery:', $('#select-rayon').val());
+
         });
     });
 </script>

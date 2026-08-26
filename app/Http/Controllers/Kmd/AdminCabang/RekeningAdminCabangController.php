@@ -82,7 +82,7 @@ class RekeningAdminCabangController extends Controller
                 'max:50',
                 'regex:/^[0-9]+$/',
                 // CustomDbRule: Unique di 'mysql2', tabel 'kmd_user_rekening'
-                new CustomDbRule('mysql2', 'kmd_user_rekening', 'no_rek', 'unique', $id),
+                // new CustomDbRule('mysql2', 'kmd_user_rekening', 'no_rek', 'unique', $id),
             ],
             'nama_bank' => 'required|string|max:100',
             'cabang_bank' => 'required|string|max:100',

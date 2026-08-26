@@ -23,11 +23,14 @@ class KmdPertanyaanUser extends Model
         'rayon_id', // tambahkan ini
         'pertanyaan',
         'status',
+        'edit_count',
         'tgl_submit',
+        'tgl_edit',
     ];
 
     protected $casts = [
         'tgl_submit' => 'datetime',
+        'tgl_edit' => 'datetime',
     ];
 
     // Relasi ke model User (kmd_users)

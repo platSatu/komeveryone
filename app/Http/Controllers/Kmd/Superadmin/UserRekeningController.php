@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
+use App\Models\Kmd\KomUser;
+use App\Models\Kmd\KmdUserRekening;
 use App\Services\Superadmin\UserRekeningService;
 
 class UserRekeningController extends Controller
@@ -17,18 +19,35 @@ class UserRekeningController extends Controller
         $this->service = $service;
     }
 
-    public function index(Request $request)
-    {
-        $filters = $request->only(['user_id', 'cabang_id', 'nama_rek']);
-        $data = $this->service->getAll($filters);
+    // public function index(Request $request)
+    // {
+    //     $filters = $request->only(['user_id', 'cabang_id', 'nama_rek']);
+    //     $data = $this->service->getAll($filters);
 
-        return view('a_kom_digital_pusat.superadmin.rekening.index', compact('data', 'filters'));
-    }
+    //     return view('a_kom_digital_pusat.superadmin.rekening.index', compact('data', 'filters'));
+    // }
+    public function index(Request $request)
+{
+    $filters = $request->only(['user_id', 'cabang_id', 'nama_rek']);
+    $data = $this->service->getAll($filters);
+
+    // Tambahkan ini untuk dropdown filter
+    $users = \App\Models\Kmd\KomUser::all();
+    $cabangs = \App\Models\Kmd\Cabang::all();
+
+    return view('a_kom_digital_pusat.superadmin.rekening.index', 
+        compact('data', 'filters', 'users', 'cabangs'));
+}
 
     public function create()
-    {
-        return view('a_kom_digital_pusat.superadmin.rekening.create');
-    }
+{
+    // Tambahkan ini untuk dropdown filter
+    $users = \App\Models\Kmd\KomUser::all();
+    $cabangs = \App\Models\Kmd\Cabang::all(); // sesuaikan dengan nama model Anda
+
+    return view('a_kom_digital_pusat.superadmin.rekening.create', 
+        compact('users', 'cabangs'));
+}
 
     public function store(Request $request)
     {
@@ -41,17 +60,28 @@ class UserRekeningController extends Controller
         }
     }
 
+    // public function edit($id)
+    // {
+    //     try {
+    //         $decryptedId = Crypt::decrypt($id);
+    //         $data = $this->service->find($decryptedId);
+    //         return view('a_kom_digital_pusat.superadmin.rekening.edit', compact('data'));
+    //     } catch (\Exception $e) {
+    //         Log::error('Gagal menampilkan form edit rekening: ' . $e->getMessage());
+    //         return redirect()->route('rekening.index')->with('error', 'Data tidak ditemukan.');
+    //     }
+    // }
     public function edit($id)
-    {
-        try {
-            $decryptedId = Crypt::decrypt($id);
-            $data = $this->service->find($decryptedId);
-            return view('a_kom_digital_pusat.superadmin.rekening.edit', compact('data'));
-        } catch (\Exception $e) {
-            Log::error('Gagal menampilkan form edit rekening: ' . $e->getMessage());
-            return redirect()->route('rekening.index')->with('error', 'Data tidak ditemukan.');
-        }
-    }
+{
+    $rekening = KmdUserRekening::findOrFail($id);
+    
+    // Tambahkan ini untuk dropdown filter
+    $users = \App\Models\Kmd\KomUser::all();
+    $cabangs = \App\Models\Kmd\Cabang::all(); // sesuaikan dengan nama model Anda
+
+    return view('a_kom_digital_pusat.superadmin.rekening.edit', 
+        compact('rekening', 'users', 'cabangs'));
+}
 
     public function update(Request $request, $id)
     {

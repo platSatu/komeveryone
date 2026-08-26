@@ -106,6 +106,9 @@
                                             <th class="border-0 fw-bold text-nowrap">
                                                 <i class="fas fa-toggle-on me-1 text-danger"></i> Status
                                             </th>
+                                            <th class="border-0 fw-bold text-nowrap">
+                                                <i class="fas fa-cog me-1 text-dark"></i> Aksi
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -158,6 +161,25 @@
                                                             class="badge bg-secondary px-3 py-2 d-inline-flex align-items-center gap-1">
                                                             <i class="fas fa-times-circle"></i> Tidak Aktif
                                                         </span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-center">
+                                                    @php
+                                                        $canEdit = ($item->edit_count ?? 0) < 1;
+                                                    @endphp
+                                                    
+                                                    @if($canEdit)
+                                                        <a href="{{ route('kom.peserta.pertanyaan.edit', $item->id) }}" 
+                                                        class="btn btn-outline-primary btn-sm"
+                                                        title="Edit Pertanyaan (Sisa: 1x)">
+                                                            <i class="fas fa-edit"></i> Edit
+                                                        </a>
+                                                    @else
+                                                        <button class="btn btn-secondary btn-sm" 
+                                                                disabled 
+                                                                title="Tidak dapat diedit (maksimal 1x edit)">
+                                                            <i class="fas fa-lock"></i> Diedit
+                                                        </button>
                                                     @endif
                                                 </td>
                                             </tr>

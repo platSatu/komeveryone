@@ -50,7 +50,8 @@ class PertanyaanUserController extends Controller
 
     public function storePertanyaan(Request $request)
     {
-        if (!Auth::guard('kom')->check()) {
+        //if (!Auth::guard('kom')->check()) {
+        if (!Auth::check()) {    
             Log::warning('🛑 User belum login saat mengirim pertanyaan (AJAX)');
             return response()->json([
                 'success' => false,
@@ -58,7 +59,8 @@ class PertanyaanUserController extends Controller
             ], 401);
         }
 
-        $user = Auth::guard('kom')->user();
+        //$user = Auth::guard('kom')->user();
+        $user = Auth::user();
         Log::info('📝 storePertanyaan dipanggil', ['user_id' => $user->id]);
 
         // DEBUG: Log isi request sebelum validasi

@@ -8,7 +8,8 @@ use App\Services\Superadmin\KmdCertificateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\Kmd\KomUser;
-use App\Models\KmdCertificates;
+use App\Models\Kmd\KmdCertificates;
+use App\Models\Kmd\KmdUserClassTutorial;
 
 use Carbon\Carbon;
 
@@ -35,90 +36,68 @@ class CertificatesController extends Controller
     public function show($id)
 {
     try {
-        Log::info("Superadmin mencoba mengakses sertifikat user ID: $id");
+        Log::info("SUPERADMIN: Mengakses halaman sertifikat certificate ID: {$id}");
 
-        // 1. Ambil data user
-        $user = KomUser::findOrFail($id);
-        Log::info("Data user berhasil diambil", ['user' => $user->toArray()]);
-
-        // 2. Ambil sertifikat terbaru user
-        $sertifikat = KmdCertificates::where('user_id', $id)->latest()->first();
+        // 1. Ambil sertifikat berdasarkan certificate_id (UUID)
+        $sertifikat = KmdCertificates::find($id);
 
         if (!$sertifikat) {
-            Log::warning("Sertifikat tidak ditemukan untuk user ID: $id");
-            return redirect()->back()->with('error', 'User belum memiliki sertifikat.');
+            Log::warning("SUPERADMIN: Sertifikat dengan ID {$id} tidak ditemukan");
+            return redirect()->back()->with('error', 'Sertifikat tidak ditemukan.');
         }
 
-        Log::info("Sertifikat ditemukan", ['certificate_id' => $sertifikat->id, 'no_certificate' => $sertifikat->no_certificate]);
+        Log::info("SUPERADMIN: Sertifikat ditemukan", [
+            'certificate_id' => $sertifikat->id, 
+            'user_id' => $sertifikat->user_id,
+            'no_certificate' => $sertifikat->no_certificate
+        ]);
 
-        // 3. Generate URL verifikasi
-        $qrLink = url('/kom-digital/verifikasi/' . $sertifikat->id);
-        Log::info("QR link dibuat", ['qr_link' => $qrLink]);
+        // 2. Ambil data user dari user_id di sertifikat
+        $user = KomUser::findOrFail($sertifikat->user_id);
+        Log::info("SUPERADMIN: Data user berhasil diambil", ['user_name' => $user->name]);
 
-        // 4. Siapkan folder dan path file QR
-        $publicPath = public_path('kmdqr');
+        // 3. Ambil data class tutorial untuk tanggal pelaksanaan
+        $classTutorial = KmdUserClassTutorial::where('user_id', $sertifikat->user_id)
+            ->where('status', 'selesai')
+            ->latest('date_booking')
+            ->first();
+
+        $classTutorialCreatedAt = $classTutorial->created_at ?? $sertifikat->date_publish;
+
+        // 4. Siapkan path QR (TIDAK GENERATE)
         $fileName = "kom_{$sertifikat->id}.png";
-        $filePath = $publicPath . DIRECTORY_SEPARATOR . $fileName;
+        $qrPathPublic = file_exists(public_path('kmdqr/' . $fileName)) 
+            ? url('kmdqr/' . $fileName) 
+            : null;
 
-        if (!file_exists($publicPath)) {
-            mkdir($publicPath, 0755, true);
-            Log::info("Folder QR dibuat", ['path' => $publicPath]);
-        }
+        Log::info("SUPERADMIN: QR code siap ditampilkan", ['qr_exists' => $qrPathPublic !== null]);
 
-        // 5. Generate QR code jika belum ada
-        if (!file_exists($filePath)) {
-            QrCode::format('png')
-                ->size(300)
-                ->margin(4)
-                ->errorCorrection('H')
-                ->backgroundColor(255, 255, 255)
-                ->generate($qrLink, $filePath);
-
-            Log::info("QR code berhasil digenerate", ['file' => $filePath]);
-        } else {
-            Log::info("QR code sudah tersedia, tidak digenerate ulang", ['file' => $filePath]);
-        }
-
-        // 6. Siapkan URL publik ke QR code
-        $qrPathPublic = url('kmdqr/' . $fileName);
-
-        // 7. Kirim data ke view
+        // 5. Kirim data ke view
         return view('a_kom_digital_pusat.superadmin.sertifikat.show', [
             'certificate_number' => $sertifikat->no_certificate,
             'certificate_id' => $sertifikat->id,
             'qr_link' => $qrPathPublic,
-            'status' => $sertifikat->status,
+            'status' => 'selesai',
             'nama' => $user->name,
             'dibuatOleh' => 'Sub Divisi KOM DIGITAL',
-            'tanggalPelaksanaan' => Carbon::parse($sertifikat->date_publish)->format('d-m-Y'),
+            'tanggalPelaksanaan' => Carbon::parse($classTutorialCreatedAt)->format('d-m-Y'),
             'tanggalCetak' => now()->format('d-m-Y'),
+            'class_tutorial_created_at' => $classTutorialCreatedAt,
         ]);
 
     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        // Error jika user tidak ditemukan
-        Log::error("User dengan ID $id tidak ditemukan", [
-            'exception' => $e->getMessage(),
-            'line' => $e->getLine(),
-        ]);
-
+        Log::error("SUPERADMIN: User tidak ditemukan untuk sertifikat {$id}");
         return redirect()->back()->with('error', 'User tidak ditemukan.');
         
     } catch (\Exception $e) {
-        // Error umum lainnya
-        Log::error('Error saat menampilkan sertifikat', [
-            'user_id' => $id,
-            'error_message' => $e->getMessage(),
-            'file' => $e->getFile(),
+        Log::error('SUPERADMIN: Error saat menampilkan sertifikat', [
+            'certificate_id' => $id,
+            'error' => $e->getMessage(),
             'line' => $e->getLine(),
-            'trace' => $e->getTraceAsString(),
         ]);
-
-        // Untuk mode produksi, lebih aman tampilkan pesan umum
-        // Saat development, bisa tambahkan ->with('error', $e->getMessage())
-        return redirect()->back()->with('error', 'Terjadi kesalahan saat memuat sertifikat. Silakan coba lagi.');
+        return redirect()->back()->with('error', 'Terjadi kesalahan saat memuat sertifikat.');
     }
 }
-
 
     public function create()
     {

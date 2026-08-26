@@ -28,18 +28,7 @@
                             <input type="email" class="form-control" id="host_email" name="host_email" value="{{ old('host_email') }}" required>
                         </div> --}}
 
-                        <div class="form-group">
-                            <label>Pengajar</label>
-                            <select name="pengajar_id" class="form-control" required>
-                                <option value="">-- Pilih Pengajar --</option>
-                                @foreach ($pengajars as $pengajar)
-                                    <option value="{{ $pengajar->id }}"
-                                        {{ old('pengajar_id') == $pengajar->id ? 'selected' : '' }}>
-                                        {{ $pengajar->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
+                       
 
                         <div class="form-group">
                             <label>Kelas</label>
@@ -55,18 +44,29 @@
                         </div>
 
 
-                        <div class="form-group">
-                            <label>Modul</label>
-                            <select name="modul_id" class="form-control" required>
-                                <option value="">-- Pilih Modul --</option>
-                                @foreach ($moduls as $modul)
-                                    <option value="{{ $modul->id }}"
-                                        {{ old('modul_id', $modul->modul_id) == $modul->id ? 'selected' : '' }}>
-                                        {{ $modul->nama_modul ?? $modul->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
+                       <div class="form-group">
+    <label>Modul</label>
+    <select name="modul_id" id="modul_id" class="form-control" required>
+        <option value="">-- Pilih Modul --</option>
+        @foreach ($moduls as $modul)
+            <option value="{{ $modul->id }}" {{ old('modul_id', $selectedModulId ?? '') == $modul->id ? 'selected' : '' }}>
+                {{ $modul->nama_modul ?? $modul->name }}
+            </option>
+        @endforeach
+    </select>
+</div>
+
+<div class="form-group">
+    <label>Pengajar</label>
+    <select name="pengajar_id" id="pengajar_id" class="form-control" required>
+        <option value="">-- Pilih Pengajar --</option>
+        @foreach ($pengajars as $pengajar)
+            <option value="{{ $pengajar->id }}" {{ old('pengajar_id') == $pengajar->id ? 'selected' : '' }}>
+                {{ $pengajar->name }}
+            </option>
+        @endforeach
+    </select>
+</div>
 
                         <div class="form-group">
                             <label for="start_time" class="form-label">Waktu Mulai</label>
@@ -130,4 +130,37 @@
             </div>
         </div>
     </div>
+<!-- CSS Select2 -->
+{{-- jQuery dan AJAX --}}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#modul_id').on('change', function() {
+            let modulId = $(this).val();
+
+            $.ajax({
+                url: '{{ route("kom.kelas_tutor_cabang.api.pengajars.byModul") }}',
+                data: { modul_id: modulId },
+                dataType: 'json',
+                success: function(data) {
+                    let pengajarSelect = $('#pengajar_id');
+                    pengajarSelect.empty(); 
+
+                    pengajarSelect.append('<option value="">-- Pilih Pengajar --</option>');
+
+                    if(data.length > 0) {
+                        data.forEach(function(pengajar) {
+                            pengajarSelect.append('<option value="'+pengajar.id+'">'+pengajar.name+'</option>');
+                        });
+                    } else {
+                        pengajarSelect.append('<option value="" disabled>Tidak ada pengajar tersedia</option>');
+                    }
+                },
+                error: function() {
+                    alert('Gagal mengambil data pengajar.');
+                }
+            });
+        });
+    });
+</script>
 @endsection

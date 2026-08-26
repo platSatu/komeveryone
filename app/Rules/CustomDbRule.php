@@ -40,7 +40,7 @@ class CustomDbRule implements Rule
             throw new \InvalidArgumentException("Invalid validation type: {$this->type}");
         }
 
-        $query = DB::connection($this->connection)
+        $query = DB::connection('mysql')
             ->table($this->table)
             ->where($this->column, $value);
 

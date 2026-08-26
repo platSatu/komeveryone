@@ -55,7 +55,9 @@ class KelasService
             ->unique()
             ->toArray();
 
-        $userClassTutorials = KmdUserClassTutorial::with(['user'])
+        // Eager load 'absensi' supaya form absensi bisa menampilkan status
+        // hadir/tidak hadir yang sudah pernah diinput sebelumnya (untuk edit/koreksi)
+        $userClassTutorials = KmdUserClassTutorial::with(['user', 'absensi'])
             ->where('class_tutorial_id', $classTutorialId)
             ->whereIn('id', $paidUserClassTutorialIds)
             ->get();
@@ -81,17 +83,40 @@ class KelasService
 
    
 
-public function storeAbsensi(string $classTutorialId, array $data): void
+public function storeAbsensi(string $classTutorialId, array $data): array
 {
     if (empty($data['absensi']) || !is_array($data['absensi'])) {
         Log::warning('Data absensi kosong atau tidak valid', ['class_tutorial_id' => $classTutorialId]);
-        return;
+        return ['saved' => 0, 'locked' => 0];
     }
 
-    DB::connection('mysql2')->transaction(function () use ($data, $classTutorialId) {
+    $savedCount = 0;
+    $lockedCount = 0;
+
+    // NB: KmdUserAbsensi memakai connection 'mysql' (lihat $connection di model),
+    // jadi transaksi harus dibuka di connection yang sama juga (sebelumnya salah
+    // pakai 'mysql2' sehingga transaksinya tidak benar-benar membungkus query ini).
+    DB::connection('mysql')->transaction(function () use ($data, $classTutorialId, &$savedCount, &$lockedCount) {
         foreach ($data['absensi'] as $userClassTutorialId => $absensiData) {
             if (!isset($absensiData['userclasstutorial_id'], $absensiData['user_id'], $absensiData['kehadiran'], $absensiData['status'])) {
                 Log::warning('Data absensi tidak lengkap', ['data' => $absensiData]);
+                continue;
+            }
+
+            $existing = KmdUserAbsensi::where('userclasstutorial_id', $absensiData['userclasstutorial_id'])
+                ->where('user_id', $absensiData['user_id'])
+                ->first();
+
+            // Begitu peserta pernah ditandai HADIR, datanya terkunci permanen --
+            // tidak bisa diubah lagi lewat form ini (baik status kehadiran maupun
+            // keterangan). Ini mencegah admin bolak-balik toggle hadir <-> tidak
+            // hadir, sekaligus menjaga integritas syarat sertifikat.
+            if ($existing && $existing->hadir) {
+                $lockedCount++;
+                Log::info('Absensi dilewati karena sudah terkunci (hadir)', [
+                    'user_id' => $absensiData['user_id'],
+                    'userclasstutorial_id' => $absensiData['userclasstutorial_id'],
+                ]);
                 continue;
             }
 
@@ -101,26 +126,29 @@ public function storeAbsensi(string $classTutorialId, array $data): void
                 'status' => $absensiData['status'],
             ];
 
-            $absensi = KmdUserAbsensi::where('userclasstutorial_id', $absensiData['userclasstutorial_id'])
-                ->where('user_id', $absensiData['user_id'])
-                ->first();
-
-            if ($absensi) {
-                $absensi->update($absensiAttributes);
-            } else {
-                KmdUserAbsensi::create(array_merge([
-                    'id' => (string) Str::uuid(),
+            // updateOrCreate: 1 peserta hanya boleh punya 1 baris absensi per
+            // modul/kelas (kunci: userclasstutorial_id + user_id). Kalau baris
+            // sudah ada (dan belum terkunci), DI-UPDATE -- bukan menambah baris
+            // baru, walaupun admin submit form yang sama berkali-kali.
+            KmdUserAbsensi::updateOrCreate(
+                [
                     'userclasstutorial_id' => $absensiData['userclasstutorial_id'],
                     'user_id' => $absensiData['user_id'],
-                ], $absensiAttributes));
-            }
+                ],
+                $absensiAttributes
+            );
+
+            $savedCount++;
         }
 
         Log::info('Absensi data stored successfully', [
             'class_tutorial_id' => $classTutorialId,
-            'records_count' => count($data['absensi']),
+            'saved_count' => $savedCount,
+            'locked_skipped_count' => $lockedCount,
         ]);
     });
+
+    return ['saved' => $savedCount, 'locked' => $lockedCount];
 }
 
 

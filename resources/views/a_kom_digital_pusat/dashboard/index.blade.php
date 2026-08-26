@@ -652,11 +652,11 @@
             csrfToken: '{{ csrf_token() }}',
             routes: {
                 saveWatchTime: '{{ route('kom.kelas_lecture.video.saveWatchTime') }}',
-                getQuestions: '{{ url('kom-digital/kelas/kom-100/get-video-questions') }}',
+                getQuestions: '{{ url('app/kelas/kom-100/get-video-questions') }}',
                 submitAnswer: '{{ route('kom.kelas_lecture.submit_answer') }}',
-                getNextVideo: '{{ url('kom-digital/kelas/kom-100/get-next-video') }}',
-                getUserStats: '{{ url('kom-digital/kelas/kom-100/get-user-stats') }}',
-                kelasTutorial: '{{ url('/kom-digital/kom-100/kelas-tutorial') }}'
+                getNextVideo: '{{ url('app/kelas/kom-100/get-next-video') }}',
+                getUserStats: '{{ url('app/kelas/kom-100/get-user-stats') }}',
+                kelasTutorial: '{{ url('/app/kom-100/kelas-tutorial') }}'
             },
             user: {
                 id: '{{ auth()->id() }}',

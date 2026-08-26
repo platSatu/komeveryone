@@ -35,7 +35,8 @@
                         <td>{{ $loop->iteration + ($data->currentPage() - 1) * $data->perPage() }}</td>
                         <td>{{ $user->nik }}</td>
                         <td>{{ $user->name }}<br>
-                            <small class="text-muted">{{ $user->email }}</small>
+                            <small class="text-muted">{{ $user->email }}</small><br>
+                            <small class="text-muted">{{ $user->id }}</small>
                         </td>
                         <!-- <td>{{ $user->email }}</td> -->
                         <td>{{ $user->asal_gereja }}</td>

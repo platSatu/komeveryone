@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
-    <title>REGISTER | KOM</title>
+    <title>REGISTER | KOM EVERYONE</title>
     <meta content="KOM" name="description" />
     <meta content="Mannatthemes" name="author" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -316,31 +316,78 @@
             });
 
             // Event submit form: pastikan hidden input terupdate
+            // document.querySelector('form').addEventListener('submit', function(e) {
+            //     if (checkboxYa.checked) {
+            //         if (selectRayon.value === 'other') {
+            //             hiddenInput.value = inputRayonManual.value.trim();
+            //             if (!hiddenInput.value) {
+            //                 e.preventDefault();
+            //                 alert('Silakan isi nama Rayon.');
+            //                 inputRayonManual.focus();
+            //             }
+            //         } else {
+            //             hiddenInput.value = selectRayon.value;
+            //         }
+            //     } else if (checkboxTidak.checked) {
+            //         hiddenInput.value = inputManualGereja.value.trim();
+            //         if (!hiddenInput.value) {
+            //             e.preventDefault();
+            //             alert('Silakan isi nama Gereja.');
+            //             inputManualGereja.focus();
+            //         }
+            //     } else {
+            //         // Jika tidak memilih Ya/Tidak, block submit juga
+            //         e.preventDefault();
+            //         alert('Silakan pilih apakah Anda berjemaat di gereja kami atau tidak.');
+            //     }
+            // });
             document.querySelector('form').addEventListener('submit', function(e) {
-                if (checkboxYa.checked) {
-                    if (selectRayon.value === 'other') {
-                        hiddenInput.value = inputRayonManual.value.trim();
-                        if (!hiddenInput.value) {
-                            e.preventDefault();
-                            alert('Silakan isi nama Rayon.');
-                            inputRayonManual.focus();
-                        }
-                    } else {
-                        hiddenInput.value = selectRayon.value;
-                    }
-                } else if (checkboxTidak.checked) {
-                    hiddenInput.value = inputManualGereja.value.trim();
-                    if (!hiddenInput.value) {
-                        e.preventDefault();
-                        alert('Silakan isi nama Gereja.');
-                        inputManualGereja.focus();
-                    }
-                } else {
-                    // Jika tidak memilih Ya/Tidak, block submit juga
-                    e.preventDefault();
-                    alert('Silakan pilih apakah Anda berjemaat di gereja kami atau tidak.');
-                }
-            });
+
+    if (checkboxYa.checked) {
+
+        const selectedValue = $(selectRayon).val();
+
+        if (!selectedValue) {
+            e.preventDefault();
+            alert('Silakan pilih nama gereja.');
+            return;
+        }
+
+        if (selectedValue === 'other') {
+
+            hiddenInput.value = inputRayonManual.value.trim();
+
+            if (!hiddenInput.value) {
+                e.preventDefault();
+                alert('Silakan isi nama Rayon.');
+                inputRayonManual.focus();
+                return;
+            }
+
+        } else {
+            hiddenInput.value = selectedValue;
+        }
+
+    } else if (checkboxTidak.checked) {
+
+        hiddenInput.value = inputManualGereja.value.trim();
+
+        if (!hiddenInput.value) {
+            e.preventDefault();
+            alert('Silakan isi nama Gereja.');
+            inputManualGereja.focus();
+            return;
+        }
+
+    } else {
+
+        e.preventDefault();
+        alert('Silakan pilih apakah Anda berjemaat di gereja kami atau tidak.');
+        return;
+    }
+
+    console.log('asal_gereja = ', hiddenInput.value);
+});
         });
     </script>
 

@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\DB;
 
 
 
+
 class AuthController extends Controller
 {
     public function showLoginForm()
@@ -64,20 +65,37 @@ class AuthController extends Controller
     }
 
     // Fungsi helper untuk generate NIK unik
-    private function generateRandomNpk($tableName = 'kmd_users', $column = 'nik', $prefix = 'D', $connection = 'mysql2')
-    {
-        do {
-            $randomNumber = mt_rand(100000, 999999);
-            $npk = $prefix . $randomNumber;
+    // private function generateRandomNpk($tableName = 'kmd_users', $column = 'nik', $prefix = 'D', $connection = 'mysql2')
+    // {
+    //     do {
+    //         $randomNumber = mt_rand(100000, 999999);
+    //         $npk = $prefix . $randomNumber;
 
-            $exists = DB::connection($connection)
-                ->table($tableName)
-                ->where($column, $npk)
-                ->exists();
-        } while ($exists);
+    //             DB::table($tableName)
+    //             ->table($tableName)
+    //             ->where($column, $npk)
+    //             ->exists();
+    //     } while ($exists);
 
-        return $npk;
-    }
+    //     return $npk;
+    // }
+    private function generateRandomNpk(
+    $tableName = 'kmd_users',
+    $column = 'nik',
+    $prefix = 'D'
+) {
+    do {
+        $randomNumber = mt_rand(100000, 999999);
+        $npk = $prefix . $randomNumber;
+
+        $exists = DB::table($tableName)
+            ->where($column, $npk)
+            ->exists();
+
+    } while ($exists);
+
+    return $npk;
+}
 
     // public function login(Request $request)
     // {
@@ -521,12 +539,12 @@ class AuthController extends Controller
             'email' => [
                 'required',
                 'email',
-                new CustomDbRule('mysql2', 'kmd_users', 'email', 'unique', 'nik')
+                new CustomDbRule('mysql', 'kmd_users', 'email', 'unique', 'nik')
             ],
             'no_sim' => [
                 'required',
                 'string',
-                new CustomDbRule('mysql2', 'kmd_users', 'no_sim', 'unique', 'nik')
+                new CustomDbRule('mysql', 'kmd_users', 'no_sim', 'unique', 'nik')
             ],
 
             'password' => 'required|confirmed|min:6',
@@ -598,33 +616,60 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         // Validasi input
-        $request->validate([
-            'name' => 'required|string|max:100',
-            'email' => [
-                'required',
-                'email',
-                new CustomDbRule('mysql2', 'kmd_users', 'email', 'unique')
-            ],
-            'password' => 'required|confirmed|min:6',
-            //'rayon_id' => 'required|exists:rayons,id',
-            'tahun_lahir' => 'required|digits:4|integer|min:1900|max:' . date('Y'),
+        // $request->validate([
+        //     'name' => 'required|string|max:100',
+        //     'email' => [
+        //         'required',
+        //         'email',
+        //         new CustomDbRule('mysql', 'kmd_users', 'email', 'unique')
+        //     ],
+        //     'password' => 'required|confirmed|min:6',
+        //     //'rayon_id' => 'required|exists:rayons,id',
+        //     'tahun_lahir' => 'required|digits:4|integer|min:1900|max:' . date('Y'),
 
-        ], [
-            'name.required' => 'Name wajib diisi.',
-            'email.required' => 'Email wajib diisi.',
-            'email.email' => 'Format email tidak valid.',
-            'email.unique' => 'Email sudah terdaftar.',
-            'password.required' => 'Password wajib diisi.',
-            'password.confirmed' => 'Konfirmasi password tidak cocok.',
-            'password.min' => 'Password minimal 6 karakter.',
-            //'rayon_id.required' => 'Rayon wajib dipilih.',
-            //'rayon_id.exists' => 'Rayon yang dipilih tidak valid.',
-            'tahun_lahir.required' => 'Tahun lahir wajib diisi.',
-            'tahun_lahir.digits' => 'Tahun lahir harus 4 digit.',
-            'tahun_lahir.integer' => 'Tahun lahir harus berupa angka.',
-            'tahun_lahir.min' => 'Tahun lahir tidak valid.',
-            'tahun_lahir.max' => 'Tahun lahir tidak boleh melebihi tahun sekarang.',
-        ]);
+        // ], [
+        //     'name.required' => 'Name wajib diisi.',
+        //     'email.required' => 'Email wajib diisi.',
+        //     'email.email' => 'Format email tidak valid.',
+        //     'email.unique' => 'Email sudah terdaftar.',
+        //     'password.required' => 'Password wajib diisi.',
+        //     'password.confirmed' => 'Konfirmasi password tidak cocok.',
+        //     'password.min' => 'Password minimal 6 karakter.',
+        //     //'rayon_id.required' => 'Rayon wajib dipilih.',
+        //     //'rayon_id.exists' => 'Rayon yang dipilih tidak valid.',
+        //     'tahun_lahir.required' => 'Tahun lahir wajib diisi.',
+        //     'tahun_lahir.digits' => 'Tahun lahir harus 4 digit.',
+        //     'tahun_lahir.integer' => 'Tahun lahir harus berupa angka.',
+        //     'tahun_lahir.min' => 'Tahun lahir tidak valid.',
+        //     'tahun_lahir.max' => 'Tahun lahir tidak boleh melebihi tahun sekarang.',
+        // ]);
+        $request->validate([
+    'name' => 'required|string|max:100',
+    'email' => 'required|email|unique:kmd_users,email',
+    'password' => 'required|confirmed|min:6',
+    //'rayon_id' => 'required|exists:rayons,id',
+    'tahun_lahir' => 'required|digits:4|integer|min:1900|max:' . date('Y'),
+
+], [
+    'name.required' => 'Name wajib diisi.',
+
+    'email.required' => 'Email wajib diisi.',
+    'email.email' => 'Format email tidak valid.',
+    'email.unique' => 'Email sudah terdaftar.',
+
+    'password.required' => 'Password wajib diisi.',
+    'password.confirmed' => 'Konfirmasi password tidak cocok.',
+    'password.min' => 'Password minimal 6 karakter.',
+
+    //'rayon_id.required' => 'Rayon wajib dipilih.',
+    //'rayon_id.exists' => 'Rayon yang dipilih tidak valid.',
+
+    'tahun_lahir.required' => 'Tahun lahir wajib diisi.',
+    'tahun_lahir.digits' => 'Tahun lahir harus 4 digit.',
+    'tahun_lahir.integer' => 'Tahun lahir harus berupa angka.',
+    'tahun_lahir.min' => 'Tahun lahir tidak valid.',
+    'tahun_lahir.max' => 'Tahun lahir tidak boleh melebihi tahun sekarang.',
+]);
 
         // Generate token verifikasi email
         $token = Str::random(64);

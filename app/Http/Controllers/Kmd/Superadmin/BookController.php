@@ -34,15 +34,47 @@ class BookController extends Controller
 
         return view('a_kom_digital_pusat.superadmin.book.index', compact('data', 'filters'));
     }
-
-    public function apiNoBooks(Request $request): JsonResponse
+public function apiNoBooks(Request $request): JsonResponse
 {
-    $data = KmdBooks::select('no_books')->get();
+    // ✅ 3 Table Join: kmd_books → kmd_certificates → kmd_users
+    $data = KmdBooks::select(
+            'kmd_books.id',
+            'kmd_books.no_books',
+            'kmd_books.date_publish as books_date',
+            'kmd_books.status as books_status',
+            'kmd_certificates.no_certificate',
+            'kmd_certificates.date_publish as cert_date',
+            'kmd_users.name as user_name',
+            'kmd_users.no_sim',
+        )
+        ->leftJoin('kmd_certificates', 'kmd_books.user_id', '=', 'kmd_certificates.user_id')
+        ->leftJoin('kmd_users', 'kmd_books.user_id', '=', 'kmd_users.id', 'kmd_users.no_sim')
+        ->get()
+        ->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'no_books' => $item->no_books,           // ✅ No Buku
+                'user_name' => $item->user_name ?? '-',   // ✅ Nama User
+                'no_sim' => $item->no_sim ?? 'null',          // ✅ No SIM
+                'no_certificate' => $item->no_certificate ?? 'null',  // ✅ No Certificate
+                'date_publish' => $item->books_date,
+                'status' => $item->books_status,
+            ];
+        });
 
     return response()->json([
         'data' => $data,
         'total' => $data->count(),
     ]);
+}
+//     public function apiNoBooks(Request $request): JsonResponse
+// {
+//     $data = KmdBooks::select('no_books')->get();
+
+//     return response()->json([
+//         'data' => $data,
+//         'total' => $data->count(),
+//     ]);
 //    $books = KmdBooks::with(['user' => function($query) {
 //         $query->select('id', 'nik', 'name', 'email');
 //     }])->select('id', 'user_id', 'no_books')->get();
@@ -61,7 +93,7 @@ class BookController extends Controller
 //         'data' => $data,
 //         'total' => $data->count(),
 //     ]);
-}
+// }
 
 
 
@@ -116,14 +148,32 @@ class BookController extends Controller
         }
     }
 
+    // public function destroy($id)
+    // {
+    //     try {
+    //         $this->service->delete(Crypt::decrypt($id));
+    //         return redirect()->route('kom.super_books.index')->with('success', 'Data berhasil dihapus.');
+    //     } catch (\Exception $e) {
+    //         Log::error('Gagal menghapus buku: ' . $e->getMessage());
+    //         return redirect()->back()->with('error', 'Terjadi kesalahan saat menghapus data.');
+    //     }
+    // }
     public function destroy($id)
-    {
-        try {
-            $this->service->delete(Crypt::decrypt($id));
-            return redirect()->route('kom.super_books.index')->with('success', 'Data berhasil dihapus.');
-        } catch (\Exception $e) {
-            Log::error('Gagal menghapus buku: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat menghapus data.');
-        }
+{
+    try {
+        $this->service->delete($id);
+
+        return redirect()
+            ->route('kom.super_books.index')
+            ->with('success', 'Data berhasil dihapus.');
+
+    } catch (\Exception $e) {
+
+        Log::error('Gagal menghapus buku: ' . $e->getMessage());
+
+        return redirect()
+            ->back()
+            ->with('error', 'Terjadi kesalahan saat menghapus data.');
     }
+}
 }

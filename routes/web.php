@@ -70,6 +70,11 @@ use App\Http\Controllers\Kmd\Dashboard\ValidasiKodeBukuController;
 use App\Http\Controllers\Kmd\Superadmin\KomUserController;
 use App\Http\Controllers\Superadmin\ClassController;
 use App\Http\Controllers\Kmd\AdminCabang\AbsensiController;
+use App\Http\Controllers\FrontendController;
+
+
+Route::get('/', [FrontendController::class, 'index']);
+Route::get('/privacy-policy', [FrontendController::class, 'privacy'])->name('privacy');
 
 Route::prefix('app')->group(function () {
     Route::get('syarat-dan-ketentuan', [AuthController::class, 'SyaratKetentuan'])->name('kom.snk');
@@ -197,6 +202,8 @@ Route::prefix('app')->group(function () {
                 Route::get('/review/{id}', 'formReviewPengajar')->name('formReviewPeserta');
                 Route::post('/storeReview', 'storeReview')->name('storeReviewPeserta');
                 Route::get('/pertanyaan', 'pertanyaanSaya')->name('pertanyaan');
+                Route::get('pertanyaan/{id}/edit', 'editPertanyaanSaya')->name('pertanyaan.edit');
+                Route::put('pertanyaan/{id}', 'updatePertanyaanSaya')->name('pertanyaan.update');
                 Route::get('/persembahan', 'persembahanSaya')->name('persembahan');
                 Route::get('/buku', 'bukuSaya')->name('buku');
                 Route::get('/progress_kom', 'progressSaya')->name('progress_kom');
@@ -306,7 +313,7 @@ Route::prefix('app')->group(function () {
                 Route::post('/{kelasId}/add-peserta', 'addPesertaZoomSubmit')->name('addPesertaZoom.submit');
                 Route::get('/{kelasId}/add-peserta', 'addPesertaZoom')->name('addPesertaZoom'); // untuk form
 
-
+                Route::get('/api/pengajars', 'getPengajarsByModul')->name('api.pengajars.byModul');
             });
 
             Route::prefix('data-statik')->controller(DataStatikController::class)->name('data-statik.')->group(function () {

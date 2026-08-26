@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Kmd\AdminCabang;
 use App\Http\Controllers\Controller;
 use App\Models\Kmd\KmdModuls;
 use App\Models\Kmd\KmdClassTutorial;
+use App\Models\Kmd\KmdUserClassTutorial;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -219,19 +220,143 @@ class ClassTutorialAdminCabangController extends Controller
 
 
 
-    public function create(): View
+    // public function create(): View
+    // {
+    //     $user = Auth::user();
+
+    //     $pengajars = KomUser::where('cabang_id', $user->cabang_id)
+    //         ->where('role', 'pengajar')
+    //         ->get();
+
+    //     $moduls = KmdModuls::all();
+    //     $kelas = KmdClass::all();
+
+    //     return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.create', compact('pengajars', 'moduls', 'kelas'));
+    // }
+    public function create()
     {
-        $user = Auth::user();
-
-        $pengajars = KomUser::where('cabang_id', $user->cabang_id)
-            ->where('role', 'pengajar')
-            ->get();
-
-        $moduls = KmdModuls::all();
+        $moduls = KmdModuls::orderBy('created_at', 'asc')->get();
         $kelas = KmdClass::all();
 
-        return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.create', compact('pengajars', 'moduls', 'kelas'));
+            $praktikalModulIds = [
+                'd191a090-53af-46dc-958d-5fbe0b883967',
+                '6d119ce4-8097-4311-b250-1b4b3f600685', 
+            ];
+
+            $doktrinalModulIds = [
+                '3d6d23ce-d56a-4bc8-a7fa-bee7dd9368be',
+                '36b0ed83-fb3e-476a-8af0-73d0610de12a',
+            ];
+
+        $category = null;
+
+        // Ambil modul dari request, fallback ke modul pertama
+        $selectedModulId = request('modul_id', optional($moduls->first())->id);
+
+        Log::info('Request modul_id:', ['modul_id' => $selectedModulId]);
+
+        // Ambil modul selected berdasarkan modul_id request
+        $selectedModul = $moduls->firstWhere('id', $selectedModulId);
+
+        if ($selectedModul) {
+            if (in_array($selectedModul->id, $praktikalModulIds)) {
+                $category = 'Praktikal';
+            } elseif (in_array($selectedModul->id, $doktrinalModulIds)) {
+                $category = 'Doktrinal';
+            }
+        }
+
+        Log::info('Determined Category:', ['category' => $category]);
+
+        $qualifiedUserIds = collect();
+
+        // if ($category) {
+        //     $qualifiedUserIds = KmdUserClassTutorial::where('category_diklat', 'LIKE', "%{$category}%")
+        //         ->select('user_id')
+        //         ->selectRaw('COUNT(*) as total')
+        //         ->groupBy('user_id')
+        //         ->having('total', '>=', 2)
+        //         ->pluck('user_id');
+        // }
+        if ($selectedModulId) {
+
+                $qualifiedUserIds = KmdUserClassTutorial::where('modul_id', $selectedModulId)
+                    ->select('user_id')
+                    ->selectRaw('COUNT(*) as total')
+                    ->groupBy('user_id')
+                    ->having('total', '>=', 1)
+                    ->pluck('user_id');
+
+            }
+
+        if ($qualifiedUserIds->isEmpty()) {
+            Log::warning('Qualified User IDs empty, mengambil semua pengajar tanpa filter');
+            $pengajars = KomUser::where('role', 'pengajar')->get();
+        } else {
+            Log::info('Mencari pengajar dengan user_id qualified.');
+            $pengajars = KomUser::where('role', 'pengajar')->whereIn('id', $qualifiedUserIds)->get();
+        }
+
+        Log::info('Jumlah Pengajar yang diambil:', ['count' => $pengajars->count()]);
+
+        return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.create', compact(
+            'pengajars',
+            'moduls',
+            'kelas',
+            'selectedModul',
+            'selectedModulId',
+            'category'
+        ));
     }
+
+public function getPengajarsByModul(Request $request)
+{
+    // $praktikalModulIds = [
+    //     '3d191a090-53af-46dc-958d-5fbe0b883967',
+    //     '6d119ce4-8097-4311-b250-1b4b3f600685',
+    // ];
+    // $doktrinalModulIds = [
+    //     'd3d6d23ce-d56a-4bc8-a7fa-bee7dd9368be',
+    //     '36b0ed83-fb3e-476a-8af0-73d0610de12a',
+    // ];
+    $praktikalModulIds = [
+        'd191a090-53af-46dc-958d-5fbe0b883967',
+        '6d119ce4-8097-4311-b250-1b4b3f600685', 
+    ];
+
+    $doktrinalModulIds = [
+        '3d6d23ce-d56a-4bc8-a7fa-bee7dd9368be',
+        '36b0ed83-fb3e-476a-8af0-73d0610de12a',
+    ];
+
+    $modulId = $request->query('modul_id');
+
+    $category = null;
+    if (in_array($modulId, $praktikalModulIds)) {
+        $category = 'Praktikal';
+    } elseif (in_array($modulId, $doktrinalModulIds)) {
+        $category = 'Doktrinal';
+    }
+
+    $pengajars = [];
+
+    if ($category) {
+        $qualifiedUserIds = KmdUserClassTutorial::where('category_diklat', 'LIKE', "%{$category}%")
+            ->select('user_id')
+            ->selectRaw('COUNT(*) as total')
+            ->groupBy('user_id')
+            ->having('total', '>=', 2)
+            ->pluck('user_id');
+
+        $pengajars = KomUser::where('role', 'pengajar')
+            ->whereIn('id', $qualifiedUserIds)
+            ->orderBy('name', 'asc')
+            ->get(['id', 'name']);
+    }
+
+    // Jika tidak ada kategori atau user, kosongkan list
+    return response()->json($pengajars);
+}
 
     public function store(KelasTutorRequest $request): RedirectResponse
     {
@@ -249,28 +374,111 @@ class ClassTutorialAdminCabangController extends Controller
     }
 
 
+    // public function edit(string $encryptedId): View
+    // {
+    //     try {
+    //         $data = $this->kelasTutorService->find($encryptedId);
+
+    //         if ($data->user_id !== Auth::id()) {
+    //             abort(403, 'Unauthorized');
+    //         }
+
+    //         $moduls = KmdModuls::all();
+    //         $kelas = KmdClass::all();
+    //         $pengajars = KomUser::where('role', 'pengajar')
+    //             ->where('cabang_id', Auth::user()->cabang_id)
+    //             ->get();
+
+    //         return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.edit', compact('data', 'moduls', 'kelas', 'pengajars'));
+    //     } catch (DecryptException $e) {
+    //         abort(403, 'ID tidak valid.');
+    //     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+    //         abort(404, 'Data tidak ditemukan.');
+    //     }
+    // }
+
     public function edit(string $encryptedId): View
-    {
-        try {
-            $data = $this->kelasTutorService->find($encryptedId);
+{
+    try {
+        $data = $this->kelasTutorService->find($encryptedId);
 
-            if ($data->user_id !== Auth::id()) {
-                abort(403, 'Unauthorized');
-            }
-
-            $moduls = KmdModuls::all();
-            $kelas = KmdClass::all();
-            $pengajars = KomUser::where('role', 'pengajar')
-                ->where('cabang_id', Auth::user()->cabang_id)
-                ->get();
-
-            return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.edit', compact('data', 'moduls', 'kelas', 'pengajars'));
-        } catch (DecryptException $e) {
-            abort(403, 'ID tidak valid.');
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            abort(404, 'Data tidak ditemukan.');
+        if ($data->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized');
         }
+
+        $moduls = KmdModuls::orderBy('created_at', 'asc')->get();
+        $kelas = KmdClass::all();
+
+        $praktikalModulIds = [
+            'd191a090-53af-46dc-958d-5fbe0b883967',
+            '6d119ce4-8097-4311-b250-1b4b3f600685',
+        ];
+
+        $doktrinalModulIds = [
+         
+            '3d6d23ce-d56a-4bc8-a7fa-bee7dd9368be',
+            '36b0ed83-fb3e-476a-8af0-73d0610de12a',
+        ];
+
+        $category = null;
+
+        // Ambil modul dari data yang diedit, fallback ke modul pertama
+        $selectedModulId = optional($data)->modul_id ?? optional($moduls->first())->id;
+
+        Log::info('Edit - Request modul_id:', ['modul_id' => $selectedModulId]);
+
+        // Ambil modul selected berdasarkan modul_id
+        $selectedModul = $moduls->firstWhere('id', $selectedModulId);
+
+        if ($selectedModul) {
+            if (in_array($selectedModul->id, $praktikalModulIds)) {
+                $category = 'Praktikal';
+            } elseif (in_array($selectedModul->id, $doktrinalModulIds)) {
+                $category = 'Doktrinal';
+            }
+        }
+
+        Log::info('Edit - Determined Category:', ['category' => $category]);
+
+        $qualifiedUserIds = collect();
+
+        if ($category) {
+            $qualifiedUserIds = KmdUserClassTutorial::where('category_diklat', 'LIKE', "%{$category}%")
+                ->select('user_id')
+                ->selectRaw('COUNT(*) as total')
+                ->groupBy('user_id')
+                ->having('total', '>=', 2)
+                ->pluck('user_id');
+        }
+
+        if ($qualifiedUserIds->isEmpty()) {
+            Log::warning('Edit - Qualified User IDs empty, mengambil semua pengajar tanpa filter');
+            $pengajars = KomUser::where('role', 'pengajar')->get();
+        } else {
+            Log::info('Edit - Mencari pengajar dengan user_id qualified.');
+            $pengajars = KomUser::where('role', 'pengajar')->whereIn('id', $qualifiedUserIds)->get();
+        }
+
+        Log::info('Edit - Jumlah Pengajar yang diambil:', ['count' => $pengajars->count()]);
+
+        return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.edit', compact(
+            'data',
+            'pengajars',
+            'moduls',
+            'kelas',
+            'selectedModul',
+            'selectedModulId',
+            'category'
+        ));
+    } catch (DecryptException $e) {
+        abort(403, 'ID tidak valid.');
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        abort(404, 'Data tidak ditemukan.');
     }
+}
+
+
+
 
     public function update(KelasTutorRequest $request, string $encryptedId): RedirectResponse
     {

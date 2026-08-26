@@ -77,10 +77,18 @@ class KmdUserClassTutorial extends Model
     }
 
     public function latestDonation()
-{
-    return $this->hasOne(KmdDonasi::class, 'userclasstutorial_id')->latestOfMany();
-}
+    {
+        return $this->hasOne(KmdDonasi::class, 'userclasstutorial_id')->latestOfMany();
+    }
 
+    public function pengajar(): BelongsTo
+    {
+        return $this->belongsTo(KomUser::class, 'pengajar_id');
+    }
     
+    public function absensi()
+    {
+        return $this->hasOne(KmdUserAbsensi::class, 'userclasstutorial_id', 'id');
+    }
 
 }

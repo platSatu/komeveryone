@@ -150,6 +150,11 @@ class KomUser extends Authenticatable
         return $this->hasMany(KmdDonasi::class, 'user_id', 'id')->where('status', 'paid');
     }
 
+    public function kmdUserClassTutorial(): HasMany
+    {
+        return $this->hasMany(KmdUserClassTutorial::class, 'user_id');
+    }
+
 
 }
 

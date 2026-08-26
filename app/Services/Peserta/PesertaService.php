@@ -39,6 +39,54 @@ class PesertaService
         }
     }
 
+
+    /**
+ * Get pertanyaan by ID
+ */
+public function getPertanyaanById($id)
+{
+    return KmdPertanyaanUser::with(['modul', 'class'])
+        ->where('user_id', Auth::id())
+        ->find($id);
+}
+
+/**
+ * Update pertanyaan
+ */
+public function updatePertanyaan($id, array $data)
+    {
+        Log::info('=== START PesertaService.updatePertanyaan ===', [
+            'id' => $id,
+            'data' => $data
+        ]);
+
+        try {
+            $pertanyaan = KmdPertanyaanUser::findOrFail($id);
+            
+            Log::info('Found pertanyaan', [
+                'pertanyaan_id' => $pertanyaan->id,
+                'current_data' => $pertanyaan->toArray()
+            ]);
+
+            $pertanyaan->update($data);
+
+            Log::info('Update completed', [
+                'pertanyaan_id' => $pertanyaan->id,
+                'updated_data' => $pertanyaan->fresh()->toArray()
+            ]);
+
+            return $pertanyaan;
+        } catch (\Exception $e) {
+            Log::error('=== ERROR in PesertaService.updatePertanyaan ===', [
+                'id' => $id,
+                'data' => $data,
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine()
+            ]);
+            throw $e;
+        }
+    }
     /**
      * Get kelas tutorial user dengan relasi
      */

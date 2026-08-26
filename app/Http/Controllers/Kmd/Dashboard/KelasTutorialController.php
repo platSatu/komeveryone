@@ -183,10 +183,16 @@ class KelasTutorialController extends Controller
     {
         Log::info('joinClass called', ['request' => $request->all()]);
 
+        // $request->validate([
+        //     'class_tutorial_id' => ['required', new CustomDbRule('mysql2', 'kmd_class_tutorial', 'id', 'exists')],
+        // ], [
+        //     'class_tutorial_id.required' => 'Kolom Kelas Tutorial wajib diisi.',
+        // ]);
         $request->validate([
-            'class_tutorial_id' => ['required', new CustomDbRule('mysql2', 'kmd_class_tutorial', 'id', 'exists')],
+            'class_tutorial_id' => 'required|exists:kmd_class_tutorial,id',
         ], [
             'class_tutorial_id.required' => 'Kolom Kelas Tutorial wajib diisi.',
+            'class_tutorial_id.exists' => 'Kelas Tutorial tidak ditemukan.',
         ]);
 
         $user = Auth::user();
@@ -215,6 +221,24 @@ class KelasTutorialController extends Controller
         }
 
         Log::info('pengajar_id sebelum insert progress', ['pengajar_id' => $kelasTutorial->pengajar_id]);
+        
+        $existingSameModul = KmdUserClassTutorial::where('user_id', $user->id)
+            ->where('modul_id', $kelasTutorial->modul_id)
+            ->first();
+
+        if ($existingSameModul) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda sudah terdaftar di modul ini sebelumnya dan tidak dapat mendaftar lagi.',
+                'redirect_url' => route('kom.kelas_tutorial.pertanyaan.form'),
+            ], 422);
+        }
+
+        // Cek apakah user sudah ikut kelas ini yang belum selesai (step != selesai)
+        $existingProgress = KmdUserClassTutorial::where('user_id', $user->id)
+            ->where('class_tutorial_id', $kelasTutorial->id)
+            ->where('step', '!=', 'selesai')
+            ->first();
 
         // Cek apakah user sudah pernah ikut kelas ini (belum selesai)
         $existingProgress = KmdUserClassTutorial::where('user_id', $user->id)
