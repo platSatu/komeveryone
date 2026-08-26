@@ -50,6 +50,12 @@ class KmdTarikSaldo extends Model
         return $this->belongsTo(Cabang::class, 'cabang_id');
     }
 
+    // Relasi ke Donasi (sumber dana penarikan, opsional)
+    public function donasi()
+    {
+        return $this->belongsTo(KmdDonasi::class, 'donasi_id');
+    }
+
     // Relasi ke User yang approve
     public function approvedBy()
     {

@@ -9,7 +9,7 @@ class TarikSaldoService
 {
     public function getAll(array $filters = []): AbstractPaginator
     {
-        $query = KmdTarikSaldo::with(['user', 'cabang', 'donasi', 'userClassTutorial']);
+        $query = KmdTarikSaldo::with(['user', 'cabang', 'donasi', 'userClassTutorial.classTutorial']);
 
         if (!empty($filters['user_id'])) {
             $query->where('user_id', $filters['user_id']);

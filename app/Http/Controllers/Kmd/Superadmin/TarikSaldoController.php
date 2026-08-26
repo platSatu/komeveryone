@@ -33,10 +33,10 @@ class TarikSaldoController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'user_id' => 'required|string|exists:kom_users,id',
+            'user_id' => 'required|string|exists:kmd_users,id',
             'cabang_id' => 'required|string|exists:kmd_cabangs,id',
             'donasi_id' => 'nullable|string|exists:kmd_donations,id',
-            'userclasstutorial_id' => 'nullable|string|exists:kmd_user_class_tutorials,id',
+            'userclasstutorial_id' => 'nullable|string|exists:kmd_user_class_tutorial,id',
             'tanggal_penarikan' => 'required|date',
             'jumlah' => 'required|numeric|min:0',
             'status' => 'required|string',
@@ -44,7 +44,7 @@ class TarikSaldoController extends Controller
 
         try {
             $this->service->store($request->all());
-            return redirect()->route('tarikSaldo.index')->with('success', 'Data tarik saldo berhasil disimpan.');
+            return redirect()->route('kom.super_tarik-saldo.index')->with('success', 'Data tarik saldo berhasil disimpan.');
         } catch (\Exception $e) {
             Log::error('Gagal menyimpan tarik saldo: ' . $e->getMessage());
             return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan saat menyimpan data.');
@@ -59,17 +59,17 @@ class TarikSaldoController extends Controller
             return view('a_kom_digital_pusat.superadmin.tarik_saldo.edit', compact('tarikSaldo'));
         } catch (\Exception $e) {
             Log::error('Gagal menampilkan form edit tarik saldo: ' . $e->getMessage());
-            return redirect()->route('tarikSaldo.index')->with('error', 'Data tidak ditemukan.');
+            return redirect()->route('kom.super_tarik-saldo.index')->with('error', 'Data tidak ditemukan.');
         }
     }
 
     public function update(Request $request, $id)
     {
         $request->validate([
-            'user_id' => 'required|string|exists:kom_users,id',
+            'user_id' => 'required|string|exists:kmd_users,id',
             'cabang_id' => 'required|string|exists:kmd_cabangs,id',
             'donasi_id' => 'nullable|string|exists:kmd_donations,id',
-            'userclasstutorial_id' => 'nullable|string|exists:kmd_user_class_tutorials,id',
+            'userclasstutorial_id' => 'nullable|string|exists:kmd_user_class_tutorial,id',
             'tanggal_penarikan' => 'required|date',
             'jumlah' => 'required|numeric|min:0',
             'status' => 'required|string',
@@ -77,7 +77,7 @@ class TarikSaldoController extends Controller
 
         try {
             $this->service->update(Crypt::decrypt($id), $request->all());
-            return redirect()->route('tarikSaldo.index')->with('success', 'Data tarik saldo berhasil diperbarui.');
+            return redirect()->route('kom.super_tarik-saldo.index')->with('success', 'Data tarik saldo berhasil diperbarui.');
         } catch (\Exception $e) {
             Log::error('Gagal mengupdate tarik saldo: ' . $e->getMessage());
             return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan saat memperbarui data.');
@@ -88,7 +88,7 @@ class TarikSaldoController extends Controller
     {
         try {
             $this->service->delete(Crypt::decrypt($id));
-            return redirect()->route('tarikSaldo.index')->with('success', 'Data tarik saldo berhasil dihapus.');
+            return redirect()->route('kom.super_tarik-saldo.index')->with('success', 'Data tarik saldo berhasil dihapus.');
         } catch (\Exception $e) {
             Log::error('Gagal menghapus tarik saldo: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan saat menghapus data.');
