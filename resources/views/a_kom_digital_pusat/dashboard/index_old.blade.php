@@ -30,6 +30,9 @@
                                             Browser Anda tidak mendukung video HTML5.
                                         </video> -->
                             <video id="mainVideo" class="w-100" preload="metadata"
+                                controlsList="nodownload noremoteplayback noplaybackrate"
+                                disablePictureInPicture
+                                oncontextmenu="return false;"
                                 style="max-height: 500px; background: #000; width: 100%; display: block;">
                                 <source id="videoSource" src="video.mp4" type="video/mp4">
                                 Browser Anda tidak mendukung video HTML5.
@@ -42,14 +45,6 @@
                                     style="background: none; border: none; color: white; font-size: 20px; cursor: pointer; margin-right: 10px;">
                                     ▶
                                 </button>
-                                <label for="speedControl" style="padding-top: 6px; margin-right: 5px;">Kecepatan:</label>
-                                <select id="speedControl" aria-label="Pengaturan Kecepatan Video"
-                                    style="background: rgba(255,255,255,0.8); border: 1px solid #ccc; padding: 2px; border-radius: 4px;">
-                                    <option value="0.5">0.5x</option>
-                                    <option value="1" selected>1x (Normal)</option>
-                                    <option value="1.5">1.5x</option>
-                                    <option value="2">2x</option>
-                                </select>
                             </div>
 
                             <!-- JavaScript -->
@@ -676,6 +671,8 @@
                 this.config = window.videoLearningConfig;
                 this.currentVideo = null;
                 this.watchTimeInterval = null;
+                // 🔒 Anti-skip: titik waktu terjauh yang benar-benar sudah ditonton (hanya boleh bertambah)
+                this.maxAllowedTime = 0;
 
                 // Cache DOM elements
                 this.elements = {
@@ -693,8 +690,24 @@
             init() {
                 console.log('🚀 Video Learning System initializing...');
                 this.setupEventListeners();
+                this.lockMediaSession();
                 this.loadInitialVideo();
                 console.log('✅ Video Learning System initialized');
+            }
+
+            lockMediaSession() {
+                // 🔒 Anti-skip: matikan tombol seek/skip di notifikasi media player (lock screen HP, dsb.)
+                if ('mediaSession' in navigator) {
+                    try {
+                        navigator.mediaSession.setActionHandler('seekbackward', null);
+                        navigator.mediaSession.setActionHandler('seekforward', null);
+                        navigator.mediaSession.setActionHandler('seekto', null);
+                        navigator.mediaSession.setActionHandler('previoustrack', null);
+                        navigator.mediaSession.setActionHandler('nexttrack', null);
+                    } catch (e) {
+                        console.warn('⚠️ mediaSession lock tidak didukung penuh oleh browser ini:', e);
+                    }
+                }
             }
 
             setupEventListeners() {
@@ -703,6 +716,11 @@
                 this.elements.video.addEventListener('timeupdate', () => this.onTimeUpdate());
                 this.elements.video.addEventListener('ended', () => this.onVideoEnded());
                 this.elements.video.addEventListener('error', (e) => this.onVideoError(e));
+
+                // 🔒 Anti-skip: cegah lompat maju (seek/percepat), kunci playbackRate, blokir klik kanan
+                this.elements.video.addEventListener('seeking', () => this.onVideoSeeking());
+                this.elements.video.addEventListener('ratechange', () => this.onRateChange());
+                this.elements.video.addEventListener('contextmenu', (e) => e.preventDefault());
 
                 // Video click handlers
                 document.querySelectorAll('.video-link').forEach(link => {
@@ -773,6 +791,10 @@
                 // ✅ FIX 1: Hide loading when video is ready
                 this.showLoading(false);
 
+                // 🔒 Anti-skip: reset batas maksimum untuk video yang baru dimuat ini,
+                // disamakan dengan titik resume yang sah (bukan 0) supaya restore posisi tidak ikut terblokir.
+                this.maxAllowedTime = this.currentVideo.lastTime || 0;
+
                 // Restore last position
                 if (this.currentVideo.lastTime > 0) {
                     this.elements.video.currentTime = this.currentVideo.lastTime;
@@ -783,12 +805,38 @@
             }
 
             onTimeUpdate() {
+                // 🔒 Anti-skip: catat titik terjauh yang benar-benar sudah ditonton (ratchet, hanya boleh naik)
+                if (this.elements.video.currentTime > this.maxAllowedTime) {
+                    this.maxAllowedTime = this.elements.video.currentTime;
+                }
+
                 // Save every 10 seconds
                 if (!this.timeUpdateThrottle) {
                     this.timeUpdateThrottle = setTimeout(() => {
                         this.saveWatchTime(false);
                         this.timeUpdateThrottle = null;
                     }, 10000);
+                }
+            }
+
+            onVideoSeeking() {
+                // 🔒 Anti-skip: tolak setiap upaya lompat maju melewati titik yang benar-benar sudah ditonton.
+                // Berlaku untuk semua cara seek: drag progress bar, keyboard, Picture-in-Picture,
+                // notifikasi media player HP, maupun manipulasi langsung lewat console/devtools.
+                const video = this.elements.video;
+                const TOLERANCE_SECONDS = 1.5;
+
+                if (video.currentTime > this.maxAllowedTime + TOLERANCE_SECONDS) {
+                    console.warn('⛔ Percobaan skip/percepat video terdeteksi, posisi dikembalikan.');
+                    video.currentTime = this.maxAllowedTime;
+                }
+            }
+
+            onRateChange() {
+                // 🔒 Anti-skip: kunci kecepatan putar tetap 1x (normal), tolak perubahan dari mana pun asalnya
+                if (this.elements.video.playbackRate !== 1) {
+                    console.warn('⛔ Percobaan mengubah kecepatan video terdeteksi, dikembalikan ke 1x.');
+                    this.elements.video.playbackRate = 1;
                 }
             }
 
@@ -1570,63 +1618,10 @@
                 try {
                     window.videoLearningSystem = new VideoLearningSystem();
 
-                    // ✅ Simple debug commands
-                    window.debugVideo = {
-                        getCurrentVideo: () => window.videoLearningSystem.currentVideo,
-                        testModuleCompletion: () => {
-                            if (window.videoLearningSystem.currentVideo) {
-                                window.videoLearningSystem.handleModuleCompleted();
-                            } else {
-                                console.log('⚠️ No current video loaded');
-                            }
-                        },
-                        testVideoCompletion: () => {
-                            if (window.videoLearningSystem.currentVideo) {
-                                window.videoLearningSystem.handleVideoCompleted();
-                            } else {
-                                console.log('⚠️ No current video loaded');
-                            }
-                        },
-                        forceEndVideo: () => {
-                            const video = document.getElementById('mainVideo');
-                            if (video && video.duration) {
-                                video.currentTime = video.duration;
-                                console.log('🧪 Video forced to end');
-                            } else {
-                                console.log('⚠️ No video loaded');
-                            }
-                        },
-                        resetAnswers: () => {
-                            if (window.videoLearningSystem.resetAnswerSelection) {
-                                window.videoLearningSystem.resetAnswerSelection();
-                                console.log('🔄 Answers reset');
-                            }
-                        },
-                        showModuleStatus: () => {
-                            const current = window.videoLearningSystem.currentVideo;
-                            if (current) {
-                                console.log('📊 Module Status:', {
-                                    currentModule: current.moduleName,
-                                    moduleOrder: current.moduleOrder,
-                                    videoSort: current.videoSort,
-                                    isLastInModule: window.videoLearningSystem
-                                        .isLastVideoInCurrentModule(),
-                                    hasNextModule: window.videoLearningSystem.hasNextModule(),
-                                    allModulesCompleted: window.videoLearningSystem
-                                        .isAllModulesCompleted()
-                                });
-                            }
-                        }
-                    };
-
+                    // 🔒 window.debugVideo (forceEndVideo, testModuleCompletion, testVideoCompletion)
+                    // dihapus dari production: semua fungsi itu bisa dipakai untuk memalsukan
+                    // "video selesai ditonton" tanpa benar-benar menonton.
                     console.log('🎉 Video Learning System ready!');
-                    console.log('🔧 Debug commands:');
-                    console.log('  debugVideo.getCurrentVideo() - Get current video');
-                    console.log('  debugVideo.testModuleCompletion() - Test module completion');
-                    console.log('  debugVideo.testVideoCompletion() - Test video completion');
-                    console.log('  debugVideo.forceEndVideo() - Force video to end');
-                    console.log('  debugVideo.resetAnswers() - Reset answer selection');
-                    console.log('  debugVideo.showModuleStatus() - Show module status');
 
                 } catch (error) {
                     console.error('💥 Failed to initialize:', error);
@@ -1676,21 +1671,12 @@
                     video.currentTime = Math.max(0, video.currentTime - 10);
                     break;
 
-                case 'ArrowRight':
-                    e.preventDefault();
-                    video.currentTime = Math.min(video.duration, video.currentTime + 10);
-                    break;
+                // 🔒 ArrowRight (skip maju 10 detik) dihapus - melanggar aturan "video tidak boleh dipercepat".
+                // 🔒 KeyQ + Ctrl (force-end debug) dihapus - tombol skip tersembunyi yang aktif di production.
 
                 case 'KeyM':
                     e.preventDefault();
                     video.muted = !video.muted;
-                    break;
-
-                case 'KeyQ':
-                    if (e.ctrlKey && window.debugVideo) {
-                        e.preventDefault();
-                        window.debugVideo.forceEndVideo();
-                    }
                     break;
             }
         });
@@ -1746,44 +1732,16 @@
         });
     </script> --}}
     <script>
-        const video = document.getElementById('myVideo');
-        const buttons = document.querySelectorAll('#speedControls button');
-        buttons.forEach(button => {
-            button.addEventListener('click', () => {
-                // Set playback rate video
-                const speed = parseFloat(button.getAttribute('data-speed'));
-                video.playbackRate = speed;
-                // Update active button style
-                buttons.forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-            });
-        });
-    </script>
-    <script>
-        const video = document.getElementById('mainVideo');
-        let lastTime = 0;
-        // Update posisi terakhir saat video berjalan
-        video.addEventListener('timeupdate', () => {
-            lastTime = video.currentTime;
-        });
-        // Cegah seek mundur atau lompat ke posisi sebelum lastTime
-        video.addEventListener('seeking', () => {
-            if (video.currentTime < lastTime) {
-                video.currentTime = lastTime;
-            }
-        });
-    </script>
-    <script>
         document.addEventListener('DOMContentLoaded', function() {
             const video = document.getElementById('mainVideo');
             const playPauseBtn = document.getElementById('playPauseBtn');
-            const speedControl = document.getElementById('speedControl');
 
-            // Speed control
-            speedControl.addEventListener('change', function() {
-                const speed = parseFloat(this.value);
-                video.playbackRate = speed;
-                console.log('Playback speed changed to:', speed);
+            // 🔒 Kontrol kecepatan dihapus dari UI. Sebagai jaring pengaman tambahan, kunci
+            // playbackRate tetap 1x apapun yang mencoba mengubahnya (native player/PiP/devtools).
+            video.addEventListener('ratechange', function() {
+                if (video.playbackRate !== 1) {
+                    video.playbackRate = 1;
+                }
             });
 
             // Update icon saat video mulai
