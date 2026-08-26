@@ -483,10 +483,12 @@ public function getPengajarsByModul(Request $request)
     public function update(KelasTutorRequest $request, string $encryptedId): RedirectResponse
     {
         try {
-            $this->kelasTutorService->update($encryptedId, $request->validated());
+            // Samakan dengan alur create: perubahan jadwal/topic/durasi ikut
+            // di-PATCH ke meeting Zoom yang sudah ada, bukan cuma update DB lokal.
+            $this->kelasTutorService->editZoomMeeting($encryptedId, $request->validated());
 
             return redirect()->route('kom.kelas_tutor_cabang.index')
-                ->with('success', 'Kelas tutorial berhasil diperbarui.');
+                ->with('success', 'Kelas tutorial berhasil diperbarui dan Zoom meeting sudah diupdate.');
         } catch (DecryptException $e) {
             return redirect()->back()
                 ->withInput()

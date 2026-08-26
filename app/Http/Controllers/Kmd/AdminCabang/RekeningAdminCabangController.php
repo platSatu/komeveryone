@@ -149,7 +149,7 @@ class RekeningAdminCabangController extends Controller
 
         // Step 4: Begin transaction (sekarang khusus 'mysql2')
         Log::info('Step 4: Starting database transaction di mysql2');
-        DB::connection('mysql2')->beginTransaction();
+        DB::beginTransaction();
         
         // Step 5: Prepare data
         Log::info('Step 5: Preparing data for insert');
@@ -180,12 +180,12 @@ class RekeningAdminCabangController extends Controller
         Log::info('Step 6: Insert result', ['inserted' => $inserted, 'rekening_id' => $rekening->id ?? 'null']);
 
         if (!$inserted) {
-            throw new Exception('Failed to insert data to mysql2 database');
+            throw new \Exception('Gagal menyimpan data rekening.');
         }
 
         // Step 7: Commit transaction (mysql2)
         Log::info('Step 7: Committing transaction di mysql2');
-        DB::connection('mysql2')->commit();
+        DB::commit();
 
         // Step 8: Get inserted data (dari 'mysql2')
         Log::info('Step 8: Retrieving inserted data dari mysql2');
@@ -206,15 +206,15 @@ class RekeningAdminCabangController extends Controller
             'debug_info' => [
                 'user_id' => $userId,
                 'inserted_id' => $dataToInsert['id'],
-                'connection_used' => 'mysql2',
+                'connection_used' => 'mysql',
                 'timestamp' => now()
             ]
         ]);
 
-    } catch (ValidationException $e) {
+    } catch (\Illuminate\Validation\ValidationException $e) {
         // Rollback jika validasi gagal (walaupun jarang butuh untuk validasi)
-        if (DB::connection('mysql2')->transactionLevel() > 0) {
-            DB::connection('mysql2')->rollBack();
+        if (DB::transactionLevel() > 0) {
+            DB::rollBack();
         }
         
         Log::error('Validation error in store rekening', [
@@ -233,10 +233,10 @@ class RekeningAdminCabangController extends Controller
             ]
         ], 422);
         
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
         // Rollback transaction
-        if (DB::connection('mysql2')->transactionLevel() > 0) {
-            DB::connection('mysql2')->rollBack();
+        if (DB::transactionLevel() > 0) {
+            DB::rollBack();
         }
         
         Log::error('=== ERROR STORE REKENING ===', [
@@ -246,7 +246,7 @@ class RekeningAdminCabangController extends Controller
             'error_file' => $e->getFile(),
             'error_line' => $e->getLine(),
             'trace' => $e->getTraceAsString(),
-            'connection_used' => 'mysql2' // Tambah untuk debug
+            'connection_used' => 'mysql' // Tambah untuk debug
         ]);
 
         return response()->json([
@@ -256,7 +256,7 @@ class RekeningAdminCabangController extends Controller
                 'error_type' => 'exception',
                 'error_file' => $e->getFile(),
                 'error_line' => $e->getLine(),
-                'connection_used' => 'mysql2',
+                'connection_used' => 'mysql',
                 'timestamp' => now()
             ]
         ], 500);

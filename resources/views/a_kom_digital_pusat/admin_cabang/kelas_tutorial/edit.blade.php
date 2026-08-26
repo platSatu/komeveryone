@@ -55,15 +55,21 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Tanggal Kelas</label>
-                            <input type="date" name="date_class" class="form-control" required
-                                value="{{ old('date_class', $data->date_class) }}">
+                            <label for="start_time" class="form-label">Waktu Mulai</label>
+                            <input type="datetime-local" class="form-control" id="start_time" name="start_time"
+                                value="{{ old('start_time', optional($data->start_time ? \Carbon\Carbon::parse($data->start_time) : null)->format('Y-m-d\TH:i')) }}"
+                                required>
                         </div>
 
                         <div class="form-group">
-                            <label>Jam Kelas</label>
-                            <input type="time" name="time_class" class="form-control" required
-                                value="{{ old('time_class', $data->time_class) }}">
+                            <label>Topic</label>
+                            <input type="text" name="topic" class="form-control" value="{{ old('topic', $data->topic) }}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="duration" class="form-label">Durasi (menit)</label>
+                            <input type="number" class="form-control" id="duration" name="duration"
+                                value="{{ old('duration', $data->duration ?? 60) }}" min="1">
                         </div>
 
                         <div class="form-group">
@@ -75,18 +81,12 @@
                         <div class="form-group">
                             <label>Status Kelas</label>
                             <select name="status" class="form-control" required>
-                                <option value="aktif" {{ old('status', $data->status) == 'aktif' ? 'selected' : '' }}>Aktif
+                                <option value="active" {{ old('status', $data->status) == 'active' ? 'selected' : '' }}>Aktif
                                 </option>
-                                <option value="nonaktif" {{ old('status', $data->status) == 'nonaktif' ? 'selected' : '' }}>
+                                <option value="inactive" {{ old('status', $data->status) == 'inactive' ? 'selected' : '' }}>
                                     Nonaktif
                                 </option>
                             </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Link Zoom</label>
-                            <input type="url" name="link_zoom" class="form-control"
-                                value="{{ old('link_zoom', $data->link_zoom) }}">
                         </div>
 
                         <div class="form-group">

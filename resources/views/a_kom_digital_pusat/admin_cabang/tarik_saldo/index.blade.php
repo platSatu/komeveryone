@@ -172,7 +172,9 @@
                                                 @else
                                                     <button class="btn btn-secondary btn-sm" disabled>
                                                         <i class="fas fa-ban me-1"></i>&nbsp;&nbsp;
-                                                        @if($saldo['saldo_tersedia'] < 1000)
+                                                        @if($saldo['sudah_pernah_tarik'])
+                                                            Sudah Diajukan
+                                                        @elseif($saldo['saldo_tersedia'] < 1000)
                                                             Minimal Rp 1.000
                                                         @else
                                                             Tidak Ada Saldo
@@ -235,7 +237,7 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <span class="badge bg-primary fs-6">
+                                                <span class="badge bg-primary text-white fs-6">
                                                     {{ $penarikan->formatted_jumlah }}
                                                 </span>
                                             </td>
@@ -262,10 +264,28 @@
                                                 </button>
                                             </td>
                                         </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="fas fa-history fa-3x mb-3"></i>
+                                <h5>Belum Ada Riwayat Penarikan</h5>
+                                <p>Anda belum pernah melakukan penarikan saldo.</p>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
 
-                                        {{-- Modal Detail Penarikan --}}
+{{-- Modal Detail Penarikan (di luar struktur tabel, satu modal per transaksi) --}}
+                        @foreach($riwayatPenarikan as $penarikan)
                                         <div class="modal fade" id="detailModal{{ $penarikan->id }}" tabindex="-1">
-                                            <div class="modal-dialog modal-lg">
+                                            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
                                                 <div class="modal-content">
                                                     <div class="modal-header bg-info text-white">
                                                         <h5 class="modal-title">
@@ -357,23 +377,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @else
-                        <div class="text-center py-5">
-                            <div class="text-muted">
-                                <i class="fas fa-history fa-3x mb-3"></i>
-                                <h5>Belum Ada Riwayat Penarikan</h5>
-                                <p>Anda belum pernah melakukan penarikan saldo.</p>
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
+                        @endforeach
 
   {{-- Modal Tarik Saldo --}}
 <div class="modal fade" id="tarikSaldoModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -386,6 +390,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="tarikSaldoForm" novalidate>
+                @csrf
                 <div class="modal-body">
                     <input type="hidden" id="classTutorialId" name="class_tutorial_id">
                     
@@ -625,21 +630,23 @@
         }[type] || 'fa-info-circle';
 
         const alertHtml = `
-            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            <div class="alert ${alertClass} alert-dismissible fade show shadow" role="alert" data-tarik-saldo-alert
+                 style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 20000; min-width: 320px; max-width: 90vw;">
                 <i class="fas ${iconClass} me-2"></i>${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         `;
 
-        // Hapus alert lama (cari di body untuk aman)
-        document.querySelectorAll('.alert').forEach(alert => alert.remove());
+        // Hapus alert lama buatan fungsi ini saja (bukan alert session/info lain di halaman/modal),
+        // lalu tampilkan mengambang di atas modal (fixed + z-index tinggi) supaya tidak ketutup
+        // backdrop modal saat modal Tarik Saldo masih terbuka.
+        document.querySelectorAll('[data-tarik-saldo-alert]').forEach(alert => alert.remove());
 
-        const container = document.querySelector('.col-12') || document.body;
-        container.insertAdjacentHTML('afterbegin', alertHtml);
-        console.log('[showAlert] Alert ditampilkan di container');
+        document.body.insertAdjacentHTML('beforeend', alertHtml);
+        console.log('[showAlert] Alert ditampilkan mengambang di atas modal');
 
         setTimeout(() => {
-            const alertElem = document.querySelector('.alert');
+            const alertElem = document.querySelector('[data-tarik-saldo-alert]');
             if (alertElem) {
                 alertElem.remove();
                 console.log('[showAlert] Alert otomatis dihapus setelah 5 detik');
@@ -814,9 +821,10 @@
                 submitBtn.disabled = true;
                 console.log('[Form Submit] Mengirim request AJAX ke route tarik saldo');
 
-                // CSRF check
-                const csrfToken = document.querySelector('meta[name="csrf-token"]');
-                if (!csrfToken) {
+                // CSRF check (ambil dari input hidden @csrf di dalam form ini, bukan meta tag
+                // global yang memang tidak ada di layout halaman ini)
+                const csrfInput = tarikSaldoForm.querySelector('input[name="_token"]');
+                if (!csrfInput || !csrfInput.value) {
                     console.error('[Form Submit] CSRF token tidak ditemukan');
                     showAlert('error', 'CSRF token hilang. Refresh halaman.');
                     submitBtn.innerHTML = originalText;
@@ -833,7 +841,7 @@
                     body: formData,
                     signal: controller.signal,
                     headers: {
-                        'X-CSRF-TOKEN': csrfToken.getAttribute('content'),
+                        'X-CSRF-TOKEN': csrfInput.value,
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest' // Laravel detect AJAX
                     }

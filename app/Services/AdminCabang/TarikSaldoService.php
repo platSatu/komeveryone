@@ -62,6 +62,11 @@ class TarikSaldoService
                 // Hitung jumlah donatur unik
                 $jumlahDonatur = $donasiQuery->distinct('user_id')->count('user_id');
 
+                // Pengajuan penarikan hanya boleh 1x per kelas tutorial (berapapun statusnya)
+                $sudahPernahTarik = KmdTarikSaldo::where('user_id', $userId)
+                    ->whereIn('userclasstutorial_id', $userClassTutorialIds)
+                    ->exists();
+
                 return [
                     'class_tutorial' => $kelas,
                     'total_donasi' => $totalDonasi,
@@ -71,7 +76,8 @@ class TarikSaldoService
                     'pending' => $pending,
                     'saldo_tersedia' => max(0, $saldoTersedia),
                     'jumlah_donatur' => $jumlahDonatur,
-                    'dapat_ditarik' => ($saldoTersedia > 0)
+                    'sudah_pernah_tarik' => $sudahPernahTarik,
+                    'dapat_ditarik' => ($saldoTersedia > 0) && !$sudahPernahTarik
                 ];
             });
         } catch (\Exception $e) {
@@ -93,8 +99,8 @@ class TarikSaldoService
     public function getSaldoKelas(string $cabangId, string $userId, string $classTutorialId)
 {
     try {
-        $user = Auth::guard('kom')->user();
-        $isAdminCabang = $user && method_exists($user, 'hasRole') && $user->hasRole('admin_cabang');
+        $user = Auth::user();
+        $isAdminCabang = $user && ($user->role ?? null) === 'admin_cabang';
 
         // Total donasi untuk kelas tutorial dan cabang
         $totalDonasi = KmdDonasi::where('cabang_id', $cabangId)
@@ -152,18 +158,19 @@ class TarikSaldoService
     try {
         Log::info('Mulai proses penarikan saldo', ['data' => $data]);
 
-        // Cari relasi user dengan kelas tutorial
-        $userClassTutorial = KmdUserClassTutorial::where('class_tutorial_id', $data['class_tutorial_id'])
-            ->where('user_id', $data['user_id'])
+        // Cari baris peserta (userClassTutorial) manapun di kelas ini untuk dijadikan
+        // penghubung ke kelas tutorial-nya (bukan berdasarkan user_id admin cabang, karena
+        // admin cabang tidak harus terdaftar sebagai peserta di kelasnya sendiri).
+        $userClassTutorial = KmdUserClassTutorial::where('class_tutorial_id', $data['class_tutorial_id'] ?? null)
             ->first();
 
         if (!$userClassTutorial) {
-            $msg = 'User tidak terdaftar di kelas tutorial ini';
+            $msg = 'Belum ada peserta terdaftar pada kelas tutorial ini';
             Log::warning($msg, ['data' => $data]);
             throw new \Exception($msg);
         }
 
-        // Buat record penarikan saldo
+        // Buat record penarikan saldo (catatan memang ada di $fillable model KmdTarikSaldo)
         $penarikan = KmdTarikSaldo::create([
             'id' => (string) Str::uuid(),
             'user_id' => $data['user_id'],
@@ -172,7 +179,7 @@ class TarikSaldoService
             'tanggal_penarikan' => $data['tanggal_penarikan'] ?? now(),
             'jumlah' => $data['jumlah'],
             'status' => $data['status'] ?? 'pending',
-            // 'catatan' dihapus karena tidak ada di model
+            'catatan' => $data['catatan'] ?? null,
         ]);
 
         Log::info('Penarikan saldo berhasil dibuat', ['penarikan_id' => $penarikan->id]);

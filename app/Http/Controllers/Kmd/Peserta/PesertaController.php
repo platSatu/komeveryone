@@ -14,6 +14,7 @@ use App\Models\Kmd\KmdUserClassTutorial;
 use App\Models\Kmd\KmdClassTutorial;
 use App\Models\Kmd\KmdCertificates;
 use App\Models\Kmd\KmdClass;
+use App\Models\Kmd\KmdUserAbsensi;
 use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\Crypt;
 use App\Models\KmdUserReview;

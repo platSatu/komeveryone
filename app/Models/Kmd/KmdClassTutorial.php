@@ -24,6 +24,7 @@ class KmdClassTutorial extends Model
         'quota',
         'jml_ikut',
         'sisa_quota',    
+        'description',
         'status',
         'status_diklat',
         'notifikasi',

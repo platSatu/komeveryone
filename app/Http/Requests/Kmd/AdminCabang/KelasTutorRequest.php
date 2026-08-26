@@ -25,7 +25,11 @@ class KelasTutorRequest extends FormRequest
             'pengajar_id' => 'required|string',
             'class_id' => 'required|string',
             'modul_id' => 'required|string',
-           
+
+            'topic' => 'nullable|string',
+            'start_time' => 'required|date',
+            'duration' => 'nullable|integer|min:1',
+
             'quota' => 'required|integer|min:1',
             'jml_ikut' => 'nullable|integer|min:0',
             'sisa_quota' => 'nullable|integer|min:0',

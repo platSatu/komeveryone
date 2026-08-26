@@ -203,6 +203,7 @@ class ReviewPengajarService
             'user:id,name,email',
             'pengajar:id,name,email',
             'userClassTutorial.classTutorial.kelas:id,name',
+            'userClassTutorial.classTutorial.modul:id,name',
         ]);
 
         // Filter berdasarkan cabang user yang login (khusus admin_cabang)

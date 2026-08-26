@@ -143,14 +143,37 @@ class ReviewPengajarAdminCabangController extends Controller
             // ✅ Panggil dari Service, bukan langsung
             $reviews = $this->reviewPengajarService->getAllReviews($filters);
 
-            return view('a_kom_digital_pusat.admin_cabang.review_pengajar.reviewpengajar', compact('reviews', 'filters'));
+            // Kelompokkan per Kelas Tutorial supaya semua peserta yang me-review
+            // kelas tutorial yang sama muncul jadi satu baris di index, dengan
+            // detail tiap peserta ditampilkan di dalam popup.
+            $groupedReviews = $reviews
+                ->groupBy(function ($review) {
+                    return optional(optional($review->userClassTutorial)->classTutorial)->id ?? $review->pengajar_id;
+                })
+                ->map(function ($groupReviews) {
+                    $first = $groupReviews->first();
+                    $classTutorial = optional($first->userClassTutorial)->classTutorial;
+
+                    return [
+                        'modul' => optional(optional($classTutorial)->modul)->name ?? '-',
+                        'kelas_tutorial' => optional($classTutorial)->topic ?? '-',
+                        'pengajar' => optional($first->pengajar)->name ?? '-',
+                        'reviews' => $groupReviews,
+                        'latest_created_at' => $groupReviews->max('created_at'),
+                    ];
+                })
+                ->sortByDesc('latest_created_at')
+                ->take(4)
+                ->values();
+
+            return view('a_kom_digital_pusat.admin_cabang.review_pengajar.reviewpengajar', compact('groupedReviews', 'filters'));
         } catch (\Exception $e) {
             Log::error('Error loading all reviews', [
                 'error' => $e->getMessage(),
             ]);
 
             return view('a_kom_digital_pusat.admin_cabang.review_pengajar.reviewpengajar', [
-                'reviews' => collect(),
+                'groupedReviews' => collect(),
                 'filters' => [],
                 'error' => 'Gagal memuat data review.',
             ]);

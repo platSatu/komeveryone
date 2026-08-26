@@ -481,6 +481,11 @@
                     </div>
                 </div>
 
+                {{-- Pagination --}}
+                <nav aria-label="Page navigation" class="mt-4 d-flex justify-content-center">
+                    {{ $data->withQueryString()->links('pagination::bootstrap-4') }}
+                </nav>
+
                 {{-- Results Footer --}}
                 <div class="results-footer">
                     <div class="results-summary">

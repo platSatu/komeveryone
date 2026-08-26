@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Models\Kmd\KmdClassTutorial;
+use App\Models\Kmd\KmdUserClassTutorial;
+use App\Models\Kmd\KmdTarikSaldo;
 
 class TarikSaldoAdminCabangController extends Controller
 {
@@ -26,11 +28,16 @@ class TarikSaldoAdminCabangController extends Controller
         try {
             $user = Auth::user();
 
-            // Get saldo per kelas tutorial
-            $saldoPerKelas = $this->tarikSaldoService->getSaldoPerKelas($user->cabang_id, $user->id);
+            // Get saldo per kelas tutorial (hanya 4 kelas terbaru yang ditampilkan)
+            $saldoPerKelas = $this->tarikSaldoService->getSaldoPerKelas($user->cabang_id, $user->id)
+                ->sortByDesc(function ($item) {
+                    return $item['class_tutorial']->created_at;
+                })
+                ->take(4)
+                ->values();
 
-            // Get riwayat penarikan
-            $riwayatPenarikan = $this->tarikSaldoService->getRiwayatPenarikan($user->cabang_id, $user->id);
+            // Get riwayat penarikan (hanya 4 data terbaru, sudah diurutkan tanggal_penarikan desc oleh service)
+            $riwayatPenarikan = $this->tarikSaldoService->getRiwayatPenarikan($user->cabang_id, $user->id)->take(4);
 
             // Get statistik overall
             $overallStats = $this->tarikSaldoService->getOverallStats($user->cabang_id, $user->id);
@@ -79,7 +86,7 @@ class TarikSaldoAdminCabangController extends Controller
             // Validasi input (tambah catatan opsional dan numeric strict)
             Log::info('[TARIK SALDO] Mulai validasi input');
             $request->validate([
-                'class_tutorial_id' => 'required|uuid|exists:mysql2.kmd_class_tutorial,id',
+                'class_tutorial_id' => 'required|uuid|exists:kmd_class_tutorial,id',
                 'jumlah' => 'required|numeric|min:1000|integer', // Tambah integer untuk pastikan angka bulat
                 'catatan' => 'nullable|string|max:500',
             ], [
@@ -125,10 +132,10 @@ class TarikSaldoAdminCabangController extends Controller
             Log::info('[TARIK SALDO] Class tutorial ditemukan', ['name' => $classTutorial->name ?? 'N/A']);
 
             // Cek apakah kelas ini milik cabang user
-            if ($user->cabang_id !== $classTutorial->cabang_id) {
+            if ($user->cabang_id !== $classTutorial->rayon_id) {
                 Log::warning('[TARIK SALDO] Cabang tidak cocok', [
                     'user_cabang_id' => $user->cabang_id,
-                    'class_cabang_id' => $classTutorial->cabang_id
+                    'class_cabang_id' => $classTutorial->rayon_id
                 ]);
                 return response()->json([
                     'success' => false,
@@ -138,7 +145,7 @@ class TarikSaldoAdminCabangController extends Controller
 
             // Gunakan transaction di mysql2 (asumsi service pakai mysql2)
             Log::info('[TARIK SALDO] Mulai transaction di mysql2');
-            DB::connection('mysql2')->beginTransaction();
+            DB::beginTransaction();
 
             // Cek saldo tersedia via service
             Log::info('[TARIK SALDO] Cek saldo tersedia via service');
@@ -150,7 +157,7 @@ class TarikSaldoAdminCabangController extends Controller
 
             if ($saldoTersedia === null || $saldoTersedia < 0) {
                 Log::error('[TARIK SALDO] Saldo tersedia tidak valid dari service', ['saldo' => $saldoTersedia]);
-                throw new Exception('Gagal mengambil saldo tersedia dari service.');
+                throw new \Exception('Gagal mengambil saldo tersedia dari service.');
             }
 
             Log::info('[TARIK SALDO] Saldo tersedia berhasil diambil', [
@@ -163,7 +170,7 @@ class TarikSaldoAdminCabangController extends Controller
 
             $jumlah = (int) $request->jumlah; // Cast ke int
             if ($jumlah > $saldoTersedia) {
-                DB::connection('mysql2')->rollBack();
+                DB::rollBack();
                 Log::warning('[TARIK SALDO] Jumlah melebihi saldo tersedia', [
                     'saldo_tersedia' => $saldoTersedia,
                     'jumlah_diminta' => $jumlah
@@ -174,29 +181,48 @@ class TarikSaldoAdminCabangController extends Controller
                 ], 400);
             }
 
-            // Cek user terdaftar di kelas
-            Log::info('[TARIK SALDO] Cek userClassTutorial di mysql2');
+            // Cari baris peserta (userClassTutorial) di kelas ini untuk dijadikan penghubung
+            // record penarikan ke kelas tutorial-nya. Admin cabang tidak harus terdaftar
+            // sebagai peserta di kelasnya sendiri, jadi tidak dibatasi user_id.
+            Log::info('[TARIK SALDO] Cek userClassTutorial untuk kelas ini');
             $userClassTutorial = KmdUserClassTutorial::where('class_tutorial_id', $request->class_tutorial_id)
-                ->where('user_id', $user->id)
                 ->first();
 
             if (!$userClassTutorial) {
-                DB::connection('mysql2')->rollBack();
-                Log::warning('[TARIK SALDO] User tidak terdaftar pada kelas tutorial', [
+                DB::rollBack();
+                Log::warning('[TARIK SALDO] Belum ada peserta terdaftar di kelas tutorial ini', [
                     'user_id' => $user->id,
                     'class_tutorial_id' => $request->class_tutorial_id
                 ]);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Anda tidak terdaftar pada kelas tutorial ini.'
+                    'message' => 'Belum ada peserta terdaftar pada kelas tutorial ini.'
                 ], 403);
             }
 
-            // Data untuk dikirim ke service (fix key: user_class_tutorial_id jika snake_case di DB)
+            // Pengajuan penarikan hanya boleh 1x per kelas tutorial (berapapun statusnya)
+            $sudahPernahMengajukan = KmdTarikSaldo::where('user_id', $user->id)
+                ->where('userclasstutorial_id', $userClassTutorial->id)
+                ->exists();
+
+            if ($sudahPernahMengajukan) {
+                DB::rollBack();
+                Log::warning('[TARIK SALDO] Pengajuan ditolak, sudah pernah mengajukan untuk kelas ini', [
+                    'user_id' => $user->id,
+                    'userclasstutorial_id' => $userClassTutorial->id
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda hanya dapat mengajukan penarikan 1 kali untuk kelas tutorial ini.'
+                ], 400);
+            }
+
+            // Data untuk dikirim ke service
             $penarikanData = [
                 'user_id' => $user->id,
                 'cabang_id' => $user->cabang_id,
-                'user_class_tutorial_id' => $userClassTutorial->id, // Fix: snake_case jika di DB
+                'class_tutorial_id' => $request->class_tutorial_id,
+                'user_class_tutorial_id' => $userClassTutorial->id,
                 'jumlah' => $jumlah,
                 'status' => 'pending',
                 'tanggal_penarikan' => now(),
@@ -210,16 +236,16 @@ class TarikSaldoAdminCabangController extends Controller
             $penarikan = $this->tarikSaldoService->prosesPenarikan($penarikanData);
 
             if (!$penarikan || !isset($penarikan->id) || empty($penarikan->id)) {
-                DB::connection('mysql2')->rollBack();
+                DB::rollBack();
                 Log::error('[TARIK SALDO] Service prosesPenarikan gagal return valid data', [
                     'penarikan_result' => $penarikan,
                     'data_sent' => $penarikanData
                 ]);
-                throw new Exception('Gagal membuat record penarikan di service. Hubungi admin.');
+                throw new \Exception('Gagal membuat record penarikan di service. Hubungi admin.');
             }
 
             // Commit transaction
-            DB::connection('mysql2')->commit();
+            DB::commit();
             Log::info('[TARIK SALDO] Transaction committed, penarikan berhasil');
 
             Log::info('[TARIK SALDO] Penarikan berhasil diajukan', [
@@ -239,10 +265,10 @@ class TarikSaldoAdminCabangController extends Controller
                 ]
             ], 200);
 
-        } catch (ValidationException $e) {
+        } catch (\Illuminate\Validation\ValidationException $e) {
             // Rollback jika validasi gagal (jarang, tapi aman)
-            if (DB::connection('mysql2')->transactionLevel() > 0) {
-                DB::connection('mysql2')->rollBack();
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
             }
             Log::warning('[TARIK SALDO] Validasi gagal', [
                 'user_id' => Auth::id(),
@@ -254,10 +280,10 @@ class TarikSaldoAdminCabangController extends Controller
                 'errors' => $e->errors()
             ], 422);
 
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // Rollback transaction
-            if (DB::connection('mysql2')->transactionLevel() > 0) {
-                DB::connection('mysql2')->rollBack();
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
             }
 
             Log::error('[TARIK SALDO] Exception terdeteksi', [

@@ -609,6 +609,12 @@ class KelasTutorService
 {
     $tutorial = $this->find($encryptedId);
 
+    // Samakan dengan safety default yang dipakai update() biasa, supaya
+    // checkbox notifikasi yang tidak dicentang benar-benar tersimpan false,
+    // dan sisa_quota tidak ke-reset kalau field-nya tidak dikirim form.
+    $data['notifikasi'] = $data['notifikasi'] ?? false;
+    $data['sisa_quota'] = $data['sisa_quota'] ?? $tutorial->sisa_quota;
+
     if (!$tutorial->zoom_meeting_id) {
         throw new \Exception('Meeting Zoom belum dibuat untuk kelas ini.');
     }
