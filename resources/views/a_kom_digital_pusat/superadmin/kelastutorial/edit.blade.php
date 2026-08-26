@@ -25,7 +25,7 @@
                         {{-- User --}}
                         <div class="mb-3">
                             <label for="user_id" class="form-label">User  </label>
-                            <select name="user_id" id="user_id" class="form-select form-control" required>
+                            <select name="user_id" id="user_id" class="form-select form-control select2-searchable" required>
                                 <option value="">-- Pilih User --</option>
                                 @foreach ($users as $user)
                                     <option value="{{ $user->id }}"
@@ -53,7 +53,7 @@
                         {{-- Pengajar --}}
                         <div class="mb-3">
                             <label for="pengajar_id" class="form-label">Pengajar</label>
-                            <select name="pengajar_id" id="pengajar_id" class="form-select form-control" required>
+                            <select name="pengajar_id" id="pengajar_id" class="form-select form-control select2-searchable" required>
                                 <option value="">-- Pilih Pengajar --</option>
                                 @foreach ($pengajars as $pengajar)
                                     <option value="{{ $pengajar->id }}"
@@ -165,4 +165,26 @@
         </div>
 
     </div>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+    <style>
+        .select2-container .select2-selection--single {
+            height: calc(2.4rem + 2px);
+            padding: 0.35rem 0.25rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: calc(2.4rem);
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(function () {
+            $('.select2-searchable').select2({
+                width: '100%',
+                placeholder: function () {
+                    return $(this).find('option:first').text();
+                }
+            });
+        });
+    </script>
 @endsection
