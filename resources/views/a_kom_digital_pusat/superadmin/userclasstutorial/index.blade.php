@@ -29,8 +29,12 @@
                                 <th>Modul</th>
                                 <th>Kelas</th>
                                 <th>Rayon</th>
+                                <th>Pengajar</th>
                                 <th>Status</th>
+                                <th>Status Progress</th>
+                                <th>Step</th>
                                 <th>Tanggal Booking</th>
+                                <th>Zoom</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -45,8 +49,20 @@
                                     <td>{{ $item->modul->name ?? '-' }}</td>
                                     <td>{{ $item->kelas->name ?? '-' }}</td>
                                     <td>{{ $item->rayon->name ?? '-' }}</td>
-                                    <td>{{ ucfirst($item->status) }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($item->date_booking)->format('d-m-Y') }}</td>
+                                    <td>{{ $item->pengajar->name ?? '-' }}</td>
+                                    <td>{{ $item->status ? ucfirst($item->status) : '-' }}</td>
+                                    <td>{{ $item->status_progress ? ucfirst($item->status_progress) : '-' }}</td>
+                                    <td>{{ $item->step ?? '-' }}</td>
+                                    <td>{{ $item->date_booking ? \Carbon\Carbon::parse($item->date_booking)->format('d-m-Y') : '-' }}</td>
+                                    <td>
+                                        @if ($item->zoom_join_url)
+                                            <a href="{{ $item->zoom_join_url }}" target="_blank">
+                                                <i class="fas fa-video" style="color:#2D8CFF;"></i>&nbsp;Join Zoom
+                                            </a>
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
                                     <td>
                                         <a href="{{ route('kom.super_userclasstutorial.edit', $item->id) }}" 
                                            class="btn btn-warning btn-sm">
@@ -63,7 +79,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="9" class="text-center">Tidak ada data ditemukan.</td>
+                                    <td colspan="15" class="text-center">Tidak ada data ditemukan.</td>
                                 </tr>
                             @endforelse
                         </tbody>

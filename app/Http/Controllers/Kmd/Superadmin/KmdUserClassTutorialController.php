@@ -27,6 +27,7 @@ class KmdUserClassTutorialController extends Controller
             'modul',
             'kelas',
             'rayon',
+            'pengajar',
         ])
             ->when($search, function ($query) use ($search) {
                 $query->whereHas('user', function ($q) use ($search) {
