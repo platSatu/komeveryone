@@ -3,6 +3,7 @@
 namespace App\Models\Kmd;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 class KmdUserClassTutorial extends Model
