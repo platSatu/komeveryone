@@ -76,6 +76,18 @@ use App\Http\Controllers\FrontendController;
 Route::get('/', [FrontendController::class, 'index']);
 Route::get('/privacy-policy', [FrontendController::class, 'privacy'])->name('privacy');
 
+// Route jembatan untuk QR sertifikat LAMA yang masih mengarah ke prefix URL
+// lama "/kom-digital/verifikasi/{id}" (sebelum diganti ke "/app/verifikasi/{id}"
+// di PesertaController::sertifikatSaya() / TutorController::sertifikatSaya()).
+// QR code sertifikat digenerate sekali lalu disimpan sebagai file PNG statis
+// (lihat file_exists($filePath) check di kedua method itu) — jadi sertifikat
+// yang sudah dicetak/didownload sebelum perbaikan ini TIDAK ikut ter-update
+// otomatis, dan URL lama di gambar QR-nya harus tetap hidup selamanya, bukan
+// cuma sementara sampai semua sertifikat lama "kadaluarsa". Berdiri sendiri di
+// luar Route::prefix('app') di bawah supaya path-nya benar-benar "/kom-digital/
+// verifikasi/{id}" dari root, bukan "/app/kom-digital/verifikasi/{id}".
+Route::get('/kom-digital/verifikasi/{id}', [SertifikatController::class, 'verifikasi']);
+
 Route::prefix('app')->group(function () {
     Route::get('syarat-dan-ketentuan', [AuthController::class, 'SyaratKetentuan'])->name('kom.snk');
     // Route untuk Register
