@@ -604,7 +604,7 @@ public function updatePertanyaanSaya(Request $request, $id)
             // Buat QR link terenkripsi
             //$token = Crypt::encryptString($sertifikat->id);
             // $qrLink = url('/kom-digital/verifikasi/' . $token);
-            $qrLink = url('/kom-digital/verifikasi/' . $sertifikat->id);
+            $qrLink = url('/app/verifikasi/' . $sertifikat->id);
 
 
 
