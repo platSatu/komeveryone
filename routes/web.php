@@ -69,6 +69,7 @@ use App\Http\Controllers\KomDigital\ScheduleController;
 use App\Http\Controllers\Kmd\Dashboard\ValidasiKodeBukuController;
 use App\Http\Controllers\Kmd\Superadmin\KomUserController;
 use App\Http\Controllers\Kmd\Superadmin\VisitorStatisticController;
+use App\Http\Controllers\Kmd\Superadmin\NginxLogStatisticController;
 use App\Http\Controllers\Superadmin\ClassController;
 use App\Http\Controllers\Kmd\AdminCabang\AbsensiController;
 use App\Http\Controllers\FrontendController;
@@ -658,6 +659,14 @@ Route::prefix('app')->group(function () {
             // Statistik Pengunjung (filter minggu/bulan/tahun + halaman
             // paling banyak dikunjungi), data dari App\Models\VisitorHistory.
             Route::prefix('visitor-statistik')->controller(VisitorStatisticController::class)->middleware(['auth:web', 'cekrolekom:superadmin'])->name('super_visitor.')->group(function () {
+                Route::get('/', 'index')->name('index');
+            });
+
+            // Ditambahkan 8 September 2026 (permintaan user): halaman Statistik
+            // Pengunjung versi log nginx (sumber beda dari VisitorStatisticController
+            // di atas -- ini dari tabel nginx_access_logs hasil import access.log nginx,
+            // lihat App\Console\Commands\ImportNginxLog).
+            Route::prefix('nginx-log-statistik')->controller(NginxLogStatisticController::class)->middleware(['auth:web', 'cekrolekom:superadmin'])->name('super_nginxlog.')->group(function () {
                 Route::get('/', 'index')->name('index');
             });
 

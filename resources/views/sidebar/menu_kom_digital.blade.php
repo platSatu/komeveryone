@@ -122,6 +122,13 @@
             </a>
         </li>
 
+        <li>
+            <a href="{{ route('kom.super_nginxlog.index') }}" class="waves-effect">
+                <i class="mdi mdi-chart-areaspline"></i>
+                <span>Statistik Pengunjung (Log Nginx)</span>
+            </a>
+        </li>
+
         <li class="has_sub">
             <a href="javascript:void(0);" class="waves-effect">
                 <i class="mdi mdi-settings"></i><span> Diklat Tutor</span>
