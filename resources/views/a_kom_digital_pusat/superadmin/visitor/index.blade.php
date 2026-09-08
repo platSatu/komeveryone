@@ -13,7 +13,7 @@
     </div>
 
     <div class="row mb-3">
-        <div class="col-12">
+        <div class="col-12 d-flex flex-wrap align-items-center gap-2">
             <div class="btn-group" role="group">
                 <a href="{{ route('kom.super_visitor.index', ['period' => 'week']) }}"
                    class="btn btn-{{ $period === 'week' ? 'primary' : 'outline-primary' }}">Minggu Ini</a>
@@ -22,23 +22,24 @@
                 <a href="{{ route('kom.super_visitor.index', ['period' => 'year']) }}"
                    class="btn btn-{{ $period === 'year' ? 'primary' : 'outline-primary' }}">Tahun Ini</a>
             </div>
+
+            <form method="GET" action="{{ route('kom.super_visitor.index') }}"
+                  class="d-flex flex-wrap align-items-center gap-2 ms-md-2">
+                <input type="hidden" name="period" value="custom">
+                <input type="date" name="start" value="{{ $customStart }}" class="form-control form-control-sm" style="width: 150px;" required>
+                <span class="text-muted">s/d</span>
+                <input type="date" name="end" value="{{ $customEnd }}" class="form-control form-control-sm" style="width: 150px;" required>
+                <button type="submit" class="btn btn-sm btn-{{ $period === 'custom' ? 'primary' : 'outline-primary' }}">Terapkan</button>
+            </form>
         </div>
     </div>
 
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card shadow-sm">
                 <div class="card-body">
                     <h6 class="text-muted mb-1">Total Kunjungan</h6>
                     <h2 class="mb-0">{{ number_format($totalVisits, 0, ',', '.') }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="text-muted mb-1">Pengunjung Unik (IP)</h6>
-                    <h2 class="mb-0">{{ number_format($uniqueVisitors, 0, ',', '.') }}</h2>
                 </div>
             </div>
         </div>
