@@ -68,6 +68,7 @@ use App\Http\Controllers\KomDigital\RayonController;
 use App\Http\Controllers\KomDigital\ScheduleController;
 use App\Http\Controllers\Kmd\Dashboard\ValidasiKodeBukuController;
 use App\Http\Controllers\Kmd\Superadmin\KomUserController;
+use App\Http\Controllers\Kmd\Superadmin\VisitorStatisticController;
 use App\Http\Controllers\Superadmin\ClassController;
 use App\Http\Controllers\Kmd\AdminCabang\AbsensiController;
 use App\Http\Controllers\FrontendController;
@@ -651,6 +652,13 @@ Route::prefix('app')->group(function () {
                 Route::get('/{id}/edit', 'edit')->name('edit');
                 Route::put('/{id}', 'update')->name('update');
                 Route::delete('/{id}', 'destroy')->name('destroy');
+            });
+
+            // Ditambahkan 8 September 2026 (permintaan user): halaman
+            // Statistik Pengunjung (filter minggu/bulan/tahun + halaman
+            // paling banyak dikunjungi), data dari App\Models\VisitorHistory.
+            Route::prefix('visitor-statistik')->controller(VisitorStatisticController::class)->middleware(['auth:web', 'cekrolekom:superadmin'])->name('super_visitor.')->group(function () {
+                Route::get('/', 'index')->name('index');
             });
 
         });

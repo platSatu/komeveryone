@@ -12,10 +12,21 @@ class TrackVisitor
     /**
      * Handle an incoming request.
      *
+     * Update 8 September 2026: middleware ini SEBELUMNYA sudah ada tapi
+     * tidak pernah didaftarkan di bootstrap/app.php (mati/tidak aktif) --
+     * sekarang didaftarkan global di grup 'web'. Ditambahkan filter
+     * shouldTrack() supaya statistik "halaman paling banyak dikunjungi"
+     * tidak bias oleh request AJAX/polling internal, file asset, atau
+     * ping health-check ('/up') yang bukan kunjungan halaman beneran.
+     *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if (! $this->shouldTrack($request)) {
+            return $next($request);
+        }
+
         // Mendapatkan informasi yang diperlukan
         $ipAddress = $request->ip(); // Mendapatkan IP pengunjung
         $browser = $request->header('User-Agent'); // Mendapatkan informasi browser
@@ -84,5 +95,32 @@ class TrackVisitor
         }
 
         return false; // Jika tidak ada pola mencurigakan
+    }
+
+    /**
+     * Hanya catat request GET halaman biasa (bukan AJAX/JSON, bukan file
+     * asset, bukan health-check '/up') -- supaya "jumlah pengunjung" &
+     * "halaman terpopuler" mencerminkan navigasi halaman beneran oleh
+     * manusia, bukan polling AJAX internal atau ping uptime monitor.
+     */
+    private function shouldTrack(Request $request): bool
+    {
+        if (! $request->isMethod('GET')) {
+            return false;
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return false;
+        }
+
+        if ($request->is('up')) {
+            return false;
+        }
+
+        if (preg_match('/\.(css|js|map|png|jpe?g|gif|svg|ico|woff2?|ttf|eot|webp|mp4|pdf)$/i', $request->path())) {
+            return false;
+        }
+
+        return true;
     }
 }

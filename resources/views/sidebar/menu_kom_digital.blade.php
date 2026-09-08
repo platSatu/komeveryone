@@ -115,6 +115,13 @@
 
     {{-- Menu untuk admin_kom (superadmin) --}}
     @if ($role === 'superadmin')
+        <li>
+            <a href="{{ route('kom.super_visitor.index') }}" class="waves-effect">
+                <i class="mdi mdi-chart-line"></i>
+                <span>Statistik Pengunjung</span>
+            </a>
+        </li>
+
         <li class="has_sub">
             <a href="javascript:void(0);" class="waves-effect">
                 <i class="mdi mdi-settings"></i><span> Diklat Tutor</span>

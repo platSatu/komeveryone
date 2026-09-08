@@ -38,6 +38,14 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         //
     })
+
+    // Ditambahkan 8 September 2026: daftarkan App\Http\Middleware\TrackVisitor
+    // (sebelumnya file middleware-nya sudah ada tapi TIDAK PERNAH didaftarkan
+    // di sini -- jadi belum pernah aktif sama sekali) ke grup 'web' global,
+    // sumber data buat halaman "Statistik Pengunjung" di menu Superadmin.
+    ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->appendToGroup('web', \App\Http\Middleware\TrackVisitor::class);
+    })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
