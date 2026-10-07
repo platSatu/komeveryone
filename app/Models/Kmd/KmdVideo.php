@@ -23,6 +23,7 @@ class KmdVideo extends Model
         'video',
         'modul_id',
         'status',
+        'source_video_id', // kom_v02
     ];
 
     protected static function boot()

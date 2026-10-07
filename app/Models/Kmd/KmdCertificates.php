@@ -20,6 +20,8 @@ class KmdCertificates extends Model
         'no_certificate',
         'date_publish',
         'status',
+        'class_id', // kom_v02
+        'language_code', // kom_v02
     ];
 
     protected static function boot()

@@ -19,6 +19,7 @@ class KmdAnswer extends Model
         'answer',
         'is_true',
         'status',
+        'source_answer_id', // kom_v02
     ];
 
     protected static function boot()

@@ -43,6 +43,7 @@ class KomUser extends Authenticatable
         'email_verification_sent_at',
         'email_verified_at',
         'remember_token',
+        'language_code', // kom_v02
     ];
 
     // public function isSuperadmin()
@@ -155,7 +156,30 @@ class KomUser extends Authenticatable
         return $this->hasMany(KmdUserClassTutorial::class, 'user_id');
     }
 
+    // ===================== kom_v02 =====================
 
+    public function userClasses()
+    {
+        return $this->hasMany(KmdUserClass::class, 'user_id');
+    }
+
+    /** Rangkaian kelas yang sedang berjalan (bahasa terkunci selama ada). */
+    public function activeUserClass()
+    {
+        return $this->hasOne(KmdUserClass::class, 'user_id')
+            ->where('status', KmdUserClass::STATUS_ACTIVE)
+            ->latestOfMany('enrolled_at');
+    }
+
+    /** User wajib memilih bahasa dulu (user baru). */
+    public function needsLanguageSelection(): bool
+    {
+        return empty($this->language_code);
+    }
+
+    /** Bahasa boleh diganti hanya jika tidak ada rangkaian kelas yang sedang berjalan. */
+    public function canChangeLanguage(): bool
+    {
+        return ! $this->userClasses()->where('status', KmdUserClass::STATUS_ACTIVE)->exists();
+    }
 }
-
-

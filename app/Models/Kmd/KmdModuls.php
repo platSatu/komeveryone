@@ -22,6 +22,8 @@ class KmdModuls extends Model
         'order',
         'kom_class_id',
         'status',
+        'language_code', // kom_v02
+        'source_modul_id', // kom_v02
     ];
 
     // Auto-generate UUID saat membuat record baru

@@ -17,6 +17,8 @@ class KmdQuestions extends Model
         'id',
         'questions',
         'status',
+        'language_code', // kom_v02
+        'source_question_id', // kom_v02
     ];
 
     // Auto-generate UUID saat create

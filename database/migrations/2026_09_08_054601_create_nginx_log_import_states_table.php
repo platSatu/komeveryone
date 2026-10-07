@@ -15,13 +15,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('nginx_log_import_states', function (Blueprint $table) {
-            $table->id();
-            $table->string('log_path', 500)->unique();
-            $table->unsignedBigInteger('last_inode')->nullable();
-            $table->unsignedBigInteger('last_offset')->default(0);
-            $table->timestamps();
-        });
+        if (! Schema::hasTable('nginx_log_import_states')) {
+            Schema::create('nginx_log_import_states', function (Blueprint $table) {
+                $table->id();
+                $table->string('log_path', 500)->unique();
+                $table->unsignedBigInteger('last_inode')->nullable();
+                $table->unsignedBigInteger('last_offset')->default(0);
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void

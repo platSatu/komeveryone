@@ -22,20 +22,22 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('visitor_histories', function (Blueprint $table) {
-            $table->id();
-            $table->string('ip_address', 45)->nullable();
-            $table->text('browser')->nullable();
-            $table->string('page_url', 500);
-            $table->string('method', 10)->nullable();
-            $table->string('referrer', 500)->nullable();
-            $table->unsignedSmallInteger('status_code')->nullable();
-            $table->timestamp('visited_at')->useCurrent();
-            $table->timestamps();
+        if (! Schema::hasTable('visitor_histories')) {
+            Schema::create('visitor_histories', function (Blueprint $table) {
+                $table->id();
+                $table->string('ip_address', 45)->nullable();
+                $table->text('browser')->nullable();
+                $table->string('page_url', 500);
+                $table->string('method', 10)->nullable();
+                $table->string('referrer', 500)->nullable();
+                $table->unsignedSmallInteger('status_code')->nullable();
+                $table->timestamp('visited_at')->useCurrent();
+                $table->timestamps();
 
-            $table->index('visited_at');
-            $table->index('ip_address');
-        });
+                $table->index('visited_at');
+                $table->index('ip_address');
+            });
+        }
     }
 
     public function down(): void

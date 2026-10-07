@@ -19,6 +19,10 @@ class KmdClass extends Model
     protected $fillable = [
         'name',
         'status',
+        'code', // kom_v02
+        'sort_order', // kom_v02
+        'prerequisite_class_id', // kom_v02
+        'cover_image', // kom_v02
     ];
 
     protected $casts = [
@@ -75,5 +79,42 @@ class KmdClass extends Model
     {
         $id = self::decryptId($encryptedId);
         return self::findOrFail($id);
+    }
+
+    // ===================== kom_v02 =====================
+
+    public function translations()
+    {
+        return $this->hasMany(KmdClassTranslation::class, 'class_id');
+    }
+
+    public function prerequisite()
+    {
+        return $this->belongsTo(KmdClass::class, 'prerequisite_class_id');
+    }
+
+    public function moduls()
+    {
+        return $this->hasMany(KmdModuls::class, 'kom_class_id');
+    }
+
+    /** Terjemahan untuk bahasa tertentu, fallback ke Bahasa Indonesia, lalu nama asli. */
+    public function translation(?string $languageCode = null): ?KmdClassTranslation
+    {
+        $languageCode ??= app()->getLocale();
+        $rows = $this->relationLoaded('translations') ? $this->translations : $this->translations()->get();
+
+        return $rows->firstWhere('language_code', $languageCode)
+            ?? $rows->firstWhere('language_code', Language::defaultCode());
+    }
+
+    public function translatedName(?string $languageCode = null): string
+    {
+        return $this->translation($languageCode)?->name ?? $this->name;
+    }
+
+    public function translatedDescription(?string $languageCode = null): ?string
+    {
+        return $this->translation($languageCode)?->description;
     }
 }
