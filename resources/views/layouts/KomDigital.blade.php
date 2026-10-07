@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
     <meta charset="utf-8" />
@@ -29,6 +29,15 @@
     
     <!-- Font Awesome 5 Free CDN -->
     
+    <style>
+        /* kom_v02: dropdown bahasa */
+        .kom-lang-toggle { font-weight:600; }
+        .kom-lang-menu { min-width:230px; padding:6px 0; border-radius:12px; }
+        .kom-lang-menu .dropdown-item { gap:10px; padding:8px 16px; }
+        .kom-lang-menu .dropdown-item.active, .kom-lang-menu .dropdown-item:active { background:#eef3fc; color:#1f2a44; }
+        .kom-lang-menu .dropdown-item:disabled { opacity:1; }
+        .kom-lang-mini { display:inline-flex; align-items:center; justify-content:center; width:30px; height:24px; border-radius:6px; background:#eef3fc; color:#2a5298; font-size:.72rem; font-weight:800; margin-right:10px; }
+    </style>
 </head>
 
 
@@ -122,9 +131,55 @@
 
                                 </div>
                             </li> -->
+                            {{-- kom_v02: pilihan bahasa belajar --}}
+                            @auth
+                                @php
+                                    $__langs = \App\Models\Kmd\Language::activeList();
+                                    $__langNow = app()->getLocale();
+                                    $__kelasJalan = \App\Models\Kmd\KmdUserClass::where('user_id', auth()->id())
+                                        ->where('status', 'active')->latest('enrolled_at')->first();
+                                @endphp
+                                @if ($__langs->count() > 1)
+                                    <li class="list-inline-item dropdown notification-list">
+                                        <a class="nav-link dropdown-toggle arrow-none waves-effect text-white kom-lang-toggle"
+                                           data-toggle="dropdown" href="#" role="button"
+                                           aria-haspopup="true" aria-expanded="false" title="{{ __('Bahasa Belajar') }}">
+                                            <i class="fas fa-language mr-1"></i>{{ strtoupper($__langNow) }}
+                                            <i class="fas fa-chevron-down ml-1" style="font-size:.7rem"></i>
+                                        </a>
+                                        <div class="dropdown-menu dropdown-menu-right kom-lang-menu">
+                                            <h6 class="dropdown-header">{{ __('Bahasa Belajar') }}</h6>
+                                            @foreach ($__langs as $__l)
+                                                @php $__kunci = $__kelasJalan && $__kelasJalan->language_code !== $__l->code; @endphp
+                                                <form method="POST" action="{{ route('kom.bahasa.store') }}" class="m-0">
+                                                    @csrf
+                                                    <input type="hidden" name="language_code" value="{{ $__l->code }}">
+                                                    <button type="submit" class="dropdown-item d-flex align-items-center {{ $__l->code === $__langNow ? 'active' : '' }}"
+                                                            {{ $__kunci || $__l->code === $__langNow ? 'disabled' : '' }}>
+                                                        <span class="kom-lang-mini">{{ strtoupper($__l->code) }}</span>
+                                                        <span class="flex-grow-1">{{ $__l->native_name ?: $__l->name }}</span>
+                                                        @if ($__l->code === $__langNow)
+                                                            <i class="fas fa-check ml-2"></i>
+                                                        @elseif ($__kunci)
+                                                            <i class="fas fa-lock ml-2 text-muted"></i>
+                                                        @endif
+                                                    </button>
+                                                </form>
+                                            @endforeach
+                                            @if ($__kelasJalan)
+                                                <div class="dropdown-divider"></div>
+                                                <small class="d-block px-3 pb-2 text-muted" style="max-width:240px;white-space:normal">
+                                                    <i class="fas fa-info-circle mr-1"></i>{{ __('Bahasa terkunci sampai kelas yang sedang berjalan selesai.') }}
+                                                </small>
+                                            @endif
+                                        </div>
+                                    </li>
+                                @endif
+                            @endauth
+
                             <li class="list-inline-item dropdown notification-list">
                                 {{-- icon opsional --}}
-                                <span class="text-white">Welcome,
+                                <span class="text-white">{{ __('Halo,') }}
                                     
                                     {{ Auth::user()->name ?? 'Guest' }}
                                 </span>
@@ -158,7 +213,7 @@
                                         <h5>Welcome, {{ $user->username ?? 'Guest' }}</h5>
                                     </div> -->
                                     <a class="dropdown-item" href="{{ route('kom.profile_kom') }}"><i
-                                            class="mdi mdi-account-circle m-r-5 text-muted"></i> Profile</a>
+                                            class="mdi mdi-account-circle m-r-5 text-muted"></i> {{ __('Profil Saya') }}</a>
 
 
 
@@ -170,7 +225,7 @@
 
                                     <a class="dropdown-item" href="#"
                                         onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                        <i class="mdi mdi-logout m-r-5 text-muted"></i> Logout
+                                        <i class="mdi mdi-logout m-r-5 text-muted"></i> {{ __('Keluar') }}
                                     </a>
 
                                 </div>
@@ -200,13 +255,16 @@
                         <div class="row">
                             <div class="col-sm-12">
                                 <div class="page-title-box">
+                                    @php $judulHalaman = trim($__env->yieldContent('page_title', __('Beranda'))); @endphp
+                                    @if ($judulHalaman !== __('Beranda'))
                                     <div class="btn-group float-right">
                                         <ol class="breadcrumb hide-phone p-0 m-0">
-                                            <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
-                                            <li class="breadcrumb-item active">Dashboard</li>
+                                            <li class="breadcrumb-item"><a href="{{ route('kom.dashboard_kom') }}">{{ __('Beranda') }}</a></li>
+                                            <li class="breadcrumb-item active">{{ $judulHalaman }}</li>
                                         </ol>
                                     </div>
-                                    <h4 class="page-title">Dashboard</h4>
+                                    @endif
+                                    <h4 class="page-title">@yield('page_title', __('Beranda'))</h4>
                                 </div>
                             </div>
                             <div class="clearfix"></div>

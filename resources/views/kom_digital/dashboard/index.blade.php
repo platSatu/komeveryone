@@ -1,119 +1,116 @@
 @extends('layouts.KomDigital')
+
+@section('page_title', __('Beranda'))
+
+{{-- kom_v02: Beranda — sapaan, lanjutkan belajar, akses cepat, dan cara belajar --}}
 @section('content')
-<div class="row">
-    <div class="card">
-        <ol>
-    <li>
-        <h3>Cara Akses Materi Video Modul KOM 100</h3>
-        <p>Untuk mengakses materi video, silahkan input kode buku. </p>
+@php
+    $jam = (int) now()->timezone('Asia/Jakarta')->format('H');
+    $sapaan = $jam < 11 ? __('Selamat pagi') : ($jam < 15 ? __('Selamat siang') : ($jam < 19 ? __('Selamat sore') : __('Selamat malam')));
+    $namaDepan = \Illuminate\Support\Str::of(auth()->user()->name ?? '')->explode(' ')->first();
+@endphp
 
-        <p>Untuk mendapatkan kode buku, silahkan membeli bukunya  di Toko Areopagus di link dibawah ini:<br>
-            <!-- <a class="mr-3" href="https://www.tokopedia.com/areopagus/">Tokopedia</a> <a href="https://shopee.co.id/areopagus">Shopee</a> -->
-        </p>
-        <div class="store-buttons">
-    <a href="https://www.tokopedia.com/areopagus/" target="_blank" class="store-btn tokopedia">
-        <i class="bi bi-bag"></i>
-        <span>Tokopedia</span>
-    </a>
-    <a href="https://shopee.co.id/areopagus" target="_blank" class="store-btn shopee">
-        <i class="bi bi-bag-fill"></i>
-        <span>Shopee</span>
-    </a>
-</div>
+<div class="kom-page container-fluid px-2 px-md-3">
 
-<style>
-.store-buttons {
-    display: flex;
-    gap: 1vw;
-    margin-top: 1vh;
-    flex-wrap: wrap;
-}
+    @include('a_kom_digital_pusat.katalog._flash')
 
-.store-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5vw;
-    padding: 0.8vh 1.5vw;
-    border-radius: 0.8vw;
-    text-decoration: none;
-    font-size: 1.2vw;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    color: #fff;
-}
+    {{-- Sapaan --}}
+    <div class="kom-hero mb-4">
+        <div class="kom-hero-icon"><i class="fas fa-sun"></i></div>
+        <div class="flex-grow-1">
+            <h3 class="mb-1">{{ $sapaan }}, {{ $namaDepan }}!</h3>
+            <p class="mb-0">{{ __('Senang melihat Anda kembali. Yuk, lanjutkan belajar hari ini.') }}</p>
+        </div>
+    </div>
 
-.store-btn:hover {
-    transform: translateY(-0.2vh);
-    box-shadow: 0.4vw 0.4vw 1vw rgba(0,0,0,0.3);
-}
+    <div class="row g-3 mb-4">
+        {{-- Lanjutkan Belajar / Mulai --}}
+        <div class="col-12 col-lg-8">
+            @if ($ringkasan && $ringkasan['selesai_kelas'])
+                <div class="kom-card kom-card-success h-100">
+                    <div class="kom-card-label"><i class="fas fa-award mr-1"></i>{{ $ringkasan['nama_kelas'] }}</div>
+                    <h4 class="kom-card-title">{{ __('Selamat! Anda telah menyelesaikan :kelas.', ['kelas' => $ringkasan['nama_kelas']]) }}</h4>
+                    <p class="kom-text mb-4">{{ __('Terima kasih sudah setia belajar. Sertifikat Anda sudah bisa dilihat, dan kelas berikutnya menanti.') }}</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ route('kom.peserta.sertifikat') }}" class="btn btn-success kom-btn"><i class="fas fa-certificate mr-1"></i>{{ __('Lihat Sertifikat') }}</a>
+                        <a href="{{ route('kom.katalog.index') }}" class="btn btn-outline-primary kom-btn">{{ __('Pilih Kelas Berikutnya') }}</a>
+                    </div>
+                </div>
+            @elseif ($ringkasan)
+                <div class="kom-card h-100">
+                    <div class="kom-card-label"><i class="fas fa-play-circle mr-1"></i>{{ __('Lanjutkan Belajar') }}</div>
+                    <h4 class="kom-card-title">{{ $ringkasan['nama_kelas'] }}</h4>
 
-.store-btn.tokopedia {
-    background: linear-gradient(135deg, #00AA18 0%, #00C853 100%);
-    border: 0.2vw solid #00AA18;
-}
+                    <div class="d-flex justify-content-between kom-text small mb-1">
+                        <span>{{ __(':selesai dari :total video selesai', ['selesai' => $ringkasan['video_selesai'], 'total' => $ringkasan['total_video']]) }}</span>
+                        <strong>{{ $ringkasan['persen'] }}%</strong>
+                    </div>
+                    <div class="kom-progress mb-3"><div style="width: {{ $ringkasan['persen'] }}%"></div></div>
 
-.store-btn.tokopedia:hover {
-    background: linear-gradient(135deg, #00C853 0%, #00E676 100%);
-}
+                    @if ($ringkasan['video_berikut'])
+                        <div class="kom-next mb-4">
+                            <i class="fas fa-forward"></i>
+                            <div>
+                                <small>{{ __('Berikutnya') }}</small>
+                                <strong>{{ $ringkasan['video_berikut'] }}</strong>
+                                <span>{{ $ringkasan['modul_berikut'] }}</span>
+                            </div>
+                        </div>
+                    @endif
 
-.store-btn.shopee {
-    background: linear-gradient(135deg, #FF5722 0%, #FF7043 100%);
-    border: 0.2vw solid #FF5722;
-}
+                    <a href="{{ route('kom.katalog.masuk', $ringkasan['kode_kelas']) }}" class="btn btn-primary kom-btn kom-btn-lg">
+                        <i class="fas fa-play mr-1"></i>{{ $ringkasan['video_selesai'] > 0 ? __('Lanjutkan Belajar') : __('Mulai Belajar') }}
+                    </a>
+                </div>
+            @else
+                <div class="kom-card h-100">
+                    <div class="kom-card-label"><i class="fas fa-seedling mr-1"></i>{{ __('Langkah Pertama') }}</div>
+                    <h4 class="kom-card-title">{{ __('Yuk, mulai kelas pertama Anda') }}</h4>
+                    <p class="kom-text mb-4">{{ __('Pilih kelas, lalu masukkan kode yang tertera di buku Anda. Setelah itu video materi langsung terbuka.') }}</p>
+                    <a href="{{ route('kom.katalog.index') }}" class="btn btn-primary kom-btn kom-btn-lg">
+                        <i class="fas fa-graduation-cap mr-1"></i>{{ __('Pilih Kelas') }}
+                    </a>
+                    <p class="kom-text small mt-3 mb-0">
+                        {{ __('Belum punya buku? Dapatkan di Toko Areopagus:') }}
+                        <a href="https://www.tokopedia.com/areopagus/" target="_blank" rel="noopener">Tokopedia</a> &middot;
+                        <a href="https://shopee.co.id/areopagus" target="_blank" rel="noopener">Shopee</a>
+                    </p>
+                </div>
+            @endif
+        </div>
 
-.store-btn.shopee:hover {
-    background: linear-gradient(135deg, #FF7043 0%, #FF8A65 100%);
-}
+        {{-- Menu --}}
+        <div class="col-12 col-lg-4">
+            <div class="kom-card h-100">
+                <div class="kom-card-label"><i class="fas fa-th-large mr-1"></i>{{ __('Menu') }}</div>
+                <div class="kom-quick">
+                    <a href="{{ route('kom.peserta.kelas_tutorial') }}"><i class="fas fa-video"></i><span>{{ __('Kelas Tutorial Saya') }}</span><i class="fas fa-chevron-right"></i></a>
+                    <a href="{{ route('kom.peserta.progress_kom') }}"><i class="fas fa-chart-line"></i><span>{{ __('Progress Saya') }}</span><i class="fas fa-chevron-right"></i></a>
+                    <a href="{{ route('kom.peserta.sertifikat') }}"><i class="fas fa-certificate"></i><span>{{ __('Sertifikat Saya') }}</span><i class="fas fa-chevron-right"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
 
-/* Responsive */
-@media (max-width: 768px) {
-    .store-buttons {
-        flex-direction: column;
-        gap: 1vh;
-    }
-    .store-btn {
-        justify-content: center;
-        font-size: 2vw;
-        padding: 1vh 2vw;
-    }
-}
-</style>
-            
-    </li>
-    <li>
-        <p>
-            <h3>Cara Menonton Materi Video Modul</h3>
-            <p>Jika Anda sudah input kode buku, maka akses materi video modul akan terbuka.</p>
-
-            <p>Silahkan klik video materi modul yang tersedia, selesaikan menonton video dengan baik. Setiap Anda selesai menonton, maka akan diberikan 3 pertanyaan. Jika jawaban Anda benar, maka video materi selanjutnya akan terbuka.</p>
-
-            <p>Selamat memulai perjalanan pembelajaran Anda di
-            KOM EveryONE.</p>
-
-        </p>
-    </li>
-    <li>
-        <h3>Cara Mengikuti Kelas Tutorial</h3>
-        <p>Setelah Anda menonton video terakhir di setiap modul, contoh : Materi Modul 110.7 - Hidup Dalam Firman Tuhan.</p>
-
-        <p>Maka akan muncul pop up, dan akan ada pilihan, silahkan klik “ ikut kelas tutorial “</p>
-
-        <p>Ikuti langkah-langkah yang diberikan. Syarat Wajib  untuk mengikuti adalah mengirimkan 2 pertanyaan. Pertanyaan harus sesuai dengan materi modul yang Anda pelajari dan akan menjadi materi pembahasan diskusi bersama Tutor/Pengajar.</p>
-
-        <p>Setelah itu Anda dipersilahkan untuk memberikan persembahan untuk Kelas Tutorial yang diikuti.
-        </p>
-    </li>    
-
-    <li>
-        <h3>Cara Bergabung di Kelas Tutorial</h3>
-        <p>Setelah Anda menyelesaikan semua syarat wajib untuk mengikuti “ Kelas Tutorial “. Anda sudah berhasil mendaftar dan link zoom terkirim otomatis di menu dashboard Anda “ Kelas Tutorial “  dan dikirimkan juga ke email Anda yang terdaftar di KOM EveryONE.</p>
-
-        <p>Selamat mengikuti dan berdiskusi dengan Tutor/Pengajar di Kelas Tutorial yang Anda ikuti.
-        </p>
-    </li>    
-</ol
+    {{-- Cara belajar --}}
+    <h5 class="kom-section-title">{{ __('Cara Belajar di KOM EveryONE') }}</h5>
+    <div class="row g-3">
+        @foreach ([
+            ['fas fa-book-open', __('Pilih kelas & masukkan kode buku'), __('Buka menu Pilih Kelas, pilih kelas yang ingin Anda ikuti, lalu masukkan kode yang tertera di buku Anda.')],
+            ['fas fa-play-circle', __('Tonton video & jawab pertanyaan'), __('Tonton setiap video materi sampai selesai, lalu jawab pertanyaannya. Jika jawaban Anda benar, video berikutnya akan terbuka.')],
+            ['fas fa-users', __('Ikuti Kelas Tutorial'), __('Pada titik tertentu di modul, Anda akan diajak mengikuti Kelas Tutorial bersama Tutor/Pengajar. Syaratnya: kirim 2 pertanyaan dan berikan persembahan.')],
+            ['fas fa-award', __('Bergabung & dapatkan sertifikat'), __('Link Zoom dikirim ke email Anda. Sertifikat terbit setelah semua modul selesai dan kehadiran Anda di setiap Kelas Tutorial tercatat.')],
+        ] as $i => [$ikon, $judul, $isi])
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="kom-step-card">
+                    <div class="kom-step-icon"><i class="{{ $ikon }}"></i><span>{{ $i + 1 }}</span></div>
+                    <h6>{{ $judul }}</h6>
+                    <p>{{ $isi }}</p>
+                </div>
+            </div>
+        @endforeach
     </div>
 </div>
 
-
+@include('a_kom_digital_pusat.katalog._style')
 @endsection

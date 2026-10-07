@@ -27,50 +27,79 @@
     }
 
     $isSuperadmin = $role === 'superadmin';
+
+    // kom_v02: kelas yang diikuti user (Kelas Saya) & bahasa belajar
+    $kelasSaya = $user
+        ? \App\Models\Kmd\KmdUserClass::with('kelas.translations')
+            ->where('user_id', $user->id)
+            ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
+            ->orderBy('enrolled_at')
+            ->get()
+        : collect();
+    $punyaKelas = $kelasSaya->isNotEmpty() || $isSiswaWithActiveBook;
 @endphp
 
 <ul>
-    <li class="menu-title">Main Menu</li>
+    <li class="menu-title">{{ __('Menu Utama') }}</li>
 
     {{-- Menu default untuk semua user --}}
     <li>
         <a href="{{ route('kom.dashboard_kom') }}" class="waves-effect">
-            <i class="mdi mdi-airplay"></i>
-            <span>Dashboard</span>
+            <i class="mdi mdi-home"></i>
+            <span>{{ __('Beranda') }}</span>
         </a>
     </li>
 
+    {{-- kom_v02: katalog kelas (menggantikan menu "Input Kode Buku") --}}
     <li>
-        <a href="{{ route('kom.validasi.form_validasi') }}" class="waves-effect">
-            <i class="mdi mdi-apps"></i>
-            <span>Input Kode Buku</span>
+        <a href="{{ route('kom.katalog.index') }}" class="waves-effect">
+            <i class="mdi mdi-school"></i>
+            <span>{{ __('Pilih Kelas') }}</span>
         </a>
     </li>
-    @if (($role === 'peserta' && $isSiswaWithActiveBook) || $isSuperadmin || $role === 'pengajar')
+
+    {{-- kom_v02: Kelas Saya — satu menu untuk setiap kelas yang diikuti --}}
+    @if ($kelasSaya->isNotEmpty())
+        <li class="menu-title">{{ __('Kelas Saya') }}</li>
+        @foreach ($kelasSaya as $uc)
+            <li>
+                <a href="{{ route('kom.katalog.masuk', $uc->kelas->code ?? '') }}" class="waves-effect">
+                    <i class="mdi {{ $uc->status === 'completed' ? 'mdi-check-circle' : 'mdi-play-circle' }}"></i>
+                    <span>{{ $uc->kelas?->translatedName() ?? '-' }}</span>
+                    @if ($uc->status === 'completed')
+                        <span class="badge badge-success float-right">{{ __('Selesai') }}</span>
+                    @endif
+                </a>
+            </li>
+        @endforeach
+    @elseif ($isSiswaWithActiveBook)
+        {{-- cadangan akun lama yang belum tercatat di kelas --}}
         <li>
             <a href="{{ route('kom.kelas_lecture.index') }}" class="waves-effect">
-                <i class="mdi mdi-apps"></i>
+                <i class="mdi mdi-play-circle"></i>
                 <span>KOM 100</span>
             </a>
         </li>
     @endif
+
     {{-- Menu untuk siswa --}}
-    @if (($role === 'peserta' && $isSiswaWithActiveBook) || $isSuperadmin)
+    @if (($role === 'peserta' && $punyaKelas) || $isSuperadmin)
         <li class="has_sub">
             <a href="javascript:void(0);" class="waves-effect">
-                <i class="mdi mdi-settings"></i><span> Peserta </span>
+                <i class="mdi mdi-book-open-variant"></i><span> {{ __('History') }} </span>
                 <span class="float-right"><i class="mdi mdi-chevron-right"></i></span>
             </a>
             <ul class="list-unstyled">
-                <li><a href="{{ route('kom.peserta.kelas_tutorial') }}">Kelas Tutorial</a></li>
-                <li><a href="{{ route('kom.peserta.pertanyaan') }}">Pertanyaan Saya</a></li>
-                <li><a href="{{ route('kom.peserta.persembahan') }}">Persembahan</a></li>
-                <li><a href="{{ route('kom.peserta.buku') }}">No Buku</a></li>
-                <li><a href="{{ route('kom.peserta.progress_kom') }}">Progress</a></li>
-                <li><a href="{{ route('kom.peserta.sertifikat') }}">e-Sertifikat</a></li>
+                <li><a href="{{ route('kom.peserta.kelas_tutorial') }}">{{ __('Kelas Tutorial Saya') }}</a></li>
+                <li><a href="{{ route('kom.peserta.pertanyaan') }}">{{ __('Pertanyaan Saya') }}</a></li>
+                <li><a href="{{ route('kom.peserta.persembahan') }}">{{ __('Persembahan Saya') }}</a></li>
+                <li><a href="{{ route('kom.peserta.buku') }}">{{ __('Kode Buku Saya') }}</a></li>
+                <li><a href="{{ route('kom.peserta.progress_kom') }}">{{ __('Progress Saya') }}</a></li>
+                <li><a href="{{ route('kom.peserta.sertifikat') }}">{{ __('Sertifikat Saya') }}</a></li>
             </ul>
         </li>
     @endif
+
 
     {{-- Menu untuk pengajar --}}
     @if (($role === 'pengajar' ) || $isSuperadmin)

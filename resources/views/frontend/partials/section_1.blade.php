@@ -66,7 +66,7 @@
                 </h1>
                 
                 <!-- CTA Button -->
-                <a href="https://komeveryone.gbigatsu.id/app/register" class="btn btn-primary btn-lg font-body fw-medium px-5 py-3 rounded-pill" style="font-family: 'Space Grotesk', sans-serif !important; font-size: 1.2rem; background: #EC5310;">DAFTAR SEKARANG !</a>
+                <a href="{{ route('kom.register') }}" class="btn btn-primary btn-lg font-body fw-medium px-5 py-3 rounded-pill" style="font-family: 'Space Grotesk', sans-serif !important; font-size: 1.2rem; background: #EC5310;">DAFTAR SEKARANG !</a>
             </div>
         </div>
     </div>

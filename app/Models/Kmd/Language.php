@@ -36,6 +36,7 @@ class Language extends Model
     ];
 
     public const CACHE_KEY_ACTIVE = 'languages.active';
+    public const CACHE_KEY_DEFAULT = 'languages.default';
 
     protected static function boot()
     {
@@ -51,8 +52,12 @@ class Language extends Model
     protected static function booted(): void
     {
         // Daftar bahasa aktif di-cache; reset setiap ada perubahan dari superadmin.
-        static::saved(fn () => Cache::forget(self::CACHE_KEY_ACTIVE));
-        static::deleted(fn () => Cache::forget(self::CACHE_KEY_ACTIVE));
+        $clear = function () {
+            Cache::forget(self::CACHE_KEY_ACTIVE);
+            Cache::forget(self::CACHE_KEY_DEFAULT);
+        };
+        static::saved($clear);
+        static::deleted($clear);
     }
 
     public function scopeActive(Builder $query): Builder
@@ -69,6 +74,11 @@ class Language extends Model
     /** Kode bahasa default (Bahasa Indonesia). */
     public static function defaultCode(): string
     {
-        return static::where('is_default', true)->value('code') ?? 'id';
+        try {
+            return Cache::remember(self::CACHE_KEY_DEFAULT, 3600,
+                fn () => static::where('is_default', true)->value('code') ?? 'id');
+        } catch (\Throwable $e) {
+            return 'id'; // tabel belum ada / database belum siap
+        }
     }
 }

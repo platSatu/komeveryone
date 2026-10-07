@@ -18,7 +18,10 @@ class DashboardKomController extends Controller
     // Menampilkan dashboard utama
     public function index()
     {
-        return view('kom_digital.dashboard.index');
+        // kom_v02: ringkasan kelas yang sedang dipelajari untuk kartu "Lanjutkan Belajar"
+        $ringkasan = app(\App\Services\Kmd\RingkasanBelajarService::class)->forUser(Auth::user());
+
+        return view('kom_digital.dashboard.index', compact('ringkasan'));
     }
 
     // Menampilkan modul kom 100

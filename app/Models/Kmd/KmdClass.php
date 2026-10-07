@@ -40,6 +40,26 @@ class KmdClass extends Model
             if (empty($model->{$model->getKeyName()})) {
                 $model->{$model->getKeyName()} = (string) Str::uuid();
             }
+
+            // kom_v02: kode URL & urutan katalog otomatis dari nama (mis. "KOM 200" → kom-200 / 200)
+            if (empty($model->code)) {
+                $code = Str::slug($model->name);
+                if (static::where('code', $code)->exists()) {
+                    $code .= '-'.substr($model->id, 0, 8);
+                }
+                $model->code = $code;
+            }
+            if (empty($model->sort_order)) {
+                $model->sort_order = (int) preg_replace('/\D/', '', (string) $model->name);
+            }
+        });
+
+        // kom_v02: nama kelas otomatis tersimpan sebagai terjemahan Bahasa Indonesia
+        static::created(function ($model) {
+            KmdClassTranslation::firstOrCreate(
+                ['class_id' => $model->id, 'language_code' => Language::defaultCode()],
+                ['name' => $model->name]
+            );
         });
     }
 

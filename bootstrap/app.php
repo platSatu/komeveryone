@@ -32,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'cekrolekom' => \App\Http\Middleware\CekRoleKom::class,
+            // kom_v02: bahasa tampilan mengikuti bahasa belajar user
+            'kom.bahasa' => \App\Http\Middleware\KomLanguageMiddleware::class,
         ]);
     })
     

@@ -19,7 +19,7 @@
                 <li class="nav-item"><a class="nav-link font-body fw-medium" href="#section5">Tutors</a></li>
                 <li class="nav-item"><a class="nav-link font-body fw-medium" href="#section6">Testimonials</a></li>
                 <!-- <li class="nav-item"><a class="nav-link font-body fw-medium" href="#section7">Contact</a></li> -->
-                <li class="nav-item"><a class="nav-link font-body fw-medium" href="https://komeveryone.gbigatsu.id/app/login">Login</a></li>
+                <li class="nav-item"><a class="nav-link font-body fw-medium" href="{{ route('kom.login') }}">Login</a></li>
             </ul>
         </div>
     </div>

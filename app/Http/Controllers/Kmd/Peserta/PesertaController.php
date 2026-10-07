@@ -563,8 +563,17 @@ public function updatePertanyaanSaya(Request $request, $id)
                 ]);
             }
 
-            // Cek apakah sertifikat sudah ada
-            $existing = KmdCertificates::where('user_id', $userId)->first();
+            // kom_v02: pendaftaran kelas user (bahasa rangkaian)
+            $userClass = \App\Models\Kmd\KmdUserClass::where('user_id', $userId)
+                ->where('class_id', $classId)
+                ->first();
+
+            // Cek apakah sertifikat KELAS INI sudah ada (kom_v02: per kelas, bukan per user)
+            $existing = KmdCertificates::where('user_id', $userId)
+                ->where(function ($q) use ($classId) {
+                    $q->where('class_id', $classId)->orWhereNull('class_id');
+                })
+                ->first();
 
             if (!$existing) {
                 // Ambil tanggal sesi terakhir yang dihadiri (berdasarkan absensi)
@@ -592,6 +601,8 @@ public function updatePertanyaanSaya(Request $request, $id)
                 $sertifikat = KmdCertificates::create([
                     'id' => Str::uuid(),
                     'user_id' => $userId,
+                    'class_id' => $classId,                                   // kom_v02
+                    'language_code' => $userClass->language_code ?? 'id',     // kom_v02
                     'no_certificate' => $nomor,
                     'date_publish' => Carbon::now(),
                     'status' => 'active',
@@ -599,6 +610,15 @@ public function updatePertanyaanSaya(Request $request, $id)
             } else {
                 $sertifikat = $existing;
                 $nomor = $existing->no_certificate;
+            }
+
+            // kom_v02: tandai rangkaian kelas selesai → bahasa terbuka lagi untuk kelas berikutnya
+            if ($userClass && $userClass->status !== \App\Models\Kmd\KmdUserClass::STATUS_COMPLETED) {
+                $userClass->update([
+                    'status' => \App\Models\Kmd\KmdUserClass::STATUS_COMPLETED,
+                    'certificate_id' => $sertifikat->id,
+                    'completed_at' => now(),
+                ]);
             }
 
             // Buat QR link terenkripsi

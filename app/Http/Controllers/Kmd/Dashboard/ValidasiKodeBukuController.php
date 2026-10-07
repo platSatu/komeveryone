@@ -4,101 +4,76 @@ namespace App\Http\Controllers\Kmd\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Kmd\KmdBooks;
+use App\Models\Kmd\KmdClass;
+use App\Models\Kmd\KmdUserClass;
+use App\Models\Kmd\Language;
+use App\Services\Kmd\KodeBukuService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
-
+/**
+ * Halaman input kode buku LAMA (khusus KOM 100).
+ *
+ * kom_v02: input kode buku sekarang dilakukan per kelas lewat menu "Pilih Kelas"
+ * (KatalogKelasController). Halaman lama diarahkan ke sana. Endpoint POST lama tetap
+ * berfungsi (untuk berjaga-jaga), tapi kini juga mendaftarkan user ke kelas KOM 100.
+ */
 class ValidasiKodeBukuController extends Controller
 {
+    /** ID kelas KOM 100 yang dulu di-hardcode — dipakai hanya sebagai cadangan. */
+    private const KOM100_CLASS_ID = '08a0dbf3-23f7-4b3c-8555-d458be60b632';
+
     public function formValidate()
     {
-        return view('a_kom_digital_pusat.dashboard.validasi_kode_buku');
+        return redirect()->route('kom.katalog.index');
     }
 
-    public function validateKodeBuku(Request $request)
+    public function validateKodeBuku(Request $request, KodeBukuService $kodeBuku)
     {
-        $kode = trim($request->no_books);
-        Log::info('Mulai validasi kode buku', ['no_books' => $kode]);
+        $request->validate(['no_books' => 'required|string']);
 
-        $request->validate([
-            'no_books' => 'required|string'
-        ]);
-
-        //$user = Auth::guard('kom')->user();
         $user = Auth::user();
-        if (!$user) {
-            return response()->json(['status' => 'error', 'message' => 'Login terlebih dahulu.']);
+        if (! $user) {
+            return response()->json(['status' => 'error', 'message' => __('Silakan masuk terlebih dahulu.')]);
         }
 
-        try {
-            // STEP 1: Cek API 1 (apakah kode ada)
-            $resp1 = Http::withOptions(['verify' => false])->get('https://hmministry.net/api/nobuku_api.php', [
-                'no' => $kode,
-                'mod' => 'KOM'
-            ]);
-            Log::info('API 1 response', ['body' => $resp1->body()]);
+        $kode = trim($request->no_books);
+        $hasil = $kodeBuku->verify($kode);
 
-            if ($resp1->failed()) {
-                return response()->json(['status' => 'error', 'message' => 'Tidak bisa mengakses API 1.']);
-            }
+        if (! $hasil['ok']) {
+            return response()->json(['status' => 'error', 'message' => __($hasil['message'])]);
+        }
 
-            $data1 = $resp1->json();
+        $kelas = KmdClass::where('code', 'kom-100')->first() ?? KmdClass::find(self::KOM100_CLASS_ID);
+        $classId = $kelas?->id ?? self::KOM100_CLASS_ID;
 
-            if (empty($data1['status']) || !$data1['status'] || empty($data1['data'])) {
-                return response()->json(['status' => 'error', 'message' => 'Kode buku tidak ditemukan']);
-            }
-
-            $dataKode1 = $data1['data'][0]['nomer'] ?? null;
-            if (!$dataKode1 || strtolower($dataKode1) !== strtolower($kode)) {
-                return response()->json(['status' => 'error', 'message' => 'Kode buku tidak valid']);
-            }
-
-            // STEP 2: Cek API 2 (apakah kode sudah terpakai)
-            $resp2 = Http::withOptions(['verify' => false])->get('https://hmministry.net/api/nobuku_offline_api.php', [
-                'nobukukom' => $kode
-            ]);
-            Log::info('API 2 response', ['body' => $resp2->body()]);
-
-            if ($resp2->failed()) {
-                return response()->json(['status' => 'error', 'message' => 'Tidak bisa mengakses API 2.']);
-            }
-
-            $data2 = $resp2->json();
-
-            if (!empty($data2['status']) && $data2['status'] === true && !empty($data2['data'])) {
-                // Data ada berarti sudah dipakai
-                return response()->json(['status' => 'error', 'message' => 'Kode buku sudah digunakan sebelumnya.']);
-            }
-
-            // STEP 3: Insert/update ke DB (kode belum terpakai)
+        DB::connection('mysql')->transaction(function () use ($kode, $user, $classId) {
             $book = KmdBooks::firstOrNew(['no_books' => $kode]);
-            if ($book->exists && $book->status === 'active') {
-                return response()->json(['status' => 'error', 'message' => 'Kode buku sudah aktif di sistem.']);
-            }
-
             $book->user_id = $user->id;
-            $book->class_id = '08a0dbf3-23f7-4b3c-8555-d458be60b632';
+            $book->class_id = $classId;
             $book->date_publish = Carbon::now();
             $book->status = 'active';
             $book->save();
 
-            Log::info('Kode buku berhasil disimpan', ['no_books' => $kode, 'user_id' => $user->id]);
+            KmdUserClass::firstOrCreate(
+                ['user_id' => $user->id, 'class_id' => $classId],
+                [
+                    'language_code' => $user->language_code ?: Language::defaultCode(),
+                    'book_id' => $book->id,
+                    'status' => KmdUserClass::STATUS_ACTIVE,
+                    'enrolled_at' => now(),
+                ]
+            );
+        });
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Kode buku berhasil diaktifkan dan disimpan. silahkan cek refresh atau cek menu di sebelah kiri.'
-            ]);
+        Log::info('Kode buku berhasil disimpan (halaman lama)', ['no_books' => $kode, 'user_id' => $user->id]);
 
-        } catch (\Exception $e) {
-            Log::error('Exception saat validasi kode buku', [
-                'no_books' => $kode,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json(['status' => 'error', 'message' => 'Terjadi kesalahan server.']);
-        }
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Kode buku berhasil diaktifkan. Silakan buka menu Kelas Saya untuk mulai belajar.'),
+        ]);
     }
 }

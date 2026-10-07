@@ -16,9 +16,26 @@ use App\Models\Kmd\KmdProgressModul;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use App\Services\Kmd\KelasAktifService;
 
 class KmdVideoLearningController extends Controller
 {
+    /**
+     * kom_v02: modul yang ditampilkan dibatasi ke KELAS + BAHASA rangkaian user
+     * (sebelumnya semua modul aktif di database ikut tampil).
+     */
+    protected function modulQuery()
+    {
+        $userClass = app(KelasAktifService::class)->forUser(auth()->user());
+
+        if (! $userClass) {
+            // Cadangan akun lama tanpa pendaftaran kelas: perilaku lama (semua modul aktif)
+            return KmdModuls::query();
+        }
+
+        return app(KelasAktifService::class)->modulQuery($userClass);
+    }
+
     /**
      * Display video learning page
      */
@@ -28,7 +45,7 @@ class KmdVideoLearningController extends Controller
             $userId = auth()->id();
 
             // Get all modules with videos
-            $moduls = KmdModuls::with([
+            $moduls = $this->modulQuery()->with([
                 'videos' => function ($query) {
                     $query->where('status', 'active')->orderBy('sort_video');
                 }
@@ -635,6 +652,8 @@ class KmdVideoLearningController extends Controller
             if (!$nextVideo) {
                 $currentModule = KmdModuls::find($currentVideo->modul_id);
                 $nextModule = KmdModuls::where('order', '>', $currentModule->order)
+                    ->where('kom_class_id', $currentModule->kom_class_id)       // kom_v02
+                    ->where('language_code', $currentModule->language_code)     // kom_v02
                     ->where('status', 'active')
                     ->orderBy('order')
                     ->first();
@@ -681,20 +700,23 @@ class KmdVideoLearningController extends Controller
             $userId = auth()->id();
 
             // Total videos
-            $totalVideos = KmdVideo::where('status', 'active')->count();
+            $modulIds = $this->modulQuery()->where('status', 'active')->pluck('id'); // kom_v02
+            $totalVideos = KmdVideo::where('status', 'active')->whereIn('modul_id', $modulIds)->count();
 
             // Completed videos
             $completedVideos = KmdUserVideoProgress::where('user_id', $userId)
                 ->where('status', 'completed')
                 ->where('answered_question', true)
+                ->whereIn('video_id', KmdVideo::whereIn('modul_id', $modulIds)->pluck('id')) // kom_v02
                 ->count();
 
             // Total modules
-            $totalModules = KmdModuls::where('status', 'active')->count();
+            $totalModules = $modulIds->count(); // kom_v02
 
             // Completed modules
             $completedModules = KmdProgressModul::where('user_id', $userId)
                 ->where('status', 'completed')
+                ->whereIn('moduls_id', $modulIds) // kom_v02
                 ->count();
 
             // Calculate progress percentage
@@ -774,9 +796,11 @@ class KmdVideoLearningController extends Controller
             $userId = auth()->id();
 
             // Check if all modules completed
-            $totalModules = KmdModuls::where('status', 'active')->count();
+            $modulIds = $this->modulQuery()->where('status', 'active')->pluck('id'); // kom_v02
+            $totalModules = $modulIds->count();
             $completedModules = KmdProgressModul::where('user_id', $userId)
                 ->where('status', 'completed')
+                ->whereIn('moduls_id', $modulIds)
                 ->count();
 
             $isEligible = $totalModules > 0 && $completedModules >= $totalModules;

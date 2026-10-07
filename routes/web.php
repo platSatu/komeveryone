@@ -67,6 +67,8 @@ use App\Http\Controllers\KomDigital\KomVideoPertanyaanController;
 use App\Http\Controllers\KomDigital\RayonController;
 use App\Http\Controllers\KomDigital\ScheduleController;
 use App\Http\Controllers\Kmd\Dashboard\ValidasiKodeBukuController;
+use App\Http\Controllers\Kmd\Dashboard\BahasaController;
+use App\Http\Controllers\Kmd\Dashboard\KatalogKelasController;
 use App\Http\Controllers\Kmd\Superadmin\KomUserController;
 use App\Http\Controllers\Kmd\Superadmin\VisitorStatisticController;
 use App\Http\Controllers\Kmd\Superadmin\NginxLogStatisticController;
@@ -121,7 +123,8 @@ Route::prefix('app')->group(function () {
     // routes/web.php
 
     // Route dengan autentikasi khusus 'auth.kom'
-    Route::middleware(['kom.session', 'userprogress'])->name('kom.')->group(function () {
+    // kom_v02: 'kom.bahasa' = bahasa tampilan mengikuti bahasa belajar user + wajib pilih bahasa (user baru)
+    Route::middleware(['kom.session', 'userprogress', 'kom.bahasa'])->name('kom.')->group(function () {
         Route::get('kom/profile', [AuthController::class, 'profileKom'])->name('profile_kom');
         Route::post('/kom/profile/update', [AuthController::class, 'updateProfile'])->name('profile_kom.update');
         // Dashboard Kom Digital
@@ -143,6 +146,20 @@ Route::prefix('app')->group(function () {
             Route::get('/no_buku', 'formValidate')->name('form_validasi');
             Route::post('/no_buku/validate', 'validateKodeBuku')->name('no_buku.validate');
         });
+
+        // ===================== kom_v02: Bahasa Belajar & Pilih Kelas =====================
+        Route::prefix('bahasa-belajar')->controller(BahasaController::class)->name('bahasa.')->group(function () {
+            Route::get('/', 'index')->name('index');     // Pilih Bahasa Belajar
+            Route::post('/', 'store')->name('store');
+        });
+
+        Route::prefix('pilih-kelas')->controller(KatalogKelasController::class)->name('katalog.')->group(function () {
+            Route::get('/', 'index')->name('index');                                   // Katalog KOM 100/200/300/400
+            Route::get('/{kode}', 'masuk')->name('masuk');                             // Masuk ke kelas yang sudah didaftar
+            Route::get('/{kode}/kode-buku', 'kodeBuku')->name('kode_buku');            // Form kode buku
+            Route::post('/{kode}/kode-buku', 'simpanKodeBuku')->name('kode_buku.store');
+        });
+        // ================================================================================
 
         Route::prefix('kelas/kom-100')->controller(KmdVideoLearningController::class)->name('kelas_lecture.')
             ->middleware(['kelaskom'])
