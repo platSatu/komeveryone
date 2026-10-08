@@ -11,7 +11,8 @@ class KmdAnswerService
 {
     public function getAll(array $filters = []): AbstractPaginator
     {
-        $query = KmdAnswer::with('question');
+        // kom_v02: hanya jawaban dari pertanyaan bahasa yang sedang dikelola
+        $query = KmdAnswer::with('question')->whereHas('question', fn ($q) => $q->where('language_code', \App\Services\Kmd\BahasaKelolaService::current()));
 
         if (!empty($filters['search'])) {
             $query->where('answer', 'like', "%{$filters['search']}%");

@@ -24,7 +24,7 @@ return new class extends Migration
             Schema::create('ui_translations', function (Blueprint $table) {
                 $table->char('id', 36)->primary(); // UUID, konsisten dengan tabel kmd_*
                 $table->string('group', 50)->default('general'); // menu, tombol, pesan, ...
-                $table->string('key', 191);
+                $table->string('key', 191)->collation('utf8mb4_bin'); // peka huruf besar/kecil
                 $table->string('language_code', 10);
                 $table->text('value')->nullable();
                 $table->timestamps();

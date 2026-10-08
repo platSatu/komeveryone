@@ -535,27 +535,37 @@ class KelasTutorialController extends Controller
 
     public function handlePaidStatus($userClassTutorialId)
     {
-        $userClassTutorial = KmdUserClassTutorial::findOrFail($userClassTutorialId);
+        // kom_v02: status bayar & kuota diproses dalam SATU transaksi dengan baris dikunci
+        // (lockForUpdate), supaya callback ganda / dua peserta bersamaan tidak membuat
+        // kuota minus atau dihitung dua kali.
+        $diproses = \Illuminate\Support\Facades\DB::connection('mysql')->transaction(function () use ($userClassTutorialId) {
+            $userClassTutorial = KmdUserClassTutorial::lockForUpdate()->findOrFail($userClassTutorialId);
 
-        // 🛑 Skip jika status sudah paid (untuk mencegah callback ganda)
-        if ($userClassTutorial->status_progress === 'paid') {
-            \Log::info("[handlePaidStatus] Status sudah 'paid', tidak diproses ulang. ID: {$userClassTutorial->id}");
+            // 🛑 Skip jika status sudah paid (untuk mencegah callback ganda)
+            if ($userClassTutorial->status_progress === 'paid') {
+                \Log::info("[handlePaidStatus] Status sudah 'paid', tidak diproses ulang. ID: {$userClassTutorial->id}");
+                return null;
+            }
+
+            $userClassTutorial->step = 'selesai';
+            $userClassTutorial->status_progress = 'paid';
+            $userClassTutorial->save();
+
+            $classTutorial = KmdClassTutorial::lockForUpdate()->find($userClassTutorial->class_tutorial_id);
+            if ($classTutorial) {
+                $classTutorial->jml_ikut = $classTutorial->jml_ikut + 1;
+                $classTutorial->sisa_quota = max(0, $classTutorial->sisa_quota - 1); // Hindari minus
+                $classTutorial->save();
+            }
+
+            return [$userClassTutorial, $classTutorial];
+        });
+
+        if (! $diproses) {
             return;
         }
 
-        // ✅ Update status progress dan step jika belum selesai
-        $userClassTutorial->step = 'selesai';
-        $userClassTutorial->status_progress = 'paid';
-        $userClassTutorial->save();
-
-        // ✅ Update jumlah ikut & sisa kuota
-        $classTutorial = $userClassTutorial->classTutorial;
-        if ($classTutorial) {
-            $classTutorial->jml_ikut = $classTutorial->jml_ikut + 1;
-            $classTutorial->sisa_quota = max(0, $classTutorial->sisa_quota - 1); // Hindari minus
-            $classTutorial->save();
-        }
-
+        [$userClassTutorial, $classTutorial] = $diproses;
         $user = $userClassTutorial->user;
 
         // ✅ Cek kalau belum diregistrasi ke Zoom
@@ -578,9 +588,11 @@ class KelasTutorialController extends Controller
                 $userClassTutorial->zoom_registrant_id = $registrant['registrant_id'] ?? null;
                 $userClassTutorial->save();
 
-                // Kirim email ke user
-                Mail::to($user->email)->send(new ZoomLinkEmail($userClassTutorial));
-            } catch (\Exception $e) {
+                // kom_v02: email link Zoom dikirim oleh PersembahanController::callbackMidtrans()
+                // (ThankYouDonasiMail berisi link Zoom). Baris lama `Mail::to(...)->send(new ZoomLinkEmail(...))`
+                // dihapus karena class Mail & ZoomLinkEmail tidak di-import → error, callback pertama
+                // gagal dan email baru terkirim saat Midtrans mengulang callback.
+            } catch (\Throwable $e) {
                 \Log::error('Gagal mendaftarkan ke Zoom setelah pembayaran', [
                     'message' => $e->getMessage()
                 ]);

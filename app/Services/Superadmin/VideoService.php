@@ -9,7 +9,8 @@ class VideoService
 {
     public function getAll(array $filters = []): AbstractPaginator
     {
-        $query = KmdVideo::with('modul');
+        // kom_v02: hanya video dari modul bahasa yang sedang dikelola
+        $query = KmdVideo::with('modul')->whereHas('modul', fn ($q) => $q->where('language_code', \App\Services\Kmd\BahasaKelolaService::current()));
 
         if (!empty($filters['search'])) {
             $query->where('name', 'like', '%' . $filters['search'] . '%');
@@ -42,6 +43,17 @@ class VideoService
     public function update(string $id, array $data): bool
     {
         $video = $this->find($id);
+
+        // kom_v02: unggah file video baru saat edit (mis. versi bahasa lain).
+        // Sebelumnya objek file ikut tersimpan apa adanya ke kolom `video`.
+        if (isset($data['video']) && $data['video'] instanceof \Illuminate\Http\UploadedFile && $data['video']->isValid()) {
+            $filename = time() . '_' . $data['video']->getClientOriginalName();
+            $data['video']->move(public_path('videos'), $filename);
+            $data['video'] = $filename;
+        } else {
+            unset($data['video']); // tidak ada file baru → pertahankan file lama
+        }
+
         return $video->update($data);
     }
 

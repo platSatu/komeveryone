@@ -29,7 +29,7 @@ class VideoController extends Controller
 
     public function create()
     {
-        $moduls = KmdModuls::all();
+        $moduls = KmdModuls::with('kelas')->where('language_code', \App\Services\Kmd\BahasaKelolaService::current())->orderBy('order')->get(); // kom_v02
         return view('a_kom_digital_pusat.superadmin.video.create', compact('moduls'));
     }
 
@@ -47,20 +47,20 @@ class VideoController extends Controller
     public function edit($id)
     {
         try {
-            $video = $this->service->find(Crypt::decrypt($id));
-            $moduls = KmdModuls::all();
+            $video = $this->service->find($this->resolveId($id));
+            $moduls = KmdModuls::with('kelas')->where('language_code', \App\Services\Kmd\BahasaKelolaService::current())->orderBy('order')->get(); // kom_v02
 
             return view('a_kom_digital_pusat.superadmin.video.edit', compact('video', 'moduls'));
         } catch (\Exception $e) {
             Log::error('Gagal menampilkan form edit video: ' . $e->getMessage());
-            return redirect()->route('kom.super_video.index')->with('error', 'Data tidak ditemukan.');
+            return redirect()->route('kom.super_videos.index')->with('error', 'Data tidak ditemukan.');
         }
     }
 
     public function update(VideoRequest $request, $id)
     {
         try {
-            $this->service->update(Crypt::decrypt($id), $request->validated());
+            $this->service->update($this->resolveId($id), $request->validated());
             return redirect()->route('kom.super_videos.index')->with('success', 'Video berhasil diupdate.');
         } catch (\Exception $e) {
             Log::error('Gagal update video: ' . $e->getMessage());
@@ -71,7 +71,7 @@ class VideoController extends Controller
     public function destroy($encryptedId)
     {
         try {
-            $id = Crypt::decrypt($encryptedId);
+            $id = $this->resolveId($encryptedId);
             $this->service->delete($id);
             return redirect()->route('kom.super_videos.index')->with('success', 'Video berhasil dihapus.');
         } catch (\Exception $e) {
@@ -80,4 +80,16 @@ class VideoController extends Controller
         }
     }
 
+    /**
+     * kom_v02: daftar video mengirim ID biasa untuk Edit dan ID terenkripsi untuk Hapus.
+     * Terima keduanya (sebelumnya tombol Edit selalu gagal karena ID tidak terenkripsi).
+     */
+    protected function resolveId(string $id): string
+    {
+        try {
+            return Crypt::decrypt($id);
+        } catch (\Throwable $e) {
+            return $id;
+        }
+    }
 }

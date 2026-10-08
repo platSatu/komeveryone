@@ -6,7 +6,7 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h4 class="card-title">Daftar Modul KOM</h4>
                     <div class="card-tools">
-                        <a href="" class="btn btn-primary btn-sm">+ Tambah Modul</a>
+                        <a href="{{ route('kom.super_kom-modul.create') }}" class="btn btn-primary btn-sm">+ Tambah Modul</a>
                     </div>
                 </div>
 

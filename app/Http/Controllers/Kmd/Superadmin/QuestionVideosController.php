@@ -32,8 +32,8 @@ class QuestionVideosController extends Controller
     public function create()
     {
         // Jika perlu, ambil data video dan pertanyaan untuk form
-        $videos = KmdVideo::orderBy('created_at', 'asc')->get();
-        $questions = KmdQuestions::orderBy('created_at', 'asc')->get();
+        $videos = KmdVideo::whereHas('modul', fn ($q) => $q->where('language_code', \App\Services\Kmd\BahasaKelolaService::current()))->orderBy('created_at', 'asc')->get(); // kom_v02
+        $questions = KmdQuestions::where('language_code', \App\Services\Kmd\BahasaKelolaService::current())->orderBy('created_at', 'asc')->get(); // kom_v02
 
         return view('a_kom_digital_pusat.superadmin.question_video.create', compact('videos', 'questions'));
     }
@@ -55,8 +55,8 @@ class QuestionVideosController extends Controller
             $data = $this->service->find($id);
 
             // Ambil semua data video dan pertanyaan untuk form dropdown
-            $videos = KmdVideo::all();
-            $questions = KmdQuestions::all();
+            $videos = KmdVideo::whereHas('modul', fn ($q) => $q->where('language_code', \App\Services\Kmd\BahasaKelolaService::current()))->get(); // kom_v02
+            $questions = KmdQuestions::where('language_code', \App\Services\Kmd\BahasaKelolaService::current())->get(); // kom_v02
 
             return view('a_kom_digital_pusat.superadmin.question_video.edit', compact('data', 'videos', 'questions'));
         } catch (\Exception $e) {

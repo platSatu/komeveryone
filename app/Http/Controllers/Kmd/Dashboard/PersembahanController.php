@@ -493,6 +493,11 @@ class PersembahanController extends Controller
                 'status_lama' => $donasi->status
             ]);
 
+            // kom_v02: apakah pendaftaran tutorial ini SUDAH diproses lunas sebelumnya (callback ulang dari Midtrans)?
+            // Dicek dari status pendaftaran (bukan status donasi) supaya kalau proses sebelumnya gagal di tengah,
+            // callback ulang tetap memproses ulang.
+            $sudahLunasSebelumnya = optional($donasi->userclasstutorial)->status_progress === 'paid';
+
             // Update status donasi
             $donasi->update([
                 'transaction_status' => $transactionStatus,
@@ -506,12 +511,13 @@ class PersembahanController extends Controller
             ]);
 
             // Jika transaksi sukses, proses registrasi Zoom & kirim email
-            if (in_array($transactionStatus, ['settlement', 'capture'])) {
+            if (in_array($transactionStatus, ['settlement', 'capture']) && ! $sudahLunasSebelumnya) { // kom_v02: jangan proses / kirim email dua kali
                 $userClassTutorial = $donasi->userclasstutorial;
 
                 if ($userClassTutorial) {
                     // Panggil handlePaidStatus()
                     app(KelasTutorialController::class)->handlePaidStatus($userClassTutorial->id);
+                    $userClassTutorial->refresh(); // kom_v02: ambil zoom_join_url terbaru hasil registrasi Zoom
 
                     // Kirim email ucapan + link Zoom (jika sudah tersedia)*
                     try {

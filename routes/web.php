@@ -393,6 +393,35 @@ Route::prefix('app')->group(function () {
         });
 
         Route::prefix('superadmin')->group(function () {
+            // ===================== kom_v02: Bahasa, Kelas, Terjemahan Tampilan =====================
+            Route::middleware(['auth:web', 'cekrolekom:superadmin'])->group(function () {
+                Route::prefix('bahasa')->controller(\App\Http\Controllers\Kmd\Superadmin\BahasaController::class)->name('super_bahasa.')->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::get('/tambah', 'create')->name('create');
+                    Route::post('/', 'store')->name('store');
+                    Route::get('/{language}/ubah', 'edit')->name('edit');
+                    Route::put('/{language}', 'update')->name('update');
+                    Route::post('/{language}/aktif', 'toggle')->name('toggle');
+                    Route::post('/salin-konten', 'salin')->name('salin');
+                    Route::post('/kelola', 'kelola')->name('kelola');
+                });
+
+                Route::prefix('kelola-kelas')->controller(\App\Http\Controllers\Kmd\Superadmin\KelolaKelasController::class)->name('super_kelola_kelas.')->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::get('/tambah', 'create')->name('create');
+                    Route::post('/', 'store')->name('store');
+                    Route::get('/{kelas}/ubah', 'edit')->name('edit');
+                    Route::put('/{kelas}', 'update')->name('update');
+                });
+
+                Route::prefix('terjemahan-tampilan')->controller(\App\Http\Controllers\Kmd\Superadmin\TerjemahanTampilanController::class)->name('super_terjemahan.')->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::post('/', 'simpan')->name('simpan');
+                    Route::post('/pindai', 'pindai')->name('pindai');
+                });
+            });
+            // =========================================================================================
+
             Route::prefix('users')->controller(KomUserController::class)->middleware(['auth:web', 'cekrolekom:superadmin'])->name('super_user.')->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('/create', 'create')->name('create');

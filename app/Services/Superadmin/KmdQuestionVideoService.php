@@ -16,15 +16,16 @@ class KmdQuestionVideoService
      */
     public function getAll(array $filters = []): AbstractPaginator
 {
-    $query = KmdQuestionVideos::with(['video', 'question']);
+    // kom_v02: hanya relasi dari video bahasa yang sedang dikelola
+    $query = KmdQuestionVideos::with(['video.modul', 'question'])
+        ->whereHas('video.modul', fn ($q) => $q->where('language_code', \App\Services\Kmd\BahasaKelolaService::current()));
 
     if (!empty($filters['search'])) {
         $search = $filters['search'];
-        $query->whereHas('video', function($q) use ($search) {
-            $q->where('name', 'like', "%{$search}%");
-        })
-        ->orWhereHas('question', function($q) use ($search) {
-            $q->where('questions', 'like', "%{$search}%");
+        // kom_v02: dikelompokkan supaya tidak "membocorkan" filter lain (sebelumnya orWhereHas di level atas)
+        $query->where(function ($w) use ($search) {
+            $w->whereHas('video', fn ($q) => $q->where('name', 'like', "%{$search}%"))
+              ->orWhereHas('question', fn ($q) => $q->where('questions', 'like', "%{$search}%"));
         });
     }
 

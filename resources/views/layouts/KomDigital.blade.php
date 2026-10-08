@@ -271,6 +271,11 @@
                         </div>
                         <!-- end page title end breadcrumb -->
 
+                        {{-- kom_v02: pita bahasa yang dikelola di halaman konten superadmin --}}
+                        @if (request()->routeIs('kom.super_kom-modul.*', 'kom.super_videos.*', 'kom.super_pertanyaan.*', 'kom.super_jawaban.*', 'kom.super_pertanyaan-video.*'))
+                            @include('a_kom_digital_pusat.superadmin._bahasa_kelola')
+                        @endif
+
                         @yield('content')
 
 

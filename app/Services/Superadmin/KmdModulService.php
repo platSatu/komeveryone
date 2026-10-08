@@ -11,7 +11,8 @@ class KmdModulService
 {
     public function getAll(array $filters = []): AbstractPaginator
     {
-        $query = KmdModuls::query();
+        // kom_v02: hanya modul dalam bahasa yang sedang dikelola
+        $query = KmdModuls::with('kelas')->where('language_code', \App\Services\Kmd\BahasaKelolaService::current());
 
         if (!empty($filters['search'])) {
             $query->where('name', 'like', "%{$filters['search']}%");
@@ -31,6 +32,8 @@ class KmdModulService
 
     public function store(array $data): KmdModuls
     {
+        $data['language_code'] = $data['language_code'] ?? \App\Services\Kmd\BahasaKelolaService::current(); // kom_v02
+
         return KmdModuls::create($data);
     }
 

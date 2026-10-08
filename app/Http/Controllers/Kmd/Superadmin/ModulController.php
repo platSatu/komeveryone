@@ -47,7 +47,8 @@ class ModulController extends Controller
     {
         try {
             $data = $this->service->find($id);
-            return view('a_kom_digital_pusat.superadmin.modul.edit', compact('data'));
+            $classes = KmdClass::orderBy('sort_order')->get(); // kom_v02
+            return view('a_kom_digital_pusat.superadmin.modul.edit', compact('data', 'classes'));
         } catch (\Exception $e) {
             Log::error('Gagal menampilkan form edit modul: ' . $e->getMessage());
             return redirect()->route('kom.super_kom-modul.index')->with('error', 'Terjadi kesalahan saat menampilkan form edit.');

@@ -144,20 +144,6 @@
 
     {{-- Menu untuk admin_kom (superadmin) --}}
     @if ($role === 'superadmin')
-        <li>
-            <a href="{{ route('kom.super_visitor.index') }}" class="waves-effect">
-                <i class="mdi mdi-chart-line"></i>
-                <span>Statistik Pengunjung</span>
-            </a>
-        </li>
-
-        <li>
-            <a href="{{ route('kom.super_nginxlog.index') }}" class="waves-effect">
-                <i class="mdi mdi-chart-areaspline"></i>
-                <span>Statistik Pengunjung (Log Nginx)</span>
-            </a>
-        </li>
-
         <li class="has_sub">
             <a href="javascript:void(0);" class="waves-effect">
                 <i class="mdi mdi-settings"></i><span> Diklat Tutor</span>
@@ -177,10 +163,15 @@
                 <span class="float-right"><i class="mdi mdi-chevron-right"></i></span>
             </a>
             <ul class="list-unstyled">
+                {{-- kom_v02: bahasa, kelas, terjemahan & statistik dipindah ke sini --}}
+                <li><a href="{{ route('kom.super_bahasa.index') }}">{{ __('Kelola Bahasa') }}</a></li>
+                <li><a href="{{ route('kom.super_kelola_kelas.index') }}">{{ __('Kelola Kelas') }}</a></li>
+                <li><a href="{{ route('kom.super_terjemahan.index') }}">{{ __('Terjemahan Tampilan') }}</a></li>
+                <li><a href="{{ route('kom.super_visitor.index') }}">{{ __('Statistik Pengunjung') }}</a></li>
+                <li><a href="{{ route('kom.super_nginxlog.index') }}">{{ __('Statistik Pengunjung (Log Nginx)') }}</a></li>
                 <li><a href="{{ route('kom.super_user.index') }}">Daftar User</a></li>
                 <li><a href="{{ route('kom.inputMassal.index') }}">Input Massal</a></li>
                 <li><a href="{{ route('kom.super_books.index') }}">Input Kode Buku</a></li>
-                <li><a href="{{ route('kom.super_kelas-kom.index') }}">Input Kelas Kom</a></li>
                 <li><a href="{{ route('kom.super_kom-modul.index') }}">Input Modul</a></li>
                 <li><a href="{{ route('kom.super_pertanyaan.index') }}">Daftar Pertanyaan</a></li>
                 <li><a href="{{ route('kom.super_jawaban.index') }}">Daftar Jawaban</a></li>

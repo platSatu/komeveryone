@@ -22,7 +22,7 @@ class AnswerController extends Controller
     {
         $filters = $request->only(['search', 'questions_id', 'status']);
         $data = $this->service->getAll($filters); // langsung paginate
-        $questions = KmdQuestions::orderBy('questions')->get();
+        $questions = KmdQuestions::where('language_code', \App\Services\Kmd\BahasaKelolaService::current())->orderBy('questions')->get(); // kom_v02
         return view('a_kom_digital_pusat.superadmin.answer.index', compact('data', 'filters', 'questions'));
     }
 
@@ -30,7 +30,7 @@ class AnswerController extends Controller
     public function create()
     {
         // Ambil semua pertanyaan, urutkan berdasarkan created_at ascending (terlama di atas)
-        $pertanyaans = KmdQuestions::orderBy('created_at', 'asc')->get();
+        $pertanyaans = KmdQuestions::where('language_code', \App\Services\Kmd\BahasaKelolaService::current())->orderBy('created_at', 'asc')->get(); // kom_v02
 
         return view('a_kom_digital_pusat.superadmin.answer.create', compact('pertanyaans'));
     }
@@ -53,7 +53,7 @@ class AnswerController extends Controller
     {
         try {
             $answer = $this->service->find($id);
-            $pertanyaans = KmdQuestions::orderBy('questions')->get(); // ambil daftar pertanyaan
+            $pertanyaans = KmdQuestions::where('language_code', \App\Services\Kmd\BahasaKelolaService::current())->orderBy('questions')->get(); // kom_v02
             return view('a_kom_digital_pusat.superadmin.answer.edit', compact('answer', 'pertanyaans'));
         } catch (\Exception $e) {
             Log::error('Gagal menampilkan form edit jawaban: ' . $e->getMessage());
