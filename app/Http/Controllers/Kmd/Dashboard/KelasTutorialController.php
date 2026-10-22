@@ -23,13 +23,22 @@ class KelasTutorialController extends Controller
     public function index(Request $request)
     {
         //$query = KmdClassTutorial::where('status', 'active');
-        $query = KmdClassTutorial::where('status', 'active')
+        $query = KmdClassTutorial::with(['modul', 'kelas', 'rayon', 'titikVideo'])
+            ->where('status', 'active')
             ->where(function ($q) {
                 $q->whereNull('category_diklat')
                     ->orWhere('category_diklat', '');
             });
 
-
+        // kom_v02: hanya jadwal untuk KELAS + BAHASA rangkaian peserta
+        $userClass = app(\App\Services\Kmd\KelasAktifService::class)->forUser(Auth::user());
+        $modulQuery = KmdModuls::query()->where('status', 'active')->orderBy('order');
+        if ($userClass) {
+            $query->where('class_id', $userClass->class_id)
+                ->whereHas('modul', fn ($q) => $q->where('language_code', $userClass->language_code));
+            $modulQuery->where('kom_class_id', $userClass->class_id)
+                ->where('language_code', $userClass->language_code);
+        }
 
         // Jika ada filter dari request, tambahkan kondisi
         if ($request->filled('rayon_id')) {
@@ -40,14 +49,31 @@ class KelasTutorialController extends Controller
             $query->where('modul_id', $request->modul_id);
         }
 
+        // kom_v02: titik tutorial (dari halaman belajar). 'akhir' = akhir modul, selain itu id video
+        $titikInfo = null;
+        if ($request->filled('modul_id') && $request->filled('titik')) {
+            $videoId = $request->titik === 'akhir' ? null : $request->titik;
+            $videoId ? $query->where('video_id', $videoId) : $query->whereNull('video_id');
+
+            $modulTitik = KmdModuls::find($request->modul_id);
+            $titikService = app(\App\Services\Kmd\TitikTutorialService::class);
+            $status = $titikService->statusPeserta(Auth::id(), $request->modul_id, $videoId);
+            $titikInfo = [
+                'modul' => $modulTitik,
+                'label' => \App\Services\Kmd\TitikTutorialService::label($videoId ? \App\Models\Kmd\KmdVideo::find($videoId) : null),
+                'status' => $status['status'],
+                'booking' => $status['booking'],
+            ];
+        }
+
         // Pagination, misal 9 per halaman
-        $kelasTutorials = $query->paginate(9);
+        $kelasTutorials = $query->orderBy('start_time')->paginate(9);
 
         // Ambil data rayon dan modul untuk filter dropdown
         $rayons = Cabang::all();
-        $moduls = KmdModuls::all();
+        $moduls = $modulQuery->get();
 
-        return view('a_kom_digital_pusat.dashboard.kelasTutorial', compact('kelasTutorials', 'rayons', 'moduls'));
+        return view('a_kom_digital_pusat.dashboard.kelasTutorial', compact('kelasTutorials', 'rayons', 'moduls', 'titikInfo'));
     }
 
     // 2,3. User memilih kelas, simpan ke KmdUser ClassTutorial dan update jml_ikut & sisa_quota
@@ -117,7 +143,7 @@ class KelasTutorialController extends Controller
     //     $request->validate([
     //         'class_tutorial_id' => ['required', new CustomDbRule('mysql2', 'kmd_class_tutorial', 'id', 'exists')],
     //     ], [
-    //         'class_tutorial_id.required' => 'Kolom Kelas Tutorial wajib diisi.',
+    //         'class_tutorial_id.required' => __('Kolom Kelas Tutorial wajib diisi.'),
     //     ]);
 
     //     $user = Auth::user();
@@ -130,7 +156,7 @@ class KelasTutorialController extends Controller
     //         Log::error('Pengajar ID kosong di kelas tutorial', ['class_tutorial_id' => $kelasTutorial->id]);
     //         return response()->json([
     //             'success' => false,
-    //             'message' => 'Pengajar untuk kelas ini belum ditentukan. Silakan hubungi admin.',
+    //             'message' => __('Pengajar untuk kelas ini belum ditentukan. Silakan hubungi admin.'),
     //         ], 422);
     //     }
 
@@ -170,7 +196,7 @@ class KelasTutorialController extends Controller
 
     //     return response()->json([
     //         'success' => true,
-    //         'message' => 'Berhasil ikut kelas, silakan lanjut ke pertanyaan.',
+    //         'message' => __('Berhasil ikut kelas, silakan lanjut ke pertanyaan.'),
     //         'redirect_url' => route('kom.kelas_tutorial.pertanyaan.form'),
     //         'data' => [
     //             'progress_id' => $progress->id,
@@ -179,20 +205,53 @@ class KelasTutorialController extends Controller
     //         ],
     //     ]);
     // }
+    /**
+     * kom_v02: satu peserta hanya boleh memproses 1 pendaftaran dalam satu waktu
+     * (klik ganda / dua tab bersamaan tidak membuat id pendaftaran dobel).
+     */
     public function joinClass(Request $request)
     {
-        Log::info('joinClass called', ['request' => $request->all()]);
+        $kunci = null;
+        try {
+            $kunci = \Illuminate\Support\Facades\Cache::lock('kom-join-tutorial:' . Auth::id(), 15);
+            if (! $kunci->block(5)) {
+                $kunci = null;
+                return response()->json([
+                    'success' => false,
+                    'message' => __('Pendaftaran Anda sedang diproses. Silakan tunggu sebentar.'),
+                ], 429);
+            }
+        } catch (\Illuminate\Contracts\Cache\LockTimeoutException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => __('Pendaftaran Anda sedang diproses. Silakan tunggu sebentar.'),
+            ], 429);
+        } catch (\Throwable $e) {
+            // driver cache tidak mendukung lock → tetap lanjut (perilaku lama)
+            Log::warning('[JoinClass] Cache lock tidak tersedia: ' . $e->getMessage());
+            $kunci = null;
+        }
+
+        try {
+            return $this->prosesJoinClass($request);
+        } finally {
+            optional($kunci)->release();
+        }
+    }
+
+    protected function prosesJoinClass(Request $request)
+    {
 
         // $request->validate([
         //     'class_tutorial_id' => ['required', new CustomDbRule('mysql2', 'kmd_class_tutorial', 'id', 'exists')],
         // ], [
-        //     'class_tutorial_id.required' => 'Kolom Kelas Tutorial wajib diisi.',
+        //     'class_tutorial_id.required' => __('Kolom Kelas Tutorial wajib diisi.'),
         // ]);
         $request->validate([
             'class_tutorial_id' => 'required|exists:kmd_class_tutorial,id',
         ], [
-            'class_tutorial_id.required' => 'Kolom Kelas Tutorial wajib diisi.',
-            'class_tutorial_id.exists' => 'Kelas Tutorial tidak ditemukan.',
+            'class_tutorial_id.required' => __('Kolom Kelas Tutorial wajib diisi.'),
+            'class_tutorial_id.exists' => __('Kelas Tutorial tidak ditemukan.'),
         ]);
 
         $user = Auth::user();
@@ -200,14 +259,13 @@ class KelasTutorialController extends Controller
         // Ambil data kelas tutorial
         $kelasTutorial = KmdClassTutorial::findOrFail($request->class_tutorial_id);
 
-        Log::info('Data class tutorial ditemukan', ['kelasTutorial' => $kelasTutorial->toArray()]);
 
         // Cek kuota terlebih dahulu
         if ($kelasTutorial->sisa_quota <= 0) {
             Log::warning('Kuota kelas sudah penuh, pendaftaran ditolak', ['class_tutorial_id' => $kelasTutorial->id]);
             return response()->json([
                 'success' => false,
-                'message' => 'Kuota kelas sudah penuh, tidak bisa mendaftar lagi.',
+                'message' => __('Kuota kelas sudah penuh, tidak bisa mendaftar lagi.'),
             ], 422);
         }
 
@@ -216,42 +274,40 @@ class KelasTutorialController extends Controller
             Log::error('Pengajar ID kosong di kelas tutorial', ['class_tutorial_id' => $kelasTutorial->id]);
             return response()->json([
                 'success' => false,
-                'message' => 'Pengajar untuk kelas ini belum ditentukan. Silakan hubungi admin.',
+                'message' => __('Pengajar untuk kelas ini belum ditentukan. Silakan hubungi admin.'),
             ], 422);
         }
 
-        Log::info('pengajar_id sebelum insert progress', ['pengajar_id' => $kelasTutorial->pengajar_id]);
         
-        $existingSameModul = KmdUserClassTutorial::where('user_id', $user->id)
-            ->where('modul_id', $kelasTutorial->modul_id)
-            ->first();
+        // kom_v02: aturan per TITIK tutorial (bukan per modul lagi) — 1 modul bisa punya
+        // beberapa kelas tutorial (tengah modul + akhir modul).
+        $titikService = app(\App\Services\Kmd\TitikTutorialService::class);
+        $statusTitik = $titikService->statusPeserta($user->id, $kelasTutorial->modul_id, $kelasTutorial->video_id ?: null);
 
-        if ($existingSameModul) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda sudah terdaftar di modul ini sebelumnya dan tidak dapat mendaftar lagi.',
-                'redirect_url' => route('kom.kelas_tutorial.pertanyaan.form'),
-            ], 422);
-        }
+        switch ($statusTitik['status']) {
+            case \App\Services\Kmd\TitikTutorialService::HADIR:
+                return response()->json([
+                    'success' => false,
+                    'message' => __('Anda sudah hadir di kelas tutorial ini. Tidak perlu mendaftar lagi.'),
+                ], 422);
 
-        // Cek apakah user sudah ikut kelas ini yang belum selesai (step != selesai)
-        $existingProgress = KmdUserClassTutorial::where('user_id', $user->id)
-            ->where('class_tutorial_id', $kelasTutorial->id)
-            ->where('step', '!=', 'selesai')
-            ->first();
+            case \App\Services\Kmd\TitikTutorialService::PROSES:
+                return response()->json([
+                    'success' => false,
+                    'message' => __('Anda sudah memilih jadwal untuk kelas tutorial ini. Silakan selesaikan langkah berikutnya.'),
+                    'redirect_url' => route('kom.kelas_tutorial.pertanyaan.form'),
+                ], 422);
 
-        // Cek apakah user sudah pernah ikut kelas ini (belum selesai)
-        $existingProgress = KmdUserClassTutorial::where('user_id', $user->id)
-            ->where('class_tutorial_id', $kelasTutorial->id)
-            ->where('step', '!=', 'selesai')
-            ->first();
+            case \App\Services\Kmd\TitikTutorialService::TERDAFTAR:
+                return response()->json([
+                    'success' => false,
+                    'message' => __('Anda sudah terdaftar di jadwal kelas tutorial ini. Silakan ikuti kelasnya sesuai jadwal.'),
+                    'redirect_url' => route('kom.peserta.kelas_tutorial'),
+                ], 422);
 
-        if ($existingProgress) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda sudah memilih kelas ini, silakan lanjut ke pertanyaan.',
-                'redirect_url' => route('kom.kelas_tutorial.pertanyaan.form'),
-            ]);
+            case \App\Services\Kmd\TitikTutorialService::TIDAK_HADIR:
+                // Tidak hadir → boleh pilih jadwal pengganti TANPA persembahan lagi
+                return $this->jadwalPengganti($user, $kelasTutorial, $statusTitik['booking']);
         }
 
         // Buat progress baru dengan status pending (belum bayar)
@@ -261,6 +317,7 @@ class KelasTutorialController extends Controller
             'class_tutorial_id' => $kelasTutorial->id,
             'class_id' => $kelasTutorial->class_id,
             'modul_id' => $kelasTutorial->modul_id,
+            'video_id' => $kelasTutorial->video_id ?: null, // kom_v02: titik tutorial
             'rayon_id' => $kelasTutorial->rayon_id,
             'pengajar_id' => $kelasTutorial->pengajar_id,
             'step' => 'pertanyaan',
@@ -275,7 +332,7 @@ class KelasTutorialController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Berhasil ikut kelas, silakan lanjut ke pertanyaan.',
+            'message' => __('Berhasil ikut kelas, silakan lanjut ke pertanyaan.'),
             'redirect_url' => route('kom.kelas_tutorial.pertanyaan.form'),
             'data' => [
                 'progress_id' => $progress->id,
@@ -533,18 +590,100 @@ class KelasTutorialController extends Controller
     // }
 
 
-    public function handlePaidStatus($userClassTutorialId)
+    /**
+     * kom_v02: peserta TIDAK HADIR memilih jadwal lain untuk titik yang sama.
+     * Tidak perlu persembahan lagi (persembahan sebelumnya tetap berlaku) dan
+     * pertanyaan sebelumnya ikut dikirim ke pengajar jadwal baru.
+     */
+    protected function jadwalPengganti($user, KmdClassTutorial $kelasTutorial, KmdUserClassTutorial $bookingLama)
     {
-        // kom_v02: status bayar & kuota diproses dalam SATU transaksi dengan baris dikunci
-        // (lockForUpdate), supaya callback ganda / dua peserta bersamaan tidak membuat
-        // kuota minus atau dihitung dua kali.
+        $booking = \Illuminate\Support\Facades\DB::connection('mysql')->transaction(function () use ($user, $kelasTutorial, $bookingLama) {
+            $kelas = KmdClassTutorial::lockForUpdate()->find($kelasTutorial->id);
+            if (! $kelas || $kelas->sisa_quota <= 0) {
+                return null;
+            }
+
+            $booking = KmdUserClassTutorial::create([
+                'id' => (string) Str::uuid(),
+                'user_id' => $user->id,
+                'class_tutorial_id' => $kelas->id,
+                'class_id' => $kelas->class_id,
+                'modul_id' => $kelas->modul_id,
+                'video_id' => $kelas->video_id ?: null,
+                'rayon_id' => $kelas->rayon_id,
+                'pengajar_id' => $kelas->pengajar_id,
+                'step' => 'donasi',
+                'status_progress' => 'pending',
+                'status' => 'booked',
+                'is_rebook' => true,
+                'rebook_from_id' => $bookingLama->id,
+                'date_booking' => now(),
+            ]);
+
+            // Pertanyaan sebelumnya dikirim juga ke pengajar jadwal baru
+            $pertanyaanLama = \App\Models\Kmd\KmdPertanyaanUser::where('user_id', $user->id)
+                ->where('kelas_tutorial_id', $bookingLama->class_tutorial_id)
+                ->get();
+            foreach ($pertanyaanLama as $p) {
+                \App\Models\Kmd\KmdPertanyaanUser::create([
+                    'user_id' => $user->id,
+                    'rayon_id' => $kelas->rayon_id,
+                    'class_id' => $kelas->class_id,
+                    'modul_id' => $kelas->modul_id,
+                    'video_id' => $kelas->video_id ?: null,
+                    'kelas_tutorial_id' => $kelas->id,
+                    'pengajar_id' => $kelas->pengajar_id,
+                    'pertanyaan' => $p->pertanyaan,
+                    'status' => 'active',
+                    'tgl_submit' => now(),
+                ]);
+            }
+
+            return $booking;
+        });
+
+        if (! $booking) {
+            return response()->json([
+                'success' => false,
+                'message' => __('Kuota kelas sudah penuh, tidak bisa mendaftar lagi.'),
+            ], 422);
+        }
+
+        // Tandai lunas (tanpa pembayaran baru), kurangi kuota & daftarkan ke Zoom
+        $this->handlePaidStatus($booking->id);
+
+        Log::info('Jadwal pengganti (tidak hadir) dibuat', [
+            'user_id' => $user->id, 'booking_baru' => $booking->id, 'booking_lama' => $bookingLama->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => __('Jadwal pengganti berhasil dipilih. Anda tidak perlu memberikan persembahan lagi. Link Zoom ada di menu Kelas Tutorial Saya.'),
+            'redirect_url' => route('kom.peserta.kelas_tutorial'),
+            'tanpa_pertanyaan' => true,
+        ]);
+    }
+
+    /**
+     * Tandai pendaftaran kelas tutorial LUNAS.
+     *
+     * kom_v02 (performa):
+     *  - status lunas & kuota diproses LANGSUNG dalam satu transaksi berkunci (lockForUpdate),
+     *    supaya callback ganda / dua peserta bersamaan tidak membuat kuota minus atau dobel;
+     *  - pendaftaran Zoom + email link Zoom dikerjakan di QUEUE (ProsesTutorialLunasJob),
+     *    supaya callback Midtrans tidak ikut lambat saat Zoom / server email lambat.
+     *
+     * @param  string|null  $donasiId  diisi dari callback persembahan → peserta dikirimi email terima kasih + link Zoom
+     * @return bool  true jika baru saja diproses, false jika sudah lunas sebelumnya
+     */
+    public function handlePaidStatus($userClassTutorialId, ?string $donasiId = null): bool
+    {
         $diproses = \Illuminate\Support\Facades\DB::connection('mysql')->transaction(function () use ($userClassTutorialId) {
             $userClassTutorial = KmdUserClassTutorial::lockForUpdate()->findOrFail($userClassTutorialId);
 
             // 🛑 Skip jika status sudah paid (untuk mencegah callback ganda)
             if ($userClassTutorial->status_progress === 'paid') {
-                \Log::info("[handlePaidStatus] Status sudah 'paid', tidak diproses ulang. ID: {$userClassTutorial->id}");
-                return null;
+                return false;
             }
 
             $userClassTutorial->step = 'selesai';
@@ -558,46 +697,15 @@ class KelasTutorialController extends Controller
                 $classTutorial->save();
             }
 
-            return [$userClassTutorial, $classTutorial];
+            return true;
         });
 
-        if (! $diproses) {
-            return;
+        if ($diproses) {
+            // dijalankan worker queue (php artisan queue:work); jika QUEUE_CONNECTION=sync, langsung jalan
+            \App\Jobs\Kmd\ProsesTutorialLunasJob::dispatch((string) $userClassTutorialId, $donasiId);
         }
 
-        [$userClassTutorial, $classTutorial] = $diproses;
-        $user = $userClassTutorial->user;
-
-        // ✅ Cek kalau belum diregistrasi ke Zoom
-        if ($userClassTutorial->zoom_join_url || $userClassTutorial->zoom_registrant_id) {
-            \Log::info("[handlePaidStatus] Sudah terdaftar Zoom. ID: {$userClassTutorial->id}");
-            return;
-        }
-
-        if ($classTutorial && $classTutorial->zoom_meeting_id) {
-            try {
-                $zoomName = $user->name ?? 'Peserta';
-
-                $registrant = app(KelasTutorService::class)->registerZoomRegistrant(
-                    $classTutorial->zoom_meeting_id,
-                    $user->email,
-                    $zoomName
-                );
-
-                $userClassTutorial->zoom_join_url = $registrant['join_url'] ?? null;
-                $userClassTutorial->zoom_registrant_id = $registrant['registrant_id'] ?? null;
-                $userClassTutorial->save();
-
-                // kom_v02: email link Zoom dikirim oleh PersembahanController::callbackMidtrans()
-                // (ThankYouDonasiMail berisi link Zoom). Baris lama `Mail::to(...)->send(new ZoomLinkEmail(...))`
-                // dihapus karena class Mail & ZoomLinkEmail tidak di-import → error, callback pertama
-                // gagal dan email baru terkirim saat Midtrans mengulang callback.
-            } catch (\Throwable $e) {
-                \Log::error('Gagal mendaftarkan ke Zoom setelah pembayaran', [
-                    'message' => $e->getMessage()
-                ]);
-            }
-        }
+        return $diproses;
     }
 
 
@@ -651,7 +759,6 @@ class KelasTutorialController extends Controller
             ->exists();
 
         if ($exists) {
-            Log::info("joinClass: User {$user->id} sudah terdaftar di kelas {$classTutorial->id}");
             return true; // sudah terdaftar, anggap sukses
         }
 

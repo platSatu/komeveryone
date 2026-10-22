@@ -10,7 +10,7 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <h5 id="videoTitle" class="mb-0">
                                 <i class="fas fa-play-circle me-2"></i>
-                                Pilih Video untuk Mulai Belajar
+                                {{ __('Pilih Video untuk Mulai Belajar') }}
                             </h5>
                             <div class="video-controls">
                                 {{-- <button class="btn btn-sm btn-outline-light" id="fullscreenBtn" title="Fullscreen">
@@ -32,24 +32,25 @@
                             <video id="mainVideo" class="w-100" preload="metadata"
                                 style="max-height: 500px; background: #000; width: 100%; display: block;">
                                 <source id="videoSource" src="video.mp4" type="video/mp4">
-                                Browser Anda tidak mendukung video HTML5.
+                                {{ __('Browser Anda tidak mendukung video HTML5.') }}
                             </video>
 
-                            <!-- Kontrol video buatan -->
-                            <div class="video-controls"
-                                style="position: relative; bottom: 10px; text-align: center; background: rgba(0,0,0,0.5); padding: 10px; color: white;">
-                                <button id="playPauseBtn" aria-label="Play/Pause Video" title="Play/Pause"
-                                    style="background: none; border: none; color: white; font-size: 20px; cursor: pointer; margin-right: 10px;">
-                                    ▶
+                            <!-- Kontrol video (kom_v02: bar transparan menempel di bawah video) -->
+                            <div class="kom-video-bar">
+                                <button id="playPauseBtn" type="button" class="kom-vbtn"
+                                    aria-label="Play/Pause" title="Play">
+                                    <i class="fas fa-play"></i>
                                 </button>
-                                <label for="speedControl" style="padding-top: 6px; margin-right: 5px;">Kecepatan:</label>
-                                <select id="speedControl" aria-label="Pengaturan Kecepatan Video"
-                                    style="background: rgba(255,255,255,0.8); border: 1px solid #ccc; padding: 2px; border-radius: 4px;">
-                                    <option value="0.5">0.5x</option>
-                                    <option value="1" selected>1x (Normal)</option>
-                                    <option value="1.5">1.5x</option>
-                                    <option value="2">2x</option>
-                                </select>
+                                <div class="kom-speed" title="{{ __('Pengaturan Kecepatan Video') }}">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                    <label for="speedControl" class="sr-only">{{ __('Kecepatan:') }}</label>
+                                    <select id="speedControl" aria-label="{{ __('Pengaturan Kecepatan Video') }}">
+                                        <option value="0.5">0.5x</option>
+                                        <option value="1" selected>1x</option>
+                                        <option value="1.5">1.5x</option>
+                                        <option value="2">2x</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <!-- JavaScript -->
@@ -61,7 +62,7 @@
                                 <div class="text-center text-white">
                                     <div class="spinner-border mb-3" role="status" style="width: 3rem; height: 3rem;">
                                     </div>
-                                    <div class="h5">Memuat video...</div>
+                                    <div class="h5">{{ __('Memuat video...') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -73,7 +74,7 @@
                     <div class="card-header bg-gradient-success text-white">
                         <h5 class="mb-0">
                             <i class="fas fa-question-circle me-2"></i>
-                            Pertanyaan Evaluasi
+                            {{ __('Pertanyaan Evaluasi') }}
                         </h5>
                     </div>
                     <div class="card-body p-4">
@@ -88,7 +89,7 @@
                             <div class="text-end">
                                 <button type="submit" class="btn btn-success btn-lg">
                                     <i class="fas fa-paper-plane me-2"></i>&nbsp;&nbsp;
-                                    Kirim Jawaban
+                                    {{ __('Kirim Jawaban') }}
                                 </button>
                             </div>
                         </form>
@@ -102,7 +103,7 @@
                     <div class="card-header bg-gradient-dark text-white">
                         <h6 class="mb-0">
                             <i class="fas fa-graduation-cap me-2"></i>&nbsp;&nbsp;
-                            Video Lecture
+                            {{ __('Video Lecture') }}
                         </h6>
                     </div>
                     <div class="card-body p-0" style="max-height: 650px; overflow-y: auto;">
@@ -118,7 +119,7 @@
                                             </div>
                                             <div>
                                                 <strong class="d-block">{{ $modul->name }}</strong>
-                                                <small class="opacity-75">Modul {{ $modul->order }}</small>
+                                                <small class="opacity-75">{{ __('Modul :nomor', ['nomor' => $modul->order]) }}</small>
                                             </div>
                                         </div>
                                         @php
@@ -237,8 +238,8 @@
 
                                             // ✅ FIXED: Calculate video progress percentage with proper type casting
                                             $videoProgressPercent = 0;
-                                            if ($progress && $progress->last_time > 0 && $video->durations) {
-                                                $videoDuration = (int) $video->durations;
+                                            if ($progress && $progress->last_time > 0 && $video->durasi_detik > 0) {
+                                                $videoDuration = $video->durasi_detik; // kom_v02: format 00:18:46
                                                 $lastTime = (int) $progress->last_time;
                                                 if ($videoDuration > 0) {
                                                     $videoProgressPercent = min(
@@ -258,7 +259,13 @@
                                             data-is-unlocked="{{ $isUnlocked ? 'true' : 'false' }}"
                                             data-is-completed="{{ $isCompleted ? 'true' : 'false' }}"
                                             data-has-answered="{{ $progress && $progress->answered_question ? 'true' : 'false' }}"
-                                            data-last-time="{{ $progress->last_time ?? 0 }}">
+                                            data-last-time="{{ $progress->last_time ?? 0 }}"
+                                            @if (isset($titikTutorial[$video->id]))
+                                                data-tutorial-url="{{ $titikTutorial[$video->id]['url'] }}"
+                                                data-tutorial-status="{{ $titikTutorial[$video->id]['status'] }}"
+                                                data-tutorial-label="{{ $titikTutorial[$video->id]['label'] }}"
+                                            @endif
+                                            >
 
                                             <a href="#"
                                                 class="video-link d-block p-3 text-decoration-none position-relative {{ !$isUnlocked ? 'disabled' : '' }}"
@@ -288,23 +295,22 @@
                                                             <small class="text-muted me-3">
                                                                 @if ($isCompleted)
                                                                     <i
-                                                                        class="fas fa-check-circle text-success me-1"></i>&nbsp;&nbsp;Selesai
+                                                                        class="fas fa-check-circle text-success me-1"></i>&nbsp;&nbsp;{{ __('Selesai') }}
                                                                 @elseif($progress && $progress->last_time > 0)
                                                                     <i
                                                                         class="fas fa-clock text-warning me-1"></i>&nbsp;&nbsp;{{ gmdate('i:s', (int) $progress->last_time) }}
                                                                 @elseif($isUnlocked)
                                                                     <i
-                                                                        class="fas fa-play text-primary me-1"></i>&nbsp;&nbsp;Siap
-                                                                    ditonton
+                                                                        class="fas fa-play text-primary me-1"></i>&nbsp;&nbsp;{{ __('Siap ditonton') }}
                                                                 @else
                                                                     <i
-                                                                        class="fas fa-lock text-muted me-1"></i>&nbsp;&nbsp;Terkunci
+                                                                        class="fas fa-lock text-muted me-1"></i>&nbsp;&nbsp;{{ __('Terkunci') }}
                                                                 @endif
                                                             </small>
-                                                            @if ($video->durations && (int) $video->durations > 0)
+                                                            @if ($video->durasi_detik > 0)
                                                                 <small class="text-muted">
                                                                     <i
-                                                                        class="fas fa-clock me-1"></i>&nbsp;&nbsp;{{ gmdate('i:s', (int) $video->durations) }}
+                                                                        class="fas fa-clock me-1"></i>&nbsp;&nbsp;{{ $video->durasi_tampil }}
                                                                 </small>
                                                             @endif
                                                         </div>
@@ -332,6 +338,14 @@
                                                     </div>
                                                 </div>
                                             </a>
+
+                                            {{-- kom_v02: titik kelas tutorial setelah video ini (tengah / akhir modul) --}}
+                                            @if (isset($titikTutorial[$video->id]))
+                                                @include('a_kom_digital_pusat.dashboard.partials._titik_tutorial_chip', [
+                                                    'titik' => $titikTutorial[$video->id],
+                                                    'videoSelesai' => $isCompleted,
+                                                ])
+                                            @endif
                                         </div>
                                     @endforeach
                                 </div>
@@ -345,7 +359,7 @@
                     <div class="card-header bg-gradient-info text-white">
                         <h6 class="mb-0">
                             <i class="fas fa-chart-line me-2"></i>
-                            Progress Pembelajaran
+                            {{ __('Progress Pembelajaran') }}
                         </h6>
                     </div>
                     <div class="card-body p-4">
@@ -372,10 +386,10 @@
                                 <div class="progress-bar bg-gradient-success progress-bar-striped progress-bar-animated"
                                     id="overallProgress" style="width: {{ $progressPercentage }}%"></div>
                             </div>
-                            <h3 id="progressText" class="text-primary mb-2">{{ $progressPercentage }}% Selesai</h3>
+                            <h3 id="progressText" class="text-primary mb-2">{{ $progressPercentage }}% {{ __('Selesai') }}</h3>
                             <p class="text-muted mb-3">
-                                <span id="completedCount">{{ $completedVideos }}</span> dari
-                                <span id="totalCount">{{ $totalVideos }}</span> video selesai
+                                <span id="completedCount">{{ $completedVideos }}</span> {{ __('dari') }}
+                                <span id="totalCount">{{ $totalVideos }}</span> {{ __('video selesai') }}
                             </p>
 
                             {{-- Achievement Badges --}}
@@ -407,7 +421,7 @@
                                 <div class="mt-3">
                                     <button class="btn btn-warning btn-sm" id="certificateBtn">
                                         <i class="fas fa-certificate me-2"></i>
-                                        Dapatkan Sertifikat
+                                        {{ __('Dapatkan Sertifikat') }}
                                     </button>
                                 </div>
                             @endif
@@ -420,6 +434,102 @@
 
     {{-- Enhanced Styles --}}
     <style>
+        /* kom_v02: kontrol video modern minimalis — transparan, menempel di bawah video */
+        #videoContainer {
+            position: relative;
+            background: #000;
+            line-height: 0;
+            overflow: hidden;
+        }
+
+        .kom-video-bar {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 28px 16px 12px;
+            background: linear-gradient(to top, rgba(0, 0, 0, .45), rgba(0, 0, 0, 0));
+            line-height: 1.2;
+            z-index: 2;
+        }
+
+        .kom-vbtn {
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(255, 255, 255, .25);
+            border-radius: 50%;
+            background: rgba(0, 0, 0, .35);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            color: #fff;
+            font-size: 15px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background .2s, transform .2s;
+        }
+
+        .kom-vbtn:hover {
+            background: rgba(0, 0, 0, .55);
+            transform: scale(1.05);
+        }
+
+        .kom-vbtn:focus {
+            outline: 2px solid rgba(255, 255, 255, .6);
+            outline-offset: 2px;
+        }
+
+        .kom-speed {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 6px 4px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, .25);
+            background: rgba(0, 0, 0, .35);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            color: #fff;
+            font-size: 13px;
+        }
+
+        .kom-speed select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23ffffff' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E") no-repeat right 6px center;
+            border: none;
+            color: #fff;
+            font-weight: 600;
+            font-size: 13px;
+            padding: 4px 22px 4px 2px;
+            cursor: pointer;
+        }
+
+        .kom-speed select:focus {
+            outline: none;
+        }
+
+        .kom-speed select option {
+            color: #212529;
+        }
+
+        @media (max-width: 576px) {
+            .kom-video-bar {
+                padding: 20px 10px 8px;
+            }
+
+            .kom-vbtn {
+                width: 34px;
+                height: 34px;
+                font-size: 13px;
+            }
+        }
+
         /* Gradient backgrounds */
         .bg-gradient-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
@@ -670,6 +780,52 @@
         console.log('🔧 Video Learning Config loaded:', window.videoLearningConfig);
     </script>
 
+    {{-- kom_v02: teks tampilan JavaScript (pop-up, tombol) mengikuti bahasa belajar peserta --}}
+    @php
+            $komTeksJs = [
+            'Video ini masih terkunci. Selesaikan video sebelumnya terlebih dahulu.' => __('Video ini masih terkunci. Selesaikan video sebelumnya terlebih dahulu.'),
+            'Anda sudah menjawab pertanyaan ini.' => __('Anda sudah menjawab pertanyaan ini.'),
+            'Video ini tidak memiliki pertanyaan.' => __('Video ini tidak memiliki pertanyaan.'),
+            'Gagal memuat pertanyaan. Melanjutkan ke video berikutnya...' => __('Gagal memuat pertanyaan. Melanjutkan ke video berikutnya...'),
+            'Mengirim...' => __('Mengirim...'),
+            'Selamat! Jawaban Anda benar!' => __('Selamat! Jawaban Anda benar!'),
+            'Jawaban Anda salah! Silakan coba lagi.' => __('Jawaban Anda salah! Silakan coba lagi.'),
+            'Gagal mengirim jawaban:' => __('Gagal mengirim jawaban:'),
+            'Lanjut ke video berikutnya: ":judul"?' => __('Lanjut ke video berikutnya: ":judul"?'),
+            'Lanjut Video' => __('Lanjut Video'),
+            'Nanti Saja' => __('Nanti Saja'),
+            'Selamat! Anda telah menyelesaikan semua video!' => __('Selamat! Anda telah menyelesaikan semua video!'),
+            'Modul Selesai!' => __('Modul Selesai!'),
+            'Selamat!' => __('Selamat!'),
+            'Anda telah menyelesaikan modul :modul!' => __('Anda telah menyelesaikan modul :modul!'),
+            'Semua video dan pertanyaan telah diselesaikan!' => __('Semua video dan pertanyaan telah diselesaikan!'),
+            'Istirahat Dulu' => __('Istirahat Dulu'),
+            'Semua Modul Selesai!' => __('Semua Modul Selesai!'),
+            'Luar Biasa!' => __('Luar Biasa!'),
+            'Anda telah menyelesaikan seluruh kurikulum pembelajaran!' => __('Anda telah menyelesaikan seluruh kurikulum pembelajaran!'),
+            'Sertifikat terbit setelah Anda hadir di semua kelas tutorial.' => __('Sertifikat terbit setelah Anda hadir di semua kelas tutorial.'),
+            'Dapatkan Sertifikat' => __('Dapatkan Sertifikat'),
+            'Ikut Kelas Tutorial' => __('Ikut Kelas Tutorial'),
+            'Lanjut Modul Berikutnya' => __('Lanjut Modul Berikutnya'),
+            'Membuka modul berikutnya...' => __('Membuka modul berikutnya...'),
+            'Modul berikutnya tidak ditemukan.' => __('Modul berikutnya tidak ditemukan.'),
+            'Lihat sertifikat sekarang?' => __('Lihat sertifikat sekarang?'),
+            'Lihat Sertifikat' => __('Lihat Sertifikat'),
+            'Mengarahkan ke kelas tutorial...' => __('Mengarahkan ke kelas tutorial...'),
+            'Siap ditonton' => __('Siap ditonton'),
+            'Selesai' => __('Selesai'),
+            'Terjadi kesalahan saat memuat video. Silakan refresh halaman.' => __('Terjadi kesalahan saat memuat video. Silakan refresh halaman.'),
+            'Sistem Error' => __('Sistem Error'),
+            'Gagal memuat sistem pembelajaran. Silakan refresh halaman.' => __('Gagal memuat sistem pembelajaran. Silakan refresh halaman.'),
+            'Refresh' => __('Refresh'),
+            'Gagal memuat sistem pembelajaran. Halaman akan di-refresh.' => __('Gagal memuat sistem pembelajaran. Halaman akan di-refresh.'),
+            'OK' => __('OK'),
+            'Batal' => __('Batal'),
+            ];
+    @endphp
+    @include('a_kom_digital_pusat.partials._teks_js', ['teks' => $komTeksJs])
+
+
     <script>
         class VideoLearningSystem {
             constructor() {
@@ -703,6 +859,10 @@
                 this.elements.video.addEventListener('timeupdate', () => this.onTimeUpdate());
                 this.elements.video.addEventListener('ended', () => this.onVideoEnded());
                 this.elements.video.addEventListener('error', (e) => this.onVideoError(e));
+                // kom_v02: simpan posisi saat peserta pause / pindah tab (event 'ended' disimpan terpisah)
+                this.elements.video.addEventListener('pause', () => {
+                    if (!this.elements.video.ended) this.saveWatchTime(false);
+                });
 
                 // Video click handlers
                 document.querySelectorAll('.video-link').forEach(link => {
@@ -725,7 +885,7 @@
 
                 const isUnlocked = videoItem.dataset.isUnlocked === 'true';
                 if (!isUnlocked) {
-                    this.showAlert('warning', 'Video ini masih terkunci. Selesaikan video sebelumnya terlebih dahulu.');
+                    this.showAlert('warning', komT('Video ini masih terkunci. Selesaikan video sebelumnya terlebih dahulu.'));
                     return;
                 }
 
@@ -783,13 +943,9 @@
             }
 
             onTimeUpdate() {
-                // Save every 10 seconds
-                if (!this.timeUpdateThrottle) {
-                    this.timeUpdateThrottle = setTimeout(() => {
-                        this.saveWatchTime(false);
-                        this.timeUpdateThrottle = null;
-                    }, 10000);
-                }
+                // kom_v02 (performa): dulu timer ke-2 yang ikut menyimpan tiap 10 detik.
+                // Penyimpanan berkala sekarang hanya lewat startWatchTimeTracking() (tiap 30 detik),
+                // ditambah saat pause, video selesai, dan halaman ditutup.
             }
 
             onVideoEnded() {
@@ -839,13 +995,13 @@
                     console.log('📥 Questions data:', data);
 
                     if (data.has_answered) {
-                        this.showAlert('info', 'Anda sudah menjawab pertanyaan ini.');
+                        this.showAlert('info', komT('Anda sudah menjawab pertanyaan ini.'));
                         setTimeout(() => this.handleVideoCompleted(), 2000);
                         return;
                     }
 
                     if (!data.has_questions || !data.questions?.length) {
-                        this.showAlert('info', 'Video ini tidak memiliki pertanyaan.');
+                        this.showAlert('info', komT('Video ini tidak memiliki pertanyaan.'));
                         setTimeout(() => this.handleVideoCompleted(), 2000);
                         return;
                     }
@@ -856,7 +1012,7 @@
 
                 } catch (error) {
                     console.error('❌ Load questions error:', error);
-                    this.showAlert('error', 'Gagal memuat pertanyaan. Melanjutkan ke video berikutnya...');
+                    this.showAlert('error', komT('Gagal memuat pertanyaan. Melanjutkan ke video berikutnya...'));
                     setTimeout(() => this.handleVideoCompleted(), 3000);
                 }
             }
@@ -1004,7 +1160,7 @@
                 const submitBtn = e.target.querySelector('button[type="submit"]');
                 const originalText = submitBtn.innerHTML;
 
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Mengirim...';
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>' + komT('Mengirim...');
                 submitBtn.disabled = true;
 
                 try {
@@ -1037,27 +1193,32 @@
                     console.log('📥 Submit response:', data);
 
                     if (data.success) {
-                        await this.showAlert('success', data.message || '🎉 Selamat! Jawaban Anda benar!');
+                        await this.showAlert('success', data.message || ('🎉 ' + komT('Selamat! Jawaban Anda benar!')));
 
                         this.hideQuestion();
                         this.markVideoCompleted();
 
+                        // kom_v02: simpan info kelas tutorial setelah video ini
+                        this.lastTutorial = data.tutorial || null;
+
                         setTimeout(() => {
                             if (data.module_completed) {
                                 this.handleModuleCompleted();
+                            } else if (this.perluTawarkanTutorial(this.lastTutorial)) {
+                                this.handleTutorialPoint(this.lastTutorial);
                             } else {
                                 this.handleVideoCompleted();
                             }
                         }, 1000);
 
                     } else {
-                        await this.showAlert('error', data.message || '❌ Jawaban Anda salah! Silakan coba lagi.');
+                        await this.showAlert('error', data.message || ('❌ ' + komT('Jawaban Anda salah! Silakan coba lagi.')));
                         this.resetAnswerSelection();
                     }
 
                 } catch (error) {
                     console.error('❌ Submit error:', error);
-                    await this.showAlert('error', 'Gagal mengirim jawaban: ' + error.message);
+                    await this.showAlert('error', komT('Gagal mengirim jawaban:') + ' ' + error.message);
                 } finally {
                     submitBtn.innerHTML = originalText;
                     submitBtn.disabled = false;
@@ -1081,15 +1242,48 @@
                 console.log('🔄 Answer selection reset');
             }
 
+            // kom_v02: kelas tutorial di TENGAH modul — tidak mengunci video berikutnya
+            perluTawarkanTutorial(tutorial) {
+                return !!tutorial && ['belum', 'tidak_hadir', 'proses'].includes(tutorial.status);
+            }
+
+            handleTutorialPoint(tutorial) {
+                const teks = tutorial.status === 'tidak_hadir'
+                    ? @json(__('Anda tercatat tidak hadir di kelas tutorial ini. Silakan pilih jadwal pengganti — tidak perlu memberikan persembahan lagi.'))
+                    : (tutorial.status === 'proses'
+                        ? @json(__('Anda sudah memilih jadwal kelas tutorial ini. Silakan selesaikan pertanyaan dan persembahan.'))
+                        : @json(__('Setelah video ini ada Kelas Tutorial. Ikuti kelas tutorial supaya Anda bisa mendapatkan sertifikat.')));
+
+                this.showAlert('info', '', false, {
+                    title: @json(__('Kelas Tutorial')) + ' — ' + tutorial.label,
+                    html: `<div class="text-center">
+                            <i class="fas fa-chalkboard-teacher fa-3x text-info mb-3"></i>
+                            <p class="mb-0">${teks}</p>
+                        </div>`,
+                    showDenyButton: true,
+                    confirmButtonText: '<i class="fas fa-graduation-cap"></i>&nbsp;&nbsp;' + @json(__('Ikut Kelas Tutorial')),
+                    denyButtonText: '<i class="fas fa-forward"></i>&nbsp;&nbsp;' + @json(__('Lanjut Menonton Dulu')),
+                    confirmButtonColor: '#17a2b8',
+                    denyButtonColor: '#28a745',
+                    allowOutsideClick: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.redirectToTutorial(tutorial.url);
+                    } else if (result.isDenied) {
+                        this.handleVideoCompleted();
+                    }
+                });
+            }
+
             handleVideoCompleted() {
                 console.log('🎯 handleVideoCompleted() called');
 
                 const nextVideo = this.findNextVideo();
 
                 if (nextVideo) {
-                    this.showAlert('question', `Lanjut ke video berikutnya: "${nextVideo.dataset.videoTitle}"?`, true, {
-                        confirmButtonText: '<i class="fas fa-forward me-2"></i>&nbsp;&nbsp;Lanjut Video',
-                        cancelButtonText: 'Nanti Saja',
+                    this.showAlert('question', komT('Lanjut ke video berikutnya: ":judul"?', {judul: nextVideo.dataset.videoTitle}), true, {
+                        confirmButtonText: '<i class="fas fa-forward me-2"></i>&nbsp;&nbsp;' + komT('Lanjut Video'),
+                        cancelButtonText: komT('Nanti Saja'),
                         confirmButtonColor: '#28a745'
                     }).then((result) => {
                         if (result.isConfirmed) {
@@ -1105,7 +1299,7 @@
                         console.log('🏆 Last video in module completed');
                         this.handleModuleCompleted();
                     } else {
-                        this.showAlert('success', '🎉 Selamat! Anda telah menyelesaikan semua video!');
+                        this.showAlert('success', '🎉 ' + komT('Selamat! Anda telah menyelesaikan semua video!'));
                     }
                 }
             }
@@ -1124,57 +1318,57 @@
                 });
 
                 let alertConfig = {
-                    title: '🏆 Modul Selesai!',
+                    title: '🏆 ' + komT('Modul Selesai!'),
                     html: `
                         <div class="text-center">
                             <i class="fas fa-trophy fa-4x text-warning mb-4"></i>
-                            <h4 class="text-success mb-3">Selamat!</h4>
-                            <p class="mb-3">Anda telah menyelesaikan modul <strong>"${this.currentVideo.moduleName}"</strong>!</p>
+                            <h4 class="text-success mb-3">${komT('Selamat!')}</h4>
+                            <p class="mb-3">${komT('Anda telah menyelesaikan modul :modul!', {modul: '<strong>"' + this.currentVideo.moduleName + '"</strong>'})}</p>
                             <div class="alert alert-success">
                                 <i class="fas fa-check-circle me-2"></i>&nbsp;&nbsp;
-                                Semua video dan pertanyaan telah diselesaikan!
+                                ${komT('Semua video dan pertanyaan telah diselesaikan!')}
                             </div>
                         </div>
                     `,
                     showCancelButton: true,
-                    cancelButtonText: '<i class="fas fa-coffee me-2"></i>&nbsp;&nbsp;Istirahat Dulu',
+                    cancelButtonText: '<i class="fas fa-coffee me-2"></i>&nbsp;&nbsp;' + komT('Istirahat Dulu'),
                     cancelButtonColor: '#6c757d',
                     allowOutsideClick: false
                 };
 
                 if (isAllModulesCompleted) {
                     // All modules completed
-                    alertConfig.title = '🎓 Semua Modul Selesai!';
+                    alertConfig.title = '🎓 ' + komT('Semua Modul Selesai!');
                     alertConfig.html = `
                         <div class="text-center">
                             <i class="fas fa-crown fa-4x text-warning mb-4"></i>
-                            <h4 class="text-success mb-3">Luar Biasa!</h4>
-                            <p class="mb-3">Anda telah menyelesaikan <strong>seluruh kurikulum pembelajaran</strong>!</p>
+                            <h4 class="text-success mb-3">${komT('Luar Biasa!')}</h4>
+                            <p class="mb-3"><strong>${komT('Anda telah menyelesaikan seluruh kurikulum pembelajaran!')}</strong></p>
                             <div class="alert alert-warning">
                                 <i class="fas fa-certificate me-2"></i>
-                                Anda berhak mendapatkan sertifikat!
+                                ${komT('Sertifikat terbit setelah Anda hadir di semua kelas tutorial.')}
                             </div>
                         </div>
                     `;
-                    alertConfig.confirmButtonText = '<i class="fas fa-certificate me-2"></i>Dapatkan Sertifikat';
+                    alertConfig.confirmButtonText = '<i class="fas fa-certificate me-2"></i>' + komT('Dapatkan Sertifikat');
                     alertConfig.denyButtonText =
-                        '<i class="fas fa-graduation-cap me-2"></i>&nbsp;&nbsp;Ikut Kelas Tutorial';
-                    alertConfig.showDenyButton = true;
+                        '<i class="fas fa-graduation-cap me-2"></i>&nbsp;&nbsp;' + komT('Ikut Kelas Tutorial');
+                    alertConfig.showDenyButton = !this.tutorialAkhirModulBeres(); // kom_v02
                     alertConfig.confirmButtonColor = '#ffc107';
                     alertConfig.denyButtonColor = '#17a2b8';
                 } else if (hasNextModule) {
                     // Has next module
                     alertConfig.confirmButtonText =
-                        '<i class="fas fa-forward me-2"></i>&nbsp;&nbsp;Lanjut Modul Berikutnya';
+                        '<i class="fas fa-forward me-2"></i>&nbsp;&nbsp;' + komT('Lanjut Modul Berikutnya');
                     alertConfig.denyButtonText =
-                        '<i class="fas fa-graduation-cap me-2"></i>&nbsp;&nbsp;Ikut Kelas Tutorial';
-                    alertConfig.showDenyButton = true;
+                        '<i class="fas fa-graduation-cap me-2"></i>&nbsp;&nbsp;' + komT('Ikut Kelas Tutorial');
+                    alertConfig.showDenyButton = !this.tutorialAkhirModulBeres(); // kom_v02
                     alertConfig.confirmButtonColor = '#28a745';
                     alertConfig.denyButtonColor = '#17a2b8';
                 } else {
                     // No next module but not all completed (edge case)
                     alertConfig.confirmButtonText =
-                        '<i class="fas fa-graduation-cap me-2"></i>&nbsp;&nbsp;Ikut Kelas Tutorial';
+                        '<i class="fas fa-graduation-cap me-2"></i>&nbsp;&nbsp;' + komT('Ikut Kelas Tutorial');
                     alertConfig.confirmButtonColor = '#17a2b8';
                 }
 
@@ -1189,7 +1383,7 @@
                             // Go to next module
                             const nextVideo = this.findNextVideo();
                             if (nextVideo) {
-                                this.showAlert('info', 'Membuka modul berikutnya...', false, {
+                                this.showAlert('info', komT('Membuka modul berikutnya...'), false, {
                                     timer: 2000,
                                     showConfirmButton: false
                                 });
@@ -1199,7 +1393,7 @@
                                     this.loadVideo(nextVideo);
                                 }, 4000);
                             } else {
-                                this.showAlert('error', 'Modul berikutnya tidak ditemukan.');
+                                this.showAlert('error', komT('Modul berikutnya tidak ditemukan.'));
                             }
                         } else {
                             // Go to tutorial
@@ -1249,31 +1443,48 @@
             }
 
             handleCertificateDownload() {
-                this.showAlert('question', 'Download sertifikat sekarang?', true, {
-                    confirmButtonText: '<i class="fas fa-download me-2"></i>Download',
-                    cancelButtonText: 'Nanti Saja',
+                this.showAlert('question', komT('Lihat sertifikat sekarang?'), true, {
+                    confirmButtonText: '<i class="fas fa-certificate me-2"></i>' + komT('Lihat Sertifikat'),
+                    cancelButtonText: komT('Nanti Saja'),
                     confirmButtonColor: '#28a745'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        this.showAlert('success', 'Sertifikat berhasil didownload!', false, {
-                            timer: 3000
-                        });
-
-                        // Implement actual certificate download
-                        console.log('🎓 Certificate download triggered');
+                        // kom_v02: buka halaman Sertifikat Saya (sertifikat terbit setelah hadir di semua kelas tutorial)
+                        window.location.href = @json(route('kom.peserta.sertifikat'));
                     }
                 });
             }
 
-            redirectToTutorial() {
-                this.showAlert('info', 'Mengarahkan ke kelas tutorial...', false, {
+            redirectToTutorial(url = null) {
+                // kom_v02: arahkan ke jadwal untuk TITIK tutorial yang tepat (modul + video)
+                const tujuan = url
+                    || (this.lastTutorial && this.lastTutorial.url)
+                    || this.urlTutorialAkhirModul()
+                    || this.config.routes.kelasTutorial;
+
+                this.showAlert('info', komT('Mengarahkan ke kelas tutorial...'), false, {
                     timer: 2000,
                     showConfirmButton: false
                 });
 
                 setTimeout(() => {
-                    window.location.href = this.config.routes.kelasTutorial;
+                    window.location.href = tujuan;
                 }, 2000);
+            }
+
+            // kom_v02: tutorial akhir modul sudah didaftar / sudah hadir → tidak perlu ditawarkan lagi
+            tutorialAkhirModulBeres() {
+                const t = this.lastTutorial;
+                return !!t && t.akhir_modul && ['hadir', 'terdaftar'].includes(t.status);
+            }
+
+            // kom_v02: URL tutorial akhir modul untuk modul video yang sedang diputar
+            urlTutorialAkhirModul() {
+                if (!this.currentVideo) return null;
+                const modul = document.querySelector(`[data-module-id="${this.currentVideo.moduleId}"]`);
+                const items = modul ? modul.querySelectorAll('.video-item[data-tutorial-url]') : [];
+                const terakhir = items.length ? items[items.length - 1] : null;
+                return terakhir ? terakhir.dataset.tutorialUrl : null;
             }
 
             findNextVideo() {
@@ -1333,7 +1544,7 @@
                 // Update status text
                 const statusText = videoElement.querySelector('.video-meta small');
                 if (statusText) {
-                    statusText.innerHTML = '<i class="fas fa-play text-primary me-1"></i>&nbsp;&nbsp;Siap ditonton';
+                    statusText.innerHTML = '<i class="fas fa-play text-primary me-1"></i>&nbsp;&nbsp;' + komT('Siap ditonton');
                 }
 
                 // Update status badge
@@ -1365,7 +1576,7 @@
                 // Update status text
                 const statusText = currentItem.querySelector('.video-meta small');
                 if (statusText) {
-                    statusText.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i>Selesai';
+                    statusText.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i>&nbsp;&nbsp;' + komT('Selesai');
                 }
 
                 // Update status badge
@@ -1403,7 +1614,7 @@
                 const completedCount = document.getElementById('completedCount');
 
                 if (progressBar) progressBar.style.width = percentage + '%';
-                if (progressText) progressText.textContent = percentage + '% Selesai';
+                if (progressText) progressText.textContent = percentage + '% ' + komT('Selesai');
                 if (completedCount) completedCount.textContent = completedVideos;
 
                 console.log(`📊 Progress updated: ${completedVideos}/${totalVideos} (${percentage}%)`);
@@ -1434,11 +1645,12 @@
 
             startWatchTimeTracking() {
                 this.stopWatchTimeTracking();
+                // kom_v02 (performa): tiap 30 detik (dulu 2 timer @10 detik ≈ 6x lebih banyak request)
                 this.watchTimeInterval = setInterval(() => {
                     if (!this.elements.video.paused && !this.elements.video.ended) {
                         this.saveWatchTime(false);
                     }
-                }, 10000);
+                }, 30000);
             }
 
             stopWatchTimeTracking() {
@@ -1451,8 +1663,21 @@
             async saveWatchTime(completed = false) {
                 if (!this.currentVideo?.id) return;
 
-                const currentTime = Math.floor(this.elements.video.currentTime);
+                let currentTime = Math.floor(this.elements.video.currentTime);
+                // kom_v02 (perbaikan): saat video selesai, script lain langsung memundurkan video ke
+                // detik 0, sehingga sinyal "selesai" dulu kadang tidak terkirim. Pakai durasi video.
+                const durasi = this.elements.video.duration;
+                if (completed && durasi && isFinite(durasi)) {
+                    currentTime = Math.floor(durasi);
+                }
                 if (currentTime === 0) return;
+
+                // kom_v02: hindari simpan dobel dalam waktu berdekatan (mis. pause lalu pindah tab),
+                // kecuali sinyal "video selesai" yang selalu dikirim
+                const sekarang = Date.now();
+                if (!completed && this.lastSaveAt && (sekarang - this.lastSaveAt) < 3000 && this.lastSaveTime === currentTime) return;
+                this.lastSaveAt = sekarang;
+                this.lastSaveTime = currentTime;
 
                 try {
                     const response = await fetch(this.config.routes.saveWatchTime, {
@@ -1514,14 +1739,14 @@
                 const config = {
                     icon: type,
                     title: message,
-                    confirmButtonText: 'OK',
+                    confirmButtonText: komT('OK'),
                     confirmButtonColor: '#007bff',
                     ...options
                 };
 
                 if (showCancel) {
                     config.showCancelButton = true;
-                    config.cancelButtonText = 'Batal';
+                    config.cancelButtonText = komT('Batal');
                     config.cancelButtonColor = '#6c757d';
                 }
 
@@ -1545,7 +1770,7 @@
             onVideoError(e) {
                 console.error('❌ Video error:', e);
                 this.showLoading(false);
-                this.showAlert('error', 'Terjadi kesalahan saat memuat video. Silakan refresh halaman.');
+                this.showAlert('error', komT('Terjadi kesalahan saat memuat video. Silakan refresh halaman.'));
             }
         }
 
@@ -1634,15 +1859,15 @@
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Sistem Error',
-                            text: 'Gagal memuat sistem pembelajaran. Silakan refresh halaman.',
-                            confirmButtonText: 'Refresh',
+                            title: komT('Sistem Error'),
+                            text: komT('Gagal memuat sistem pembelajaran. Silakan refresh halaman.'),
+                            confirmButtonText: komT('Refresh'),
                             allowOutsideClick: false
                         }).then(() => {
                             window.location.reload();
                         });
                     } else {
-                        alert('Gagal memuat sistem pembelajaran. Halaman akan di-refresh.');
+                        alert(komT('Gagal memuat sistem pembelajaran. Halaman akan di-refresh.'));
                         window.location.reload();
                     }
                 }
@@ -1788,13 +2013,13 @@
 
             // Update icon saat video mulai
             video.addEventListener('play', function() {
-                playPauseBtn.innerHTML = '⏸';
+                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
                 playPauseBtn.title = 'Pause';
             });
 
             // Update icon saat video pause
             video.addEventListener('pause', function() {
-                playPauseBtn.innerHTML = '▶';
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
                 playPauseBtn.title = 'Play';
             });
 
@@ -1803,7 +2028,7 @@
                 video.currentTime = 0;
                 if (!video.loop) {
                     video.pause();
-                    playPauseBtn.innerHTML = '▶';
+                    playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
                 }
             });
 

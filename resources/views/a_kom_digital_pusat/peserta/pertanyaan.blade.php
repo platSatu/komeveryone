@@ -7,11 +7,11 @@
                 {{-- Header Section --}}
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
                     <div>
-                        <h5 class="fw-bold text-dark mb-1">❓ Pertanyaan Saya</h5>
-                        <p class="text-muted mb-0">Daftar pertanyaan yang telah Anda ajukan</p>
+                        <h5 class="fw-bold text-dark mb-1">❓ {{ __('Pertanyaan Saya') }}</h5>
+                        <p class="text-muted mb-0">{{ __('Daftar pertanyaan yang telah Anda ajukan') }}</p>
                     </div>
                     <button class="btn btn-outline-primary btn-sm mt-2 mt-md-0" onclick="location.reload()">
-                        <i class="fas fa-sync-alt me-1"></i> Refresh
+                        <i class="fas fa-sync-alt me-1"></i> {{ __('Refresh') }}
                     </button>
                 </div>
 
@@ -23,7 +23,7 @@
                                 <i class="fas fa-question-circle fa-2x opacity-75 flex-shrink-0 me-4"></i>
                                 <div>
                                     <div class="fw-bold fs-4">{{ $data->total() }}</div>
-                                    <div class="small opacity-75">Total Pertanyaan</div>
+                                    <div class="small opacity-75">{{ __('Total Pertanyaan') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -34,7 +34,7 @@
                                 <i class="fas fa-check-circle fa-2x opacity-75 flex-shrink-0 me-4"></i>
                                 <div>
                                     <div class="fw-bold fs-4">{{ $data->where('status', 'active')->count() }}</div>
-                                    <div class="small opacity-75">Aktif</div>
+                                    <div class="small opacity-75">{{ __('Aktif') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -45,7 +45,7 @@
                                 <i class="fas fa-book fa-2x opacity-75 flex-shrink-0 me-4"></i>
                                 <div>
                                     <div class="fw-bold fs-4">{{ $data->groupBy('modul.name')->count() }}</div>
-                                    <div class="small opacity-75">Modul</div>
+                                    <div class="small opacity-75">{{ __('Modul') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -57,7 +57,7 @@
                                 <div>
                                     <div class="fw-bold fs-4">
                                         {{ $data->where('tgl_submit', '>=', now()->startOfMonth())->count() }}</div>
-                                    <div class="small opacity-75">Bulan Ini</div>
+                                    <div class="small opacity-75">{{ __('Bulan Ini') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -73,7 +73,7 @@
                     </div> --}}
                     <div class="card-header bg-white border-bottom py-3">
                         <h5 class="card-title mb-0 fw-bold d-flex align-items-center gap-2">
-                            <i class="fas fa-list text-primary"></i> Daftar Pertanyaan
+                            <i class="fas fa-list text-primary"></i> {{ __('Daftar Pertanyaan') }}
                         </h5>
                     </div>
 
@@ -82,7 +82,7 @@
                             <div class="text-center py-5">
                                 <div class="empty-state">
                                     <i class="fas fa-question-circle fa-4x text-muted mb-4"></i>
-                                    <h4 class="text-muted mb-3">Belum Ada Pertanyaan</h4>
+                                    <h4 class="text-muted mb-3">{{ __('Belum Ada Pertanyaan') }}</h4>
                                 </div>
                             </div>
                         @else
@@ -92,22 +92,22 @@
                                         <tr>
                                             <th class="border-0 fw-bold text-center" style="min-width: 40px;">#</th>
                                             <th class="border-0 fw-bold text-nowrap">
-                                                <i class="fas fa-book me-1 text-primary"></i> Modul
+                                                <i class="fas fa-book me-1 text-primary"></i> {{ __('Modul') }}
                                             </th>
                                             <th class="border-0 fw-bold text-nowrap">
-                                                <i class="fas fa-graduation-cap me-1 text-success"></i> Kelas
+                                                <i class="fas fa-graduation-cap me-1 text-success"></i> {{ __('Kelas') }}
                                             </th>
                                             <th class="border-0 fw-bold text-nowrap">
-                                                <i class="fas fa-comment me-1 text-secondary"></i> Pertanyaan
+                                                <i class="fas fa-comment me-1 text-secondary"></i> {{ __('Pertanyaan') }}
                                             </th>
                                             <th class="border-0 fw-bold text-nowrap">
-                                                <i class="fas fa-calendar-alt me-1 text-dark"></i> Tanggal
+                                                <i class="fas fa-calendar-alt me-1 text-dark"></i> {{ __('Tanggal') }}
                                             </th>
                                             <th class="border-0 fw-bold text-nowrap">
-                                                <i class="fas fa-toggle-on me-1 text-danger"></i> Status
+                                                <i class="fas fa-toggle-on me-1 text-danger"></i> {{ __('Status') }}
                                             </th>
                                             <th class="border-0 fw-bold text-nowrap">
-                                                <i class="fas fa-cog me-1 text-dark"></i> Aksi
+                                                <i class="fas fa-cog me-1 text-dark"></i> {{ __('Aksi') }}
                                             </th>
                                         </tr>
                                     </thead>
@@ -119,7 +119,7 @@
                                                 <td>
                                                     <div class="d-flex flex-column">
                                                         <div class="fw-bold">{{ $item->modul->name ?? '-' }}</div>
-                                                        <small class="text-muted">Modul Pembelajaran</small>
+                                                        <small class="text-muted">{{ __('Modul Pembelajaran') }}</small>
                                                     </div>
                                                 </td>
                                                 <td>
@@ -154,12 +154,12 @@
                                                     @if ($item->status === 'active')
                                                         <span
                                                             class="badge bg-success px-3 py-2 text-white d-inline-flex align-items-center gap-1">
-                                                            <i class="fas fa-check-circle"></i> Aktif
+                                                            <i class="fas fa-check-circle"></i> {{ __('Aktif') }}
                                                         </span>
                                                     @else
                                                         <span
                                                             class="badge bg-secondary px-3 py-2 d-inline-flex align-items-center gap-1">
-                                                            <i class="fas fa-times-circle"></i> Tidak Aktif
+                                                            <i class="fas fa-times-circle"></i> {{ __('Tidak Aktif') }}
                                                         </span>
                                                     @endif
                                                 </td>
@@ -171,14 +171,14 @@
                                                     @if($canEdit)
                                                         <a href="{{ route('kom.peserta.pertanyaan.edit', $item->id) }}" 
                                                         class="btn btn-outline-primary btn-sm"
-                                                        title="Edit Pertanyaan (Sisa: 1x)">
-                                                            <i class="fas fa-edit"></i> Edit
+                                                        title="{{ __('Edit Pertanyaan (Sisa: 1x)') }}">
+                                                            <i class="fas fa-edit"></i> {{ __('Edit') }}
                                                         </a>
                                                     @else
                                                         <button class="btn btn-secondary btn-sm" 
                                                                 disabled 
-                                                                title="Tidak dapat diedit (maksimal 1x edit)">
-                                                            <i class="fas fa-lock"></i> Diedit
+                                                                title="{{ __('Tidak dapat diedit (maksimal 1x edit)') }}">
+                                                            <i class="fas fa-lock"></i> {{ __('Diedit') }}
                                                         </button>
                                                     @endif
                                                 </td>
@@ -195,8 +195,7 @@
                         <div class="card-footer bg-white border-top-0">
                             <div class="d-flex justify-content-between align-items-center flex-wrap">
                                 <div class="text-muted small mb-2 mb-md-0">
-                                    Menampilkan {{ $data->firstItem() ?? 0 }} - {{ $data->lastItem() ?? 0 }} dari
-                                    {{ $data->total() }} hasil
+                                    {{ __('Menampilkan :awal - :akhir dari :total hasil', ['awal' => $data->firstItem() ?? 0, 'akhir' => $data->lastItem() ?? 0, 'total' => $data->total()]) }}
                                 </div>
                                 <nav>
                                     {{ $data->links('pagination::bootstrap-4') }}

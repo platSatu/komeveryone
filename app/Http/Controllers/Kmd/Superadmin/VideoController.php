@@ -36,7 +36,7 @@ class VideoController extends Controller
     public function store(VideoRequest $request)
     {
         try {
-            $this->service->store($request->validated());
+            $this->service->store($this->dataVideo($request));
             return redirect()->route('kom.super_videos.index')->with('success', 'Video berhasil disimpan.');
         } catch (\Exception $e) {
             Log::error('Gagal menyimpan video: ' . $e->getMessage());
@@ -60,7 +60,17 @@ class VideoController extends Controller
     public function update(VideoRequest $request, $id)
     {
         try {
-            $this->service->update($this->resolveId($id), $request->validated());
+            $videoId = $this->resolveId($id);
+            $data = $this->dataVideo($request);
+
+            // kom_v02: centang tutorial tidak boleh dilepas jika sudah ada jadwal tutorial di titik ini
+            $lama = $this->service->find($videoId);
+            if ($lama->has_tutorial && ! $data['has_tutorial']
+                && \App\Models\Kmd\KmdClassTutorial::where('video_id', $videoId)->exists()) {
+                return redirect()->back()->withInput()->withErrors(['has_tutorial' => __('Centang Kelas Tutorial tidak bisa dilepas karena sudah ada jadwal kelas tutorial untuk video ini.')]);
+            }
+
+            $this->service->update($videoId, $data);
             return redirect()->route('kom.super_videos.index')->with('success', 'Video berhasil diupdate.');
         } catch (\Exception $e) {
             Log::error('Gagal update video: ' . $e->getMessage());
@@ -78,6 +88,16 @@ class VideoController extends Controller
             Log::error('Gagal hapus video: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan.');
         }
+    }
+
+    /**
+     * kom_v02: checkbox yang tidak dicentang tidak terkirim → set eksplisit false.
+     */
+    protected function dataVideo(VideoRequest $request): array
+    {
+        return array_merge($request->validated(), [
+            'has_tutorial' => $request->boolean('has_tutorial'),
+        ]);
     }
 
     /**

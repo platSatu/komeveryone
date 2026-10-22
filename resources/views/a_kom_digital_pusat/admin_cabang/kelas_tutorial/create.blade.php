@@ -50,11 +50,16 @@
         <option value="">-- Pilih Modul --</option>
         @foreach ($moduls as $modul)
             <option value="{{ $modul->id }}" {{ old('modul_id', $selectedModulId ?? '') == $modul->id ? 'selected' : '' }}>
-                {{ $modul->nama_modul ?? $modul->name }}
+                {{ $modul->nama_modul ?? $modul->name }}@if($modul->kelas) — {{ $modul->kelas->name }}@endif ({{ strtoupper($modul->language_code ?? 'id') }})
             </option>
         @endforeach
     </select>
 </div>
+
+@include('a_kom_digital_pusat.admin_cabang.kelas_tutorial._titik_tutorial', [
+    'modulIdTerpilih' => $selectedModulId ?? null,
+    'videoIdTerpilih' => '',
+])
 
 <div class="form-group">
     <label>Pengajar</label>

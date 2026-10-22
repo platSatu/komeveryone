@@ -130,7 +130,6 @@ class DashboardKomController extends Controller
             $jawaban = KomJawaban::where('pertanyaan_id', $pertanyaanId)->where('id', $jawabanId)->first();
 
             // Debug: cek jawaban dan is_benar
-            \Log::debug('Jawaban: ' . $jawaban->jawaban . ' | is_benar: ' . $jawaban->is_benar);
 
             // Pastikan jawaban ada dan periksa apakah benar
             if ($jawaban && $jawaban->is_benar == 1) {
@@ -192,7 +191,6 @@ class DashboardKomController extends Controller
             ]
         );
 
-        \Log::info("Progress video disimpan untuk user {$userId}, video {$videoId}");
 
         return response()->json(['success' => true]);
     }
@@ -221,7 +219,6 @@ class DashboardKomController extends Controller
                 'video_terakhir' => now(),
             ]);
 
-            \Log::info("Progress modul diupdate untuk user {$userId}, modul {$modulId}, video {$videoId}");
         } else {
             KomUserModulProgress::create([
                 'kom_user_id' => $userId,
@@ -230,7 +227,6 @@ class DashboardKomController extends Controller
                 'video_terakhir' => now(),
             ]);
 
-            \Log::info("Progress modul dibuat untuk user {$userId}, modul {$modulId}, video {$videoId}");
         }
     }
 

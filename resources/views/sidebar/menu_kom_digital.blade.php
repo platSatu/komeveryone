@@ -86,16 +86,16 @@
     @if (($role === 'peserta' && $punyaKelas) || $isSuperadmin)
         <li class="has_sub">
             <a href="javascript:void(0);" class="waves-effect">
-                <i class="mdi mdi-book-open-variant"></i><span> {{ __('History') }} </span>
+                <i class="mdi mdi-account"></i><span> {{ __('Peserta') }} </span>
                 <span class="float-right"><i class="mdi mdi-chevron-right"></i></span>
             </a>
             <ul class="list-unstyled">
-                <li><a href="{{ route('kom.peserta.kelas_tutorial') }}">{{ __('Kelas Tutorial Saya') }}</a></li>
-                <li><a href="{{ route('kom.peserta.pertanyaan') }}">{{ __('Pertanyaan Saya') }}</a></li>
-                <li><a href="{{ route('kom.peserta.persembahan') }}">{{ __('Persembahan Saya') }}</a></li>
-                <li><a href="{{ route('kom.peserta.buku') }}">{{ __('Kode Buku Saya') }}</a></li>
-                <li><a href="{{ route('kom.peserta.progress_kom') }}">{{ __('Progress Saya') }}</a></li>
-                <li><a href="{{ route('kom.peserta.sertifikat') }}">{{ __('Sertifikat Saya') }}</a></li>
+                <li><a href="{{ route('kom.peserta.kelas_tutorial') }}">{{ __('Kelas Tutorial') }}</a></li>
+                <li><a href="{{ route('kom.peserta.pertanyaan') }}">{{ __('Pertanyaan') }}</a></li>
+                <li><a href="{{ route('kom.peserta.persembahan') }}">{{ __('Persembahan') }}</a></li>
+                <li><a href="{{ route('kom.peserta.buku') }}">{{ __('Kode Buku') }}</a></li>
+                <li><a href="{{ route('kom.peserta.progress_kom') }}">{{ __('Progress') }}</a></li>
+                <li><a href="{{ route('kom.peserta.sertifikat') }}">{{ __('Sertifikat') }}</a></li>
             </ul>
         </li>
     @endif
@@ -105,7 +105,7 @@
     @if (($role === 'pengajar' ) || $isSuperadmin)
         <li class="has_sub">
             <a href="javascript:void(0);" class="waves-effect">
-                <i class="mdi mdi-settings"></i><span> Pengajar </span>
+                <i class="mdi mdi-account"></i><span> Pengajar </span>
                 <span class="float-right"><i class="mdi mdi-chevron-right"></i></span>
             </a>
             <ul class="list-unstyled">
@@ -125,7 +125,7 @@
     @if (($role === 'admin_cabang') || $isSuperadmin)
         <li class="has_sub">
             <a href="javascript:void(0);" class="waves-effect">
-                <i class="mdi mdi-settings"></i><span> Admin Cabang </span>
+                <i class="mdi mdi-account"></i><span> Admin Cabang </span>
                 <span class="float-right"><i class="mdi mdi-chevron-right"></i></span>
             </a>
             <ul class="list-unstyled">
@@ -179,6 +179,8 @@
                 <li><a href="{{ route('kom.super_kelas_tutorial.index') }}">Kelas Tutorial</a></li>
                 <li><a href="{{ route('kom.super_userclasstutorial.index') }}">User Kelas Tutorial</a></li>
                 <li><a href="{{ route('kom.super_pertanyaan_user.index') }}">Pertanyaan Peserta</a></li>
+                <li><a href="{{ route('kom.super_review_pengajar.index') }}">{{ __('Review Pengajar') }}</a></li>
+                <li><a href="{{ route('kom.super_payment_gateway.index') }}">{{ __('Payment Gateway') }}</a></li>
                 <li><a href="{{ route('kom.super_videos.index') }}">Input Video</a></li>
                 <li><a href="{{ route('kom.super_progress-video.index') }}">Progress / Video</a></li>
                 <li><a href="{{ route('kom.super_progress-modul.index') }}">Progress / Modul</a></li>

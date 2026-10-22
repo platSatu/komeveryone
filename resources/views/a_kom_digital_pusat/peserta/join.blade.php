@@ -5,14 +5,14 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-body">
-                    <h4>Topik: {{ $topic }}</h4>
+                    <h4>{{ __('Topik') }}: {{ $topic }}</h4>
 
                     {{-- Container Zoom Meeting --}}
                     <div id="meetingSDKElement" style="width: 100%; height: 600px;"></div>
 
                     {{-- Fallback jika gagal --}}
                     <div id="zoomErrorMessage" style="display: none; color: red; margin-top: 20px;">
-                        Gagal memuat Zoom Meeting. Silakan coba lagi nanti atau hubungi admin.
+                        {{ __('Gagal memuat Zoom Meeting. Silakan coba lagi nanti atau hubungi admin.') }}
                     </div>
                 </div>
             </div>

@@ -13,9 +13,12 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 
-Route::get('/books/no-books', [BookController::class, 'apiNoBooks']);
+// kom_v02 (keamanan): berisi kode buku, nama, no SIM & no sertifikat → wajib X-API-KEY (lihat KOM_API_KEY di .env)
+Route::get('/books/no-books', [BookController::class, 'apiNoBooks'])->middleware(\App\Http\Middleware\KomApiKey::class);
 Route::get('/kom/pertanyaan/{videoId}', [DashboardKomController::class, 'getPertanyaanByVideo']);
 Route::post('/notification', [PersembahanController::class, 'callbackMidtrans']);
+// kom_v02: webhook BB (Bizbos) — daftarkan URL ini di Bizbos › Invoice › API & Integrasi
+Route::post('/bizbos/webhook', \App\Http\Controllers\Kmd\Dashboard\BizbosWebhookController::class)->name('bizbos.webhook');
 
 Route::get('/kom/pertanyaan/{videoId}', [DashboardKomController::class, 'getPertanyaanByVideo']);
 Route::get('/api/kom-modul/{modulId}/ordered-videos', [KomModulController::class, 'getOrderedVideos']);

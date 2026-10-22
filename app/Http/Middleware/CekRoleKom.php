@@ -13,12 +13,12 @@ class CekRoleKom
         $user = Auth::guard('web')->user();
 
         if (!$user) {
-            return redirect()->route('kom.login')->with('error', 'Anda harus login terlebih dahulu.');
+            return redirect()->route('kom.login')->with('error', __('Anda harus login terlebih dahulu.'));
         }
 
         // Cek apakah role user ada dalam daftar role yang diizinkan
         if (!in_array($user->role, $roles)) {
-            return redirect()->route('kom.dashboard_kom')->with('error', 'Anda tidak memiliki akses ke halaman ini.');
+            return redirect()->route('kom.dashboard_kom')->with('error', __('Anda tidak memiliki akses ke halaman ini.'));
         }
 
         // Jika role bukan superadmin, cek status aktif
@@ -26,7 +26,7 @@ class CekRoleKom
             $statusAktifValues = [true, 'aktif', 1];
 
             if (!in_array($user->status, $statusAktifValues, true)) {
-                return redirect()->route('kom.dashboard_kom')->with('error', 'Status akun Anda tidak aktif atau belum disetujui.');
+                return redirect()->route('kom.dashboard_kom')->with('error', __('Status akun Anda tidak aktif atau belum disetujui.'));
             }
         }
 

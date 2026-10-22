@@ -24,7 +24,7 @@ class PertanyaanUserController extends Controller
 
         if (!$progress) {
             return redirect()->route('kom.kelas_tutorial.index')
-                ->with('error', 'Silakan pilih kelas tutorial terlebih dahulu.');
+                ->with('error', __('Silakan pilih kelas tutorial terlebih dahulu.'));
         }
 
         // Update step ke 'pertanyaan' kalau belum
@@ -55,16 +55,14 @@ class PertanyaanUserController extends Controller
             Log::warning('🛑 User belum login saat mengirim pertanyaan (AJAX)');
             return response()->json([
                 'success' => false,
-                'message' => 'Silakan login kembali sebelum mengirim pertanyaan.'
+                'message' => __('Silakan login kembali sebelum mengirim pertanyaan.')
             ], 401);
         }
 
         //$user = Auth::guard('kom')->user();
         $user = Auth::user();
-        Log::info('📝 storePertanyaan dipanggil', ['user_id' => $user->id]);
 
         // DEBUG: Log isi request sebelum validasi
-        Log::debug('📥 Isi request untuk storePertanyaan:', $request->all());
 
         try {
             $request->validate([
@@ -86,86 +84,100 @@ class PertanyaanUserController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Validasi gagal. Silakan periksa input Anda.',
+                'message' => __('Validasi gagal. Silakan periksa input Anda.'),
                 'errors' => $e->errors(),
             ], 422);
         }
 
-        $count = KmdPertanyaanUser::where('user_id', $user->id)->count();
-        Log::info('📊 Jumlah pertanyaan user saat ini', ['count' => $count]);
-
-        $inputCount = count($request->pertanyaan);
-        $maxAllowed = 10 - $count;
-
-        Log::info("📋 Jumlah pertanyaan dikirim: $inputCount, Maksimal tersisa: $maxAllowed");
-
-        if ($maxAllowed <= 0) {
-            Log::warning('🛑 Batas maksimal pertanyaan tercapai', ['user_id' => $user->id]);
-            return response()->json(['success' => false, 'message' => 'Anda sudah mencapai batas maksimal 6 pertanyaan.'], 422);
-        }
-
-        if ($inputCount > $maxAllowed) {
-            Log::warning('⚠️ Input pertanyaan melebihi batas maksimal', ['inputCount' => $inputCount, 'maxAllowed' => $maxAllowed]);
-            return response()->json(['success' => false, 'message' => "Anda hanya dapat mengirim maksimal {$maxAllowed} pertanyaan lagi."], 422);
-        }
-
-        foreach ($request->pertanyaan as $index => $text) {
-            Log::info("💾 Menyimpan pertanyaan ke-" . ($index + 1), [
-                'pertanyaan' => $text,
-                'pengajar_id' => $request->pengajar_id,
-            ]);
-
-            // Tambahan proteksi untuk pengajar_id walaupun nullable
-            if (!$request->pengajar_id) {
-                Log::error('❌ pengajar_id kosong saat insert. Gagal menyimpan pertanyaan.', [
-                    'user_id' => $user->id,
-                    'kelas_tutorial_id' => $request->kelas_tutorial_id,
-                ]);
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data pengajar tidak ditemukan. Silakan refresh halaman atau hubungi admin.'
-                ], 422);
-            }
-
-            KmdPertanyaanUser::create([
-                'user_id' => $user->id,
-                'rayon_id' => $request->rayon_id,
-                'class_id' => $request->class_id,
-                'modul_id' => $request->modul_id,
-                'kelas_tutorial_id' => $request->kelas_tutorial_id,
-                'pengajar_id' => $request->pengajar_id,
-                'pertanyaan' => $text,
-                'status' => 'active',
-                'tgl_submit' => now(),
-                'category_diklat' => $request->category_diklat, 
-            ]);
-        }
-
-        // Update step progress ke 'donasi'
-        $progress = KmdUserClassTutorial::where('user_id', $user->id)
+        // kom_v02: batas 2 pertanyaan PER KELAS TUTORIAL yang sedang diikuti
+        // (sebelumnya maksimal 10 pertanyaan seumur akun → peserta modul berikutnya /
+        // tutorial tengah modul pasti tertolak).
+        $progressAktif = KmdUserClassTutorial::where('user_id', $user->id)
             ->where('status_progress', 'pending')
             ->where('step', 'pertanyaan')
             ->latest('created_at')
             ->first();
 
-        if ($progress) {
-            $progress->step = 'donasi';
-            $progress->save();
-            Log::info('✅ Progress step diperbarui menjadi donasi.', ['progress_id' => $progress->id]);
-        } else {
-            Log::warning('⚠️ Tidak ditemukan progress aktif dengan step pertanyaan untuk update.', ['user_id' => $user->id]);
+        if (! $progressAktif) {
+            return response()->json([
+                'success' => false,
+                'message' => __('Silakan pilih kelas tutorial terlebih dahulu.'),
+            ], 422);
         }
 
-        Log::info('✅ Pertanyaan berhasil disimpan untuk user', [
-            'user_id' => $user->id,
-            'jumlah_pertanyaan' => $inputCount,
-        ]);
+        $batas = 2;
+        $count = KmdPertanyaanUser::where('user_id', $user->id)
+            ->where('kelas_tutorial_id', $progressAktif->class_tutorial_id)
+            ->count();
+
+        // kom_v02 (perbaikan): pertanyaan SUDAH tersimpan tetapi langkah belum pindah ke persembahan
+        // (mis. proses sebelumnya terputus) → jangan tolak, cukup lanjutkan ke persembahan.
+        if ($count >= $batas) {
+            $this->lanjutKePersembahan($progressAktif);
+
+            return response()->json([
+                'success' => true,
+                'message' => __('Pertanyaan Anda sudah tersimpan sebelumnya. Silakan lanjut ke persembahan.'),
+            ]);
+        }
+
+        $inputCount = count($request->pertanyaan);
+        $maxAllowed = $batas - $count;
+
+        if ($inputCount > $maxAllowed) {
+            Log::warning('⚠️ Input pertanyaan melebihi batas maksimal', ['inputCount' => $inputCount, 'maxAllowed' => $maxAllowed]);
+            return response()->json(['success' => false, 'message' => __('Anda hanya dapat mengirim maksimal :jumlah pertanyaan lagi.', ['jumlah' => $maxAllowed])], 422);
+        }
+
+        $pengajarId = $progressAktif->pengajar_id ?: $request->pengajar_id;
+        if (! $pengajarId) {
+            Log::error('❌ pengajar_id kosong saat insert. Gagal menyimpan pertanyaan.', [
+                'user_id' => $user->id,
+                'kelas_tutorial_id' => $progressAktif->class_tutorial_id,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => __('Data pengajar tidak ditemukan. Silakan refresh halaman atau hubungi admin.')
+            ], 422);
+        }
+
+        // kom_v02 (perbaikan): simpan pertanyaan + pindah ke langkah persembahan dalam SATU transaksi.
+        // Dulu kalau langkah kedua gagal, pertanyaan sudah tersimpan tetapi peserta tertahan di
+        // langkah pertanyaan dan kiriman berikutnya ditolak (422 "batas maksimal").
+        \Illuminate\Support\Facades\DB::connection('mysql')->transaction(function () use ($request, $user, $progressAktif, $pengajarId) {
+            foreach ($request->pertanyaan as $text) {
+                // kom_v02: data kelas diambil dari booking di server (bukan dari form)
+                KmdPertanyaanUser::create([
+                    'user_id' => $user->id,
+                    'rayon_id' => $progressAktif->rayon_id ?? $request->rayon_id,
+                    'class_id' => $progressAktif->class_id,
+                    'modul_id' => $progressAktif->modul_id,
+                    'video_id' => $progressAktif->video_id ?: null,
+                    'kelas_tutorial_id' => $progressAktif->class_tutorial_id,
+                    'pengajar_id' => $pengajarId,
+                    'pertanyaan' => $text,
+                    'status' => 'active',
+                    'tgl_submit' => now(),
+                    'category_diklat' => $request->category_diklat,
+                ]);
+            }
+
+            $this->lanjutKePersembahan($progressAktif);
+        });
 
         return response()->json([
             'success' => true,
-            'message' => 'Pertanyaan berhasil dikirim.'
+            'message' => __('Pertanyaan berhasil dikirim.')
         ]);
+    }
+
+    /** kom_v02: pindah ke langkah persembahan & mulai hitung batas waktunya. */
+    protected function lanjutKePersembahan(KmdUserClassTutorial $progress): void
+    {
+        $progress->step = 'donasi';
+        $progress->checkout_expires_at = now()->addMinutes(app(\App\Services\Kmd\CheckoutTutorialService::class)->menitPersembahan());
+        $progress->save();
     }
 
 

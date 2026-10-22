@@ -11,8 +11,8 @@ use Symfony\Component\HttpFoundation\Response;
  * kom_v02 — Bahasa tampilan mengikuti bahasa belajar user.
  *
  * 1. Mengatur bahasa aplikasi (app()->setLocale) sesuai kmd_users.language_code.
- * 2. Peserta yang BELUM memilih bahasa (user baru) diarahkan ke halaman
- *    "Pilih Bahasa Belajar" sebelum bisa membuka halaman lain.
+ * 2. Peserta yang BELUM memilih bahasa (user baru) melihat POP-UP "Pilih Bahasa"
+ *    (Bahasa Indonesia terpilih sebagai bawaan) sebelum bisa memakai halaman lain.
  *    User lama sudah otomatis 'id' (lihat migration), jadi tidak terganggu.
  */
 class KomLanguageMiddleware
@@ -37,6 +37,15 @@ class KomLanguageMiddleware
             $route = $request->route()?->getName();
 
             if (! in_array($route, $this->except, true)) {
+                // kom_v02: halaman biasa (GET) tetap dibuka, tetapi layout menampilkan POP-UP
+                // "Pilih Bahasa" yang wajib diisi (tidak bisa ditutup). Bahasa Indonesia terpilih
+                // sebagai bawaan. Aksi lain (POST / AJAX) tetap ditahan sampai bahasa dipilih.
+                if ($request->isMethod('GET') && ! $request->expectsJson()) {
+                    \Illuminate\Support\Facades\View::share('komPopupPilihBahasa', true);
+
+                    return $next($request);
+                }
+
                 if ($request->expectsJson()) {
                     return response()->json([
                         'success' => false,

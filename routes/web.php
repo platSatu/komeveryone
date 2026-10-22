@@ -118,7 +118,8 @@ Route::prefix('app')->group(function () {
     Route::post('logout', [AuthController::class, 'logout'])->name('kom.logout');
 
     Route::get('/verifikasi/{id}', [SertifikatController::class, 'verifikasi']);
-    Route::get('/generate-nik-kmd', [AuthController::class, 'generateNikUntukSemuaUser']);
+    // kom_v02 (keamanan): sebelumnya bisa dibuka siapa saja tanpa login padahal mengubah data user
+    Route::get('/generate-nik-kmd', [AuthController::class, 'generateNikUntukSemuaUser'])->middleware(['cekrolekom:superadmin']);
 
     // routes/web.php
 
@@ -202,6 +203,8 @@ Route::prefix('app')->group(function () {
         Route::get('/kom-digital/kom-100/persembahan', [PersembahanController::class, 'formPersembahan'])->name('form.persembahan');
         Route::post('/kom-digital/kom-100/persembahan', [PersembahanController::class, 'storePersembahan'])->name('persembahan.store');
         Route::post('/persembahan/token', [PersembahanController::class, 'generateSnapToken'])->name('persembahan.token');
+        Route::post('/persembahan/batal', [PersembahanController::class, 'batalkanPendaftaran'])->name('persembahan.batal'); // kom_v02
+        Route::post('/persembahan/cek', [PersembahanController::class, 'cekPembayaran'])->name('persembahan.cek'); // kom_v02: status BB (Bizbos)
         Route::post('/persembahan/store', [PersembahanController::class, 'storePersembahan'])->name('kom.persembahan.store');
 
 
@@ -246,12 +249,12 @@ Route::prefix('app')->group(function () {
             });
 
         Route::prefix('zoom')->name('zoom.')->group(function () {
-            Route::get('/', [ZoomMeetingController::class, 'index'])->name('index');
-            Route::get('/create', [ZoomMeetingController::class, 'create'])->name('create');
-            Route::post('/', [ZoomMeetingController::class, 'store'])->name('store');
-            Route::get('/{meetingId}/edit', [ZoomMeetingController::class, 'edit'])->name('edit');
-            Route::put('/{meetingId}', [ZoomMeetingController::class, 'update'])->name('update');
-            Route::delete('/{meetingId}', [ZoomMeetingController::class, 'destroy'])->name('destroy');
+            Route::get('/', [ZoomMeetingController::class, 'index'])->name('index')->middleware('cekrolekom:admin_cabang,superadmin'); // kom_v02 (keamanan)
+            Route::get('/create', [ZoomMeetingController::class, 'create'])->name('create')->middleware('cekrolekom:admin_cabang,superadmin'); // kom_v02 (keamanan)
+            Route::post('/', [ZoomMeetingController::class, 'store'])->name('store')->middleware('cekrolekom:admin_cabang,superadmin'); // kom_v02 (keamanan)
+            Route::get('/{meetingId}/edit', [ZoomMeetingController::class, 'edit'])->name('edit')->middleware('cekrolekom:admin_cabang,superadmin'); // kom_v02 (keamanan)
+            Route::put('/{meetingId}', [ZoomMeetingController::class, 'update'])->name('update')->middleware('cekrolekom:admin_cabang,superadmin'); // kom_v02 (keamanan)
+            Route::delete('/{meetingId}', [ZoomMeetingController::class, 'destroy'])->name('destroy')->middleware('cekrolekom:admin_cabang,superadmin'); // kom_v02 (keamanan)
             Route::get('/zoom-view', [ZoomSdkController::class, 'index'])->name('zoom.sdk.index');
             Route::post('/zoom-sdk-signature', [ZoomSdkController::class, 'generateSignature'])->name('zoom.sdk.signature');
             // Halaman join meeting (terima zoom_meeting_id)
@@ -305,7 +308,9 @@ Route::prefix('app')->group(function () {
             });
 
 
-        Route::prefix('admin_cabang')->group(function () {
+        // kom_v02 (keamanan): SELURUH menu admin cabang wajib login sebagai admin_cabang / superadmin
+        // (sebelumnya sebagian besar hanya butuh login — peserta bisa membuka lewat link)
+        Route::prefix('admin_cabang')->middleware(['cekrolekom:admin_cabang,superadmin'])->group(function () {
             Route::prefix('users')->controller(UserAdminCabangController::class)->name('admin_cabang_users.')->middleware(['auth:web', 'cekrolekom:admin_cabang,superadmin'])->group(function () {
                 Route::get('/', 'index')->name('index');                     // Tampilkan semua user
                 Route::get('/create', 'create')->name('create');             // Form tambah user
@@ -345,6 +350,7 @@ Route::prefix('app')->group(function () {
                 Route::get('/{kelasId}/add-peserta', 'addPesertaZoom')->name('addPesertaZoom'); // untuk form
 
                 Route::get('/api/pengajars', 'getPengajarsByModul')->name('api.pengajars.byModul');
+                Route::get('/api/titik-tutorial', 'getTitikByModul')->name('api.titik.byModul'); // kom_v02
             });
 
             Route::prefix('data-statik')->controller(DataStatikController::class)->name('data-statik.')->group(function () {
@@ -392,7 +398,8 @@ Route::prefix('app')->group(function () {
             });
         });
 
-        Route::prefix('superadmin')->group(function () {
+        // kom_v02 (keamanan): SELURUH menu superadmin wajib login sebagai superadmin
+        Route::prefix('superadmin')->middleware(['cekrolekom:superadmin'])->group(function () {
             // ===================== kom_v02: Bahasa, Kelas, Terjemahan Tampilan =====================
             Route::middleware(['auth:web', 'cekrolekom:superadmin'])->group(function () {
                 Route::prefix('bahasa')->controller(\App\Http\Controllers\Kmd\Superadmin\BahasaController::class)->name('super_bahasa.')->group(function () {
@@ -403,6 +410,8 @@ Route::prefix('app')->group(function () {
                     Route::put('/{language}', 'update')->name('update');
                     Route::post('/{language}/aktif', 'toggle')->name('toggle');
                     Route::post('/salin-konten', 'salin')->name('salin');
+                    Route::post('/{language}/hapus-konten', 'hapusKonten')->name('hapus_konten'); // kom_v02
+                    Route::delete('/{language}', 'destroy')->name('destroy');                       // kom_v02
                     Route::post('/kelola', 'kelola')->name('kelola');
                 });
 
@@ -716,6 +725,19 @@ Route::prefix('app')->group(function () {
                 Route::get('/', 'index')->name('index');
             });
 
+            // kom_v02: Admin KOM — setting payment gateway (Midtrans / BB Bizbos)
+            Route::prefix('payment-gateway')->controller(\App\Http\Controllers\Kmd\Superadmin\PaymentGatewayController::class)->middleware(['auth:web', 'cekrolekom:superadmin'])->name('super_payment_gateway.')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::put('/', 'update')->name('update');
+                Route::post('/tes-bizbos', 'tesBizbos')->name('tes_bizbos');
+            });
+
+            // kom_v02: Admin KOM — review semua pengajar (semua cabang)
+            Route::prefix('review-pengajar')->controller(\App\Http\Controllers\Kmd\Superadmin\ReviewPengajarController::class)->middleware(['auth:web', 'cekrolekom:superadmin'])->name('super_review_pengajar.')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/{pengajarId}', 'show')->whereUuid('pengajarId')->name('show');
+            });
+
         });
 
 
@@ -840,7 +862,8 @@ Route::prefix('app')->group(function () {
         // });
 
         // Pertanyaan
-        Route::controller(AuthController::class)->group(function () {
+        // kom_v02 (keamanan): kelola user lama, donasi lama & log aktivitas → hanya superadmin
+        Route::controller(AuthController::class)->middleware(['cekrolekom:superadmin'])->group(function () {
             Route::get('/users', 'index')->name('users.index');
             Route::get('/users/create', 'create')->name('users.create');
             Route::post('/users/store', 'store')->name('users.store');
@@ -885,7 +908,7 @@ Route::prefix('app')->group(function () {
         // });
 
 
-        Route::controller(KomDonasiController::class)->group(function () {
+        Route::controller(KomDonasiController::class)->middleware(['cekrolekom:superadmin'])->group(function () {
 
             Route::get('/donasi', 'index')->name('donasi.index');
             Route::post('/donasi/snap-token', 'getSnapToken')->name('donasi.snap.token');
@@ -898,7 +921,7 @@ Route::prefix('app')->group(function () {
         });
 
         // Log Aktivitas User
-        Route::get('log', [KomActivityLogController::class, 'index'])->name('log.index');
+        Route::get('log', [KomActivityLogController::class, 'index'])->name('log.index')->middleware(['cekrolekom:superadmin']);
     });
 });
 

@@ -7,11 +7,11 @@
                 {{-- Header Section --}}
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
                     <div>
-                        <h4 class="fw-bold text-dark mb-1">📊 Progress Pembelajaran Saya</h4>
-                        <p class="text-muted mb-0">Pantau kemajuan belajar Anda dalam berbagai kategori</p>
+                        <h4 class="fw-bold text-dark mb-1">📊 {{ __('Progress Pembelajaran Saya') }}</h4>
+                        <p class="text-muted mb-0">{{ __('Pantau kemajuan belajar Anda dalam berbagai kategori') }}</p>
                     </div>
                     <button class="btn btn-outline-primary btn-sm mt-2 mt-md-0" onclick="location.reload()">
-                        <i class="fas fa-sync-alt me-1"></i> Refresh
+                        <i class="fas fa-sync-alt me-1"></i> {{ __('Refresh') }}
                     </button>
                 </div>
 
@@ -37,7 +37,7 @@
                                 <i class="fas fa-book fa-2x opacity-75 flex-shrink-0 me-4"></i>
                                 <div>
                                     <div class="fw-bold fs-4">{{ $progressModul->count() }}</div>
-                                    <div class="small opacity-75">Total Modul</div>
+                                    <div class="small opacity-75">{{ __('Total Modul') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -48,7 +48,7 @@
                                 <i class="fas fa-play-circle fa-2x opacity-75 flex-shrink-0 me-4"></i>
                                 <div>
                                     <div class="fw-bold fs-4">{{ $videoProgress->count() }}</div>
-                                    <div class="small opacity-75">Total Video</div>
+                                    <div class="small opacity-75">{{ __('Total Video') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -59,7 +59,7 @@
                                 <i class="fas fa-chalkboard-teacher fa-2x opacity-75 flex-shrink-0 me-4"></i>
                                 <div>
                                     <div class="fw-bold fs-4">{{ $tutorialStatus->count() }}</div>
-                                    <div class="small opacity-75">Kelas Tutorial</div>
+                                    <div class="small opacity-75">{{ __('Kelas Tutorial') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -70,7 +70,7 @@
                                 <i class="fas fa-trophy fa-2x opacity-75 flex-shrink-0 me-4"></i>
                                 <div>
                                     <div class="fw-bold fs-4">{{ $completedCount }}</div>
-                                    <div class="small opacity-75">Selesai</div>
+                                    <div class="small opacity-75">{{ __('Selesai') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -81,7 +81,7 @@
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom py-3">
                         <h5 class="card-title mb-0 fw-bold d-flex align-items-center gap-2 flex-wrap">
-                            <i class="fas fa-chart-line text-primary"></i> Detail Progress Pembelajaran
+                            <i class="fas fa-chart-line text-primary"></i> {{ __('Detail Progress Pembelajaran') }}
                         </h5>
                     </div>
 
@@ -92,21 +92,21 @@
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" id="modul-tab" data-bs-toggle="tab" data-bs-target="#modul"
                                     type="button" role="tab" aria-controls="modul" aria-selected="true">
-                                    <i class="fas fa-book me-2"></i> Progress Modul
+                                    <i class="fas fa-book me-2"></i> {{ __('Progress Modul') }}
                                     <span class="badge bg-light text-dark ms-2">{{ $progressModul->count() }}</span>
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="video-tab" data-bs-toggle="tab" data-bs-target="#video"
                                     type="button" role="tab" aria-controls="video" aria-selected="false">
-                                    <i class="fas fa-play-circle me-2"></i> Progress Video
+                                    <i class="fas fa-play-circle me-2"></i> {{ __('Progress Video') }}
                                     <span class="badge bg-light text-dark ms-2">{{ $videoProgress->count() }}</span>
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="tutorial-tab" data-bs-toggle="tab" data-bs-target="#tutorial"
                                     type="button" role="tab" aria-controls="tutorial" aria-selected="false">
-                                    <i class="fas fa-chalkboard-teacher me-2"></i> Kelas Tutorial
+                                    <i class="fas fa-chalkboard-teacher me-2"></i> {{ __('Kelas Tutorial') }}
                                     <span class="badge bg-light text-dark ms-2">{{ $tutorialStatus->count() }}</span>
                                 </button>
                             </li>
@@ -120,8 +120,8 @@
                                 @if ($progressModul->isEmpty())
                                     <div class="text-center py-5">
                                         <i class="fas fa-book fa-4x text-muted mb-4"></i>
-                                        <h4 class="text-muted mb-3">Belum Ada Progress Modul</h4>
-                                        <p class="text-muted">Anda belum memulai pembelajaran modul apapun.</p>
+                                        <h4 class="text-muted mb-3">{{ __('Belum Ada Progress Modul') }}</h4>
+                                        <p class="text-muted">{{ __('Anda belum memulai pembelajaran modul apapun.') }}</p>
                                     </div>
                                 @else
                                     <div class="table-responsive">
@@ -129,8 +129,8 @@
                                             <thead class="table-light">
                                                 <tr>
                                                     <th>#</th>
-                                                    <th>Judul Modul</th>
-                                                    <th>Status</th>
+                                                    <th>{{ __('Judul Modul') }}</th>
+                                                    <th>{{ __('Status') }}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -140,10 +140,10 @@
                                                         <td>{{ $item->modul->name ?? '-' }}</td>
                                                         <td>
                                                             @if (strtolower($item->status ?? '') == 'completed')
-                                                                <span class="badge bg-success text-white">Selesai</span>
+                                                                <span class="badge bg-success text-white">{{ __('Selesai') }}</span>
                                                             @else
                                                                 <span
-                                                                    class="badge bg-secondary text-white">{{ ucfirst($item->status ?? 'Unknown') }}</span>
+                                                                    class="badge bg-secondary text-white">{{ ucfirst($item->status ?? '-') }}</span>
                                                             @endif
                                                         </td>
                                                     </tr>
@@ -159,8 +159,8 @@
                                 @if ($videoProgress->isEmpty())
                                     <div class="text-center py-5">
                                         <i class="fas fa-play-circle fa-4x text-muted mb-4"></i>
-                                        <h4 class="text-muted mb-3">Belum Ada Progress Video</h4>
-                                        <p class="text-muted">Anda belum menonton video pembelajaran apapun.</p>
+                                        <h4 class="text-muted mb-3">{{ __('Belum Ada Progress Video') }}</h4>
+                                        <p class="text-muted">{{ __('Anda belum menonton video pembelajaran apapun.') }}</p>
                                     </div>
                                 @else
                                     <div class="table-responsive">
@@ -168,41 +168,40 @@
                                             <thead class="table-light">
                                                 <tr>
                                                     <th>#</th>
-                                                    <th>Judul Video</th>
-                                                    <th>Status</th>
-                                                    <th>Ditonton</th>
-                                                    <th>Tanggal</th>
+                                                    <th>{{ __('Judul Video') }}</th>
+                                                    <th>{{ __('Status') }}</th>
+                                                    <th>{{ __('Ditonton') }}</th>
+                                                    <th>{{ __('Tanggal') }}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 @foreach ($videoProgress as $item)
                                                     <tr>
                                                         <td>{{ $loop->iteration }}</td>
-                                                        <td>{{ $item->video->name ?? 'Video ID: ' . $item->video_id }}</td>
+                                                        <td>{{ $item->video->name ?? (__('Video') . ' ID: ' . $item->video_id) }}</td>
                                                         <td>
                                                             @if (strtolower($item->status ?? '') == 'completed')
-                                                                <span class="badge bg-success text-white">Selesai</span>
+                                                                <span class="badge bg-success text-white">{{ __('Selesai') }}</span>
                                                             @elseif (strtolower($item->status ?? '') == 'in_progress')
-                                                                <span class="badge bg-warning text-dark">Sedang
-                                                                    Berjalan</span>
+                                                                <span class="badge bg-warning text-dark">{{ __('Sedang Berjalan') }}</span>
                                                             @else
                                                                 <span
-                                                                    class="badge bg-secondary text-white">{{ ucfirst($item->status ?? 'Unknown') }}</span>
+                                                                    class="badge bg-secondary text-white">{{ ucfirst($item->status ?? '-') }}</span>
                                                             @endif
                                                         </td>
                                                         <td>
                                                             @if ($item->is_watched)
                                                                 <span class="badge bg-success text-white">
-                                                                    <i class="fas fa-check me-1"></i> Sudah
+                                                                    <i class="fas fa-check me-1"></i> {{ __('Sudah') }}
                                                                 </span>
                                                             @else
                                                                 <span class="badge bg-secondary text-white">
-                                                                    <i class="fas fa-times me-1"></i> Belum
+                                                                    <i class="fas fa-times me-1"></i> {{ __('Belum') }}
                                                                 </span>
                                                             @endif
                                                         </td>
                                                         <td>
-                                                            {{ $item->watched_at ? $item->watched_at->format('d M Y') : '-' }}
+                                                            {{ $item->watched_at ? $item->watched_at->translatedFormat('d M Y') : '-' }}
                                                         </td>
                                                     </tr>
                                                 @endforeach
@@ -217,8 +216,8 @@
                                 @if ($tutorialStatus->isEmpty())
                                     <div class="text-center py-5">
                                         <i class="fas fa-chalkboard-teacher fa-4x text-muted mb-4"></i>
-                                        <h4 class="text-muted mb-3">Belum Ada Kelas Tutorial</h4>
-                                        <p class="text-muted">Anda belum mengikuti kelas tutorial apapun.</p>
+                                        <h4 class="text-muted mb-3">{{ __('Belum Ada Kelas Tutorial') }}</h4>
+                                        <p class="text-muted">{{ __('Anda belum mengikuti kelas tutorial apapun.') }}</p>
                                     </div>
                                 @else
                                     <div class="table-responsive">
@@ -226,16 +225,16 @@
                                             <thead class="table-light">
                                                 <tr>
                                                     <th>#</th>
-                                                    <th>Judul Modul</th>
-                                                    <th>Status</th>
-                                                    {{-- <th>Selesai</th> --}}
+                                                    <th>{{ __('Judul Modul') }}</th>
+                                                    <th>{{ __('Status') }}</th>
+                                                    {{-- <th>{{ __('Selesai') }}</th> --}}
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 @foreach ($tutorialStatus as $item)
                                                     <tr>
                                                         <td>{{ $loop->iteration }}</td>
-                                                        <td>{{ $item->modul->name ?? 'Module ID: ' . $item->module_id }}
+                                                        <td>{{ $item->modul->name ?? (__('Modul') . ' ID: ' . $item->module_id) }}
                                                         </td>
                                                         <td>
                                                             @php
@@ -247,12 +246,12 @@
                                                                     default => 'bg-secondary',
                                                                 };
                                                                 $statusText = match (strtolower($item->status ?? '')) {
-                                                                    'selesai' => 'Selesai',
-                                                                    'in_progress' => 'Sedang Berjalan',
-                                                                    'enrolled' => 'Terdaftar',
-                                                                    'cancelled' => 'Dibatalkan',
-                                                                    'not_enrolled' => 'Belum Terdaftar',
-                                                                    default => ucfirst($item->status ?? 'Unknown'),
+                                                                    'selesai' => __('Selesai'),
+                                                                    'in_progress' => __('Sedang Berjalan'),
+                                                                    'enrolled' => __('Terdaftar'),
+                                                                    'cancelled' => __('Dibatalkan'),
+                                                                    'not_enrolled' => __('Belum Terdaftar'),
+                                                                    default => ucfirst($item->status ?? '-'),
                                                                 };
                                                             @endphp
                                                             <span

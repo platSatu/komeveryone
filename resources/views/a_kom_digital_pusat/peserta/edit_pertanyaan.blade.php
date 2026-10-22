@@ -7,10 +7,10 @@
                 {{-- Back Button & Header --}}
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <a href="{{ route('kom.peserta.pertanyaan') }}" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-arrow-left me-1"></i> Kembali
+                        <i class="fas fa-arrow-left me-1"></i> {{ __('Kembali') }}
                     </a>
                     <span class="badge bg-warning text-dark">
-                        <i class="fas fa-edit me-1"></i> Sisa Edit: {{ 1 - ($pertanyaan->edit_count ?? 0) }}x
+                        <i class="fas fa-edit me-1"></i> {{ __('Sisa Edit') }}: {{ 1 - ($pertanyaan->edit_count ?? 0) }}x
                     </span>
                 </div>
 
@@ -18,7 +18,7 @@
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom py-3">
                         <h5 class="card-title mb-0 fw-bold d-flex align-items-center gap-2">
-                            <i class="fas fa-edit text-primary"></i> Edit Pertanyaan
+                            <i class="fas fa-edit text-primary"></i> {{ __('Edit Pertanyaan') }}
                         </h5>
                     </div>
 
@@ -27,10 +27,10 @@
                         <div class="alert alert-info d-flex align-items-start mb-4" role="alert">
                             <i class="fas fa-info-circle fa-lg me-3 mt-2 mr-2"></i>
                             <div>
-                                <strong>Informasi:</strong>
+                                <strong>{{ __('Informasi') }}:</strong>
                                 <ul class="mb-0 mt-2">
                                     <!-- <li>Anda hanya dapat mengedit pertanyaan ini <strong>1 (satu) kali</strong>.</li> -->
-                                    <li>Pastikan pertanyaan Anda jelas dan lengkap sebelum disimpan.</li>
+                                    <li>{{ __('Pastikan pertanyaan Anda jelas dan lengkap sebelum disimpan.') }}</li>
                                     <!-- <li>Pertanyaan yang sudah diedit tidak dapat diedit kembali.</li> -->
                                 </ul>
                             </div>
@@ -39,7 +39,7 @@
                         {{-- Original Question Info --}}
                         <div class="mb-4">
                             <label class="form-label fw-bold text-muted small text-uppercase">
-                                <i class="fas fa-book me-1"></i> Modul
+                                <i class="fas fa-book me-1"></i> {{ __('Modul') }}
                             </label>
                             <div class="form-control-plaintext">
                                 {{ $pertanyaan->modul->name ?? '-' }}
@@ -48,7 +48,7 @@
 
                         <div class="mb-4">
                             <label class="form-label fw-bold text-muted small text-uppercase">
-                                <i class="fas fa-graduation-cap me-1"></i> Kelas
+                                <i class="fas fa-graduation-cap me-1"></i> {{ __('Kelas') }}
                             </label>
                             <div class="form-control-plaintext">
                                 {{ $pertanyaan->class->name ?? '-' }}
@@ -57,11 +57,11 @@
 
                         <div class="mb-4">
                             <label class="form-label fw-bold text-muted small text-uppercase">
-                                <i class="fas fa-calendar-alt me-1"></i> Tanggal Submit
+                                <i class="fas fa-calendar-alt me-1"></i> {{ __('Tanggal Submit') }}
                             </label>
                             <div class="form-control-plaintext">
                                 @if ($pertanyaan->tgl_submit)
-                                    {{ \Carbon\Carbon::parse($pertanyaan->tgl_submit)->format('d F Y, H:i') }}
+                                    {{ \Carbon\Carbon::parse($pertanyaan->tgl_submit)->translatedFormat('d F Y, H:i') }}
                                 @else
                                     -
                                 @endif
@@ -77,7 +77,7 @@
 
                             <div class="mb-4">
                                 <label for="pertanyaan" class="form-label fw-bold">
-                                    <i class="fas fa-comment me-1 text-primary"></i> Pertanyaan Anda
+                                    <i class="fas fa-comment me-1 text-primary"></i> {{ __('Pertanyaan Anda') }}
                                     <span class="text-danger">*</span>
                                 </label>
                                 <textarea 
@@ -85,7 +85,7 @@
                                     id="pertanyaan" 
                                     name="pertanyaan" 
                                     rows="6"
-                                    placeholder="Tulis pertanyaan Anda di sini..."
+                                    placeholder="{{ __('Tulis pertanyaan Anda di sini...') }}"
                                     required
                                     minlength="5"
                                     maxlength="1000"
@@ -97,7 +97,7 @@
                                             <i class="fas fa-exclamation-circle me-1"></i> {{ $message }}
                                         </div>
                                     @else
-                                        <small class="text-muted">Minimal 5 karakter, maksimal 1000 karakter</small>
+                                        <small class="text-muted">{{ __('Minimal 5 karakter, maksimal 1000 karakter') }}</small>
                                     @enderror
                                     <small class="text-muted char-counter">
                                         <span id="charCount">{{ strlen(old('pertanyaan', $pertanyaan->pertanyaan)) }}</span>/1000
@@ -107,10 +107,10 @@
 
                             <div class="d-flex justify-content-end gap-2 pt-3 border-top">
                                 <a href="{{ route('kom.peserta.pertanyaan') }}" class="btn btn-outline-secondary mr-3">
-                                    <i class="fas fa-times me-1"></i> Batal
+                                    <i class="fas fa-times me-1"></i> {{ __('Batal') }}
                                 </a>
                                 <button type="submit" class="btn btn-primary" id="submitBtn">
-                                    <i class="fas fa-save me-1"></i> Simpan Perubahan
+                                    <i class="fas fa-save me-1"></i> {{ __('Simpan Perubahan') }}
                                 </button>
                             </div>
                         </form>
@@ -185,14 +185,14 @@
                 e.preventDefault();
                 
                 Swal.fire({
-                    title: 'Konfirmasi Perubahan',
-                    text: 'Apakah Anda yakin ingin menyimpan perubahan? Perubahan tidak dapat dikembalikan.',
+                    title: @json(__('Konfirmasi Perubahan')),
+                    text: @json(__('Apakah Anda yakin ingin menyimpan perubahan? Perubahan tidak dapat dikembalikan.')),
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonColor: '#0d6efd',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: '<i class="fas fa-check me-1"></i> Ya, Simpan',
-                    cancelButtonText: '<i class="fas fa-times me-1"></i> Batal'
+                    confirmButtonText: '<i class="fas fa-check me-1"></i> ' + @json(__('Ya, Simpan')),
+                    cancelButtonText: '<i class="fas fa-times me-1"></i> ' + @json(__('Batal'))
                 }).then((result) => {
                     if (result.isConfirmed) {
                         submitBtn.disabled = true;

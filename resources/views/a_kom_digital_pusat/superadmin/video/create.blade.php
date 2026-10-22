@@ -35,8 +35,8 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Durasi</label>
-                            <input type="text" name="durations" class="form-control" value="{{ old('durations') }}">
+                            <label>Durasi (jam:menit:detik)</label>
+                            <input type="text" name="durations" class="form-control" value="{{ old('durations') }}" placeholder="00:18:46">
                         </div>
 
 
@@ -69,6 +69,8 @@
                             <label>Video (Upload Video)</label>
                             <input type="file" name="video" class="form-control" accept="video/*">
                         </div>
+                        @include('a_kom_digital_pusat.superadmin.video._titik_tutorial')
+
                         <div class="form-group">
                             <label for="status">Status Modul</label>
                             <select name="status" class="form-control @error('status') is-invalid @enderror" required>

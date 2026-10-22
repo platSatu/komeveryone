@@ -82,10 +82,9 @@ class KmdVideoLearningController extends Controller
                 ->orderBy('watched_at', 'desc')
                 ->first();
 
-            Log::info('Video learning page loaded', [
-                'user_id' => $userId,
-                'modules_count' => $moduls->count()
-            ]);
+            // kom_v02: titik kelas tutorial (tengah modul + akhir modul) & status peserta
+            $titikTutorial = $this->petaTitikTutorial($userId, $moduls);
+
 
             return view('a_kom_digital_pusat.dashboard.index', compact(
                 'moduls',
@@ -93,12 +92,13 @@ class KmdVideoLearningController extends Controller
                 'userAnsweredQuestions',
                 'completedModules',
                 'userModuleProgress',
-                'lastWatchedVideo'
+                'lastWatchedVideo',
+                'titikTutorial'
             ));
 
         } catch (\Exception $e) {
             Log::error('Index error: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Gagal memuat halaman pembelajaran.');
+            return redirect()->back()->with('error', __('Gagal memuat halaman pembelajaran.'));
         }
     }
 
@@ -166,8 +166,11 @@ class KmdVideoLearningController extends Controller
             // ===== Validasi server-side supaya time & completed tidak bisa dipalsukan dari client =====
             // (mis. dikirim manual lewat console/devtools tanpa benar-benar menonton videonya)
             $video = KmdVideo::find($videoId);
-            $duration = $video ? (int) $video->durations : 0;
-            $toleransi = 5; // detik, buffer untuk delay jaringan/buffering
+            // kom_v02 (perbaikan): durations berformat "00:18:46" → dulu (int) = 0, sehingga
+            // pengecekan "ditonton sampai habis" & batas posisi tidak pernah berjalan.
+            $duration = $video ? $video->durasi_detik : 0;
+            // toleransi: 5 detik, atau 2% durasi untuk video panjang (selisih pembulatan durasi file)
+            $toleransi = max(5, (int) round($duration * 0.02));
 
             if ($time < 0) {
                 $time = 0;
@@ -181,15 +184,25 @@ class KmdVideoLearningController extends Controller
             if ($existingProgress) {
                 // Batasi lompatan waktu berdasarkan waktu nyata yang berlalu sejak update terakhir,
                 // supaya tidak bisa klaim "sudah nonton X menit" hanya dalam beberapa detik
-                $elapsedSeconds = now()->diffInSeconds($existingProgress->watched_at);
-                $maxPlausibleTime = (int) $existingProgress->last_time + $elapsedSeconds + $toleransi;
-                if ($time > $maxPlausibleTime) {
-                    $time = $maxPlausibleTime;
+                // kom_v02 (perbaikan bug): di Laravel 12 (Carbon 3) now()->diffInSeconds(waktu_lampau)
+                // menghasilkan angka NEGATIF, sehingga batas waktu jadi minus jutaan detik dan
+                // query gagal (last_time UNSIGNED → error 500 "Out of range"). Pakai selisih absolut.
+                if ($existingProgress->watched_at) {
+                    $elapsedSeconds = (int) abs(now()->getTimestamp() - $existingProgress->watched_at->getTimestamp());
+                    // kom_v02: peserta boleh menonton sampai kecepatan 2x (pilihan di pemutar video),
+                    // jadi posisi video wajar maju maksimal 2x waktu nyata.
+                    $kecepatanMaks = 2;
+                    $maxPlausibleTime = max(0, (int) $existingProgress->last_time) + ($elapsedSeconds * $kecepatanMaks) + $toleransi;
+                    if ($time > $maxPlausibleTime) {
+                        $time = $maxPlausibleTime;
+                    }
                 }
             } else {
                 // Belum pernah ada progress sebelumnya, tidak boleh langsung klaim "completed"
                 $completed = false;
             }
+
+            $time = max(0, (int) $time); // kom_v02: kolom last_time tidak boleh negatif
 
             // Video baru dianggap selesai jika waktu tonton sudah mendekati durasi aslinya
             if ($duration > 0 && $time < $duration - $toleransi) {
@@ -211,19 +224,41 @@ class KmdVideoLearningController extends Controller
                 }
             }
 
+            // kom_v02 (perbaikan): status "Ditonton" TIDAK BOLEH turun lagi.
+            // Sebelumnya setiap simpan berkala (tiap 10 detik / saat halaman ditutup) menimpa
+            // is_watched dengan false, sehingga video yang sudah selesai kembali "Belum" saat
+            // peserta membukanya lagi.
+            $sudahDitonton = $existingProgress && ($existingProgress->is_watched || $existingProgress->status === 'completed');
+            $isWatched = $completed || $sudahDitonton;
+
+            // Posisi terakhir juga tidak dimundurkan ke 0 untuk video yang sudah selesai
+            if ($sudahDitonton && $time === 0) {
+                $time = (int) $existingProgress->last_time;
+            }
+
+            $nilai = [
+                'last_time' => $time,
+                'watched_at' => now(),
+                'is_watched' => $isWatched,
+                'status' => $status,
+                'date_publish' => now(),
+            ];
+
+            // kom_v02 (perbaikan): baris BARU (pertama kali menonton video ini) wajib mengisi
+            // answered_question — kolom NOT NULL tanpa nilai bawaan → dulu error 500
+            // "Field 'answered_question' doesn't have a default value".
+            if (! $existingProgress) {
+                $nilai['answered_question'] = false;
+                $nilai['is_correct'] = false;
+            }
+
             // Simpan atau update progress video user
             KmdUserVideoProgress::updateOrCreate(
                 [
                     'user_id' => $userId,
                     'video_id' => $videoId,
                 ],
-                [
-                    'last_time' => $time,
-                    'watched_at' => now(),
-                    'is_watched' => $completed,
-                    'status' => $status,
-                    'date_publish' => now(),
-                ]
+                $nilai
             );
 
             return response()->json([
@@ -254,10 +289,6 @@ class KmdVideoLearningController extends Controller
         try {
             $userId = auth()->id();
 
-            Log::info('Getting questions for video', [
-                'user_id' => $userId,
-                'video_id' => $videoId
-            ]);
 
             // Check if user already answered question for this video
             $videoProgress = KmdUserVideoProgress::where('user_id', $userId)
@@ -265,10 +296,9 @@ class KmdVideoLearningController extends Controller
                 ->first();
 
             if ($videoProgress && $videoProgress->answered_question) {
-                Log::info('User already answered questions for this video');
                 return response()->json([
                     'has_answered' => true,
-                    'message' => 'Anda sudah menjawab pertanyaan untuk video ini.'
+                    'message' => __('Anda sudah menjawab pertanyaan untuk video ini.')
                 ]);
             }
 
@@ -277,16 +307,11 @@ class KmdVideoLearningController extends Controller
                 ->where('status', 'active')
                 ->get();
 
-            Log::info('Found question videos', [
-                'count' => $questionVideos->count(),
-                'video_id' => $videoId
-            ]);
 
             if ($questionVideos->isEmpty()) {
-                Log::info('No questions found for video');
                 return response()->json([
                     'has_questions' => false,
-                    'message' => 'Video ini tidak memiliki pertanyaan.'
+                    'message' => __('Video ini tidak memiliki pertanyaan.')
                 ]);
             }
 
@@ -304,11 +329,6 @@ class KmdVideoLearningController extends Controller
                     ->where('status', 'active')
                     ->get();
 
-                Log::info('Processing question', [
-                    'question_id' => $question->id,
-                    'question_text' => $question->questions,
-                    'answers_count' => $answers->count()
-                ]);
 
                 $questions[] = [
                     'id' => $question->id,
@@ -336,7 +356,7 @@ class KmdVideoLearningController extends Controller
 
             return response()->json([
                 'success' => false,
-                'error' => 'Gagal memuat pertanyaan: ' . $e->getMessage()
+                'error' => __('Gagal memuat pertanyaan:') . ' ' . $e->getMessage()
             ], 500);
         }
     }
@@ -354,7 +374,7 @@ class KmdVideoLearningController extends Controller
         if (!$videoId || !is_array($answers) || count($answers) === 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'Data tidak lengkap. Silakan coba lagi.'
+                'message' => __('Data tidak lengkap. Silakan coba lagi.')
             ]);
         }
 
@@ -368,7 +388,7 @@ class KmdVideoLearningController extends Controller
                 DB::rollBack();
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data jawaban tidak lengkap.'
+                    'message' => __('Data jawaban tidak lengkap.')
                 ]);
             }
 
@@ -392,7 +412,7 @@ class KmdVideoLearningController extends Controller
                 DB::rollBack();
                 return response()->json([
                     'success' => false,
-                    'message' => "Tidak ada jawaban benar untuk pertanyaan ID $questionId."
+                    'message' => __('Kunci jawaban untuk pertanyaan ini belum diatur. Silakan hubungi admin.')
                 ]);
             }
 
@@ -401,7 +421,7 @@ class KmdVideoLearningController extends Controller
                 DB::rollBack();
                 return response()->json([
                     'success' => false,
-                    'message' => "❌ Jawaban salah untuk pertanyaan ID $questionId. Silakan coba lagi."
+                    'message' => '❌ ' . __('Jawaban Anda belum tepat. Silakan coba lagi.')
                 ]);
             }
 
@@ -437,8 +457,10 @@ class KmdVideoLearningController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '🎉 Selamat! Semua jawaban Anda benar!',
-            'module_completed' => $moduleCompleted
+            'message' => '🎉 ' . __('Selamat! Semua jawaban Anda benar!'),
+            'module_completed' => $moduleCompleted,
+            // kom_v02: info kelas tutorial jika video ini titik tutorial (tengah / akhir modul)
+            'tutorial' => $this->infoTutorialSetelahVideo($userId, $videoId),
         ]);
 
     } catch (\Exception $e) {
@@ -446,11 +468,66 @@ class KmdVideoLearningController extends Controller
         Log::error('Submit answer error: ' . $e->getMessage());
         return response()->json([
             'success' => false,
-            'error' => 'Gagal menyimpan jawaban: ' . $e->getMessage()
+            'error' => __('Gagal menyimpan jawaban:') . ' ' . $e->getMessage()
         ], 500);
     }
 }
 
+
+    /**
+     * kom_v02: peta video → info kelas tutorial setelah video tsb.
+     *
+     * @return array<string, array{label:string, status:string, url:string}>
+     */
+    protected function petaTitikTutorial(string $userId, $moduls): array
+    {
+        $service = app(\App\Services\Kmd\TitikTutorialService::class);
+
+        $titik = collect();
+        foreach ($moduls as $modul) {
+            $titik = $titik->merge($service->titikModul($modul, $modul->videos));
+        }
+
+        $status = $service->statusPesertaBanyak($userId, $titik);
+
+        $peta = [];
+        foreach ($titik as $t) {
+            if (! $t['video']) {
+                continue; // modul tanpa video
+            }
+            $peta[$t['video']->id] = [
+                'label' => $t['label'],
+                'status' => $status[\App\Services\Kmd\TitikTutorialService::kunci($t['modul_id'], $t['video_id'])]['status'],
+                'url' => route('kom.kelas_tutorial.index', ['modul_id' => $t['modul_id'], 'titik' => $t['video_id'] ?: 'akhir']),
+            ];
+        }
+
+        return $peta;
+    }
+
+    /** kom_v02 */
+    protected function infoTutorialSetelahVideo(string $userId, string $videoId): ?array
+    {
+        $video = KmdVideo::find($videoId);
+        if (! $video) {
+            return null;
+        }
+
+        $service = app(\App\Services\Kmd\TitikTutorialService::class);
+        $titik = $service->titikSetelahVideo($video);
+        if (! $titik) {
+            return null;
+        }
+
+        $status = $service->statusPeserta($userId, $titik['modul_id'], $titik['video_id']);
+
+        return [
+            'label' => $titik['label'],
+            'status' => $status['status'],
+            'akhir_modul' => $titik['video_id'] === null,
+            'url' => route('kom.kelas_tutorial.index', ['modul_id' => $titik['modul_id'], 'titik' => $titik['video_id'] ?: 'akhir']),
+        ];
+    }
 
     /**
      * Check if module is completed
@@ -458,7 +535,6 @@ class KmdVideoLearningController extends Controller
     private function checkModuleCompletion($userId, $videoId)
     {
         try {
-            Log::info('checkModuleCompletion called', ['user_id' => $userId, 'video_id' => $videoId]);
 
             $video = KmdVideo::find($videoId);
             if (!$video) {
@@ -488,11 +564,6 @@ class KmdVideoLearningController extends Controller
             $totalVideosCount = $moduleVideos->count();
             $moduleCompleted = $completedVideosCount >= $totalVideosCount;
 
-            Log::info('Module completion status', [
-                'completedVideosCount' => $completedVideosCount,
-                'totalVideosCount' => $totalVideosCount,
-                'moduleCompleted' => $moduleCompleted
-            ]);
 
 
 
@@ -533,7 +604,6 @@ class KmdVideoLearningController extends Controller
                 );
 
 
-                Log::info('Module marked as completed');
             }
 
 
@@ -637,7 +707,7 @@ class KmdVideoLearningController extends Controller
             if (!$currentVideo) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Video tidak ditemukan'
+                    'message' => __('Video tidak ditemukan')
                 ]);
             }
 
@@ -669,7 +739,7 @@ class KmdVideoLearningController extends Controller
             if (!$nextVideo) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Tidak ada video selanjutnya'
+                    'message' => __('Tidak ada video selanjutnya')
                 ]);
             }
 
@@ -770,7 +840,6 @@ class KmdVideoLearningController extends Controller
 
             DB::commit();
 
-            Log::info('User progress reset', ['user_id' => $userId]);
 
             return response()->json([
                 'success' => true,
@@ -811,8 +880,8 @@ class KmdVideoLearningController extends Controller
                 'completed_modules' => $completedModules,
                 'total_modules' => $totalModules,
                 'message' => $isEligible ?
-                    'Selamat! Anda berhak mendapatkan sertifikat.' :
-                    'Selesaikan semua modul untuk mendapatkan sertifikat.'
+                    __('Selamat! Anda berhak mendapatkan sertifikat.') :
+                    __('Selesaikan semua modul untuk mendapatkan sertifikat.')
             ]);
 
         } catch (\Exception $e) {

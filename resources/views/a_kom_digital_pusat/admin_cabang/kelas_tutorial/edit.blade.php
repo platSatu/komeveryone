@@ -11,6 +11,19 @@
                 </div>
 
                 <div class="card-body">
+                    {{-- kom_v02: tampilkan pesan error validasi --}}
+                    @if ($errors->any())
+                        <div class="alert alert-danger mb-3">
+                            <ul class="mb-0">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                    @if (session('error'))
+                        <div class="alert alert-danger mb-3">{{ session('error') }}</div>
+                    @endif
                     <form action="{{ route('kom.kelas_tutor_cabang.update', Crypt::encryptString($data->id)) }}" method="POST">
                         @csrf
                         @method('PUT')
@@ -43,16 +56,21 @@
 
                         <div class="form-group">
                             <label>Modul</label>
-                            <select name="modul_id" class="form-control" required>
+                            <select name="modul_id" id="modul_id" class="form-control" required>
                                 <option value="">-- Pilih Modul --</option>
                                 @foreach ($moduls as $modul)
                                     <option value="{{ $modul->id }}"
                                         {{ old('modul_id', $data->modul_id) == $modul->id ? 'selected' : '' }}>
-                                        {{ $modul->nama_modul ?? $modul->name }}
+                                        {{ $modul->nama_modul ?? $modul->name }}@if($modul->kelas) — {{ $modul->kelas->name }}@endif ({{ strtoupper($modul->language_code ?? 'id') }})
                                     </option>
                                 @endforeach
                             </select>
                         </div>
+
+                        @include('a_kom_digital_pusat.admin_cabang.kelas_tutorial._titik_tutorial', [
+                            'modulIdTerpilih' => $data->modul_id,
+                            'videoIdTerpilih' => $data->video_id ?? '',
+                        ])
 
                         <div class="form-group">
                             <label for="start_time" class="form-label">Waktu Mulai</label>

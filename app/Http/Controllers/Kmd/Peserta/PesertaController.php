@@ -14,6 +14,7 @@ use App\Models\Kmd\KmdUserClassTutorial;
 use App\Models\Kmd\KmdClassTutorial;
 use App\Models\Kmd\KmdCertificates;
 use App\Models\Kmd\KmdClass;
+use App\Models\Kmd\KmdModuls; // kom_v02
 use App\Models\Kmd\KmdUserAbsensi;
 use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\Crypt;
@@ -57,7 +58,7 @@ class PesertaController extends Controller
                 'error' => $e->getMessage()
             ]);
 
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat memuat data kelas tutorial.');
+            return redirect()->back()->with('error', __('Terjadi kesalahan saat memuat data kelas tutorial.'));
         }
     }
 
@@ -118,7 +119,7 @@ class PesertaController extends Controller
                 'error' => $e->getMessage()
             ]);
 
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat memuat data pertanyaan.');
+            return redirect()->back()->with('error', __('Terjadi kesalahan saat memuat data pertanyaan.'));
         }
     }
 
@@ -133,17 +134,17 @@ public function editPertanyaanSaya($id)
 
         // Check if question exists
         if (!$pertanyaan) {
-            return redirect()->back()->with('error', 'Pertanyaan tidak ditemukan.');
+            return redirect()->back()->with('error', __('Pertanyaan tidak ditemukan.'));
         }
 
         // Check if user owns this question
         if ($pertanyaan->user_id !== Auth::id()) {
-            return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk mengedit pertanyaan ini.');
+            return redirect()->back()->with('error', __('Anda tidak memiliki akses untuk mengedit pertanyaan ini.'));
         }
 
         // Check if already edited (max 1x edit)
         if ($pertanyaan->edit_count >= 1) {
-            return redirect()->back()->with('error', 'Pertanyaan sudah tidak dapat diedit lagi. Maksimal edit adalah 1x.');
+            return redirect()->back()->with('error', __('Pertanyaan sudah tidak dapat diedit lagi. Maksimal edit adalah 1x.'));
         }
 
         Log::info('User accessed edit pertanyaan', [
@@ -159,7 +160,7 @@ public function editPertanyaanSaya($id)
             'error' => $e->getMessage()
         ]);
 
-        return redirect()->back()->with('error', 'Terjadi kesalahan saat memuat data pertanyaan.');
+        return redirect()->back()->with('error', __('Terjadi kesalahan saat memuat data pertanyaan.'));
     }
 }
 
@@ -178,9 +179,9 @@ public function updatePertanyaanSaya(Request $request, $id)
             $validatedData = $request->validate([
                 'pertanyaan' => 'required|string|max:1000|min:5',
             ], [
-                'pertanyaan.required' => 'Pertanyaan harus diisi.',
-                'pertanyaan.min' => 'Pertanyaan minimal 5 karakter.',
-                'pertanyaan.max' => 'Pertanyaan maksimal 1000 karakter.',
+                'pertanyaan.required' => __('Pertanyaan harus diisi.'),
+                'pertanyaan.min' => __('Pertanyaan minimal 5 karakter.'),
+                'pertanyaan.max' => __('Pertanyaan maksimal 1000 karakter.'),
             ]);
 
             // Ambil data pertanyaan
@@ -188,15 +189,15 @@ public function updatePertanyaanSaya(Request $request, $id)
 
             if (!$pertanyaan) {
                 Log::warning('Pertanyaan not found', ['pertanyaan_id' => $id]);
-                return redirect()->back()->with('error', 'Pertanyaan tidak ditemukan.');
+                return redirect()->back()->with('error', __('Pertanyaan tidak ditemukan.'));
             }
 
             if ($pertanyaan->user_id !== Auth::id()) {
-                return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk mengedit pertanyaan ini.');
+                return redirect()->back()->with('error', __('Anda tidak memiliki akses untuk mengedit pertanyaan ini.'));
             }
 
             if ($pertanyaan->edit_count >= 1) {
-                return redirect()->back()->with('error', 'Pertanyaan sudah tidak dapat diedit lagi. Maksimal edit adalah 1x.');
+                return redirect()->back()->with('error', __('Pertanyaan sudah tidak dapat diedit lagi. Maksimal edit adalah 1x.'));
             }
 
             // Siapkan data update
@@ -221,7 +222,7 @@ public function updatePertanyaanSaya(Request $request, $id)
 
             return redirect()
                 ->route('kom.peserta.pertanyaan')
-                ->with('success', 'Pertanyaan berhasil diperbarui.');
+                ->with('success', __('Pertanyaan berhasil diperbarui.'));
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->back()
@@ -237,7 +238,7 @@ public function updatePertanyaanSaya(Request $request, $id)
             ]);
 
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan saat memperbarui pertanyaan.')
+                ->with('error', __('Terjadi kesalahan saat memperbarui pertanyaan.'))
                 ->withInput();
         }
     }
@@ -261,7 +262,7 @@ public function updatePertanyaanSaya(Request $request, $id)
                 'error' => $e->getMessage()
             ]);
 
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat memuat data persembahan.');
+            return redirect()->back()->with('error', __('Terjadi kesalahan saat memuat data persembahan.'));
         }
     }
 
@@ -283,7 +284,7 @@ public function updatePertanyaanSaya(Request $request, $id)
                 'error' => $e->getMessage()
             ]);
 
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat memuat data buku.');
+            return redirect()->back()->with('error', __('Terjadi kesalahan saat memuat data buku.'));
         }
     }
 
@@ -296,7 +297,7 @@ public function updatePertanyaanSaya(Request $request, $id)
             $user = Auth::user();
 
             if (!$user) {
-                return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
+                return redirect()->route('kom.login')->with('error', __('Silakan login terlebih dahulu.'));
             }
 
             // Ambil data progress dengan model yang sudah ada
@@ -336,7 +337,7 @@ public function updatePertanyaanSaya(Request $request, $id)
                 'progressModul' => collect(),
                 'videoProgress' => collect(),
                 'tutorialStatus' => collect()
-            ])->with('error', 'Terjadi kesalahan saat memuat data progress.');
+            ])->with('error', __('Terjadi kesalahan saat memuat data progress.'));
         }
     }
 
@@ -506,59 +507,45 @@ public function updatePertanyaanSaya(Request $request, $id)
 
             Log::info('User accessed sertifikat', ['user_id' => $userId]);
 
-            // Ambil data class_tutorial terakhir user
+            // kom_v02: kelas yang dicek = kelas aktif peserta (KOM 100 / 200 / ...),
+            // cadangan untuk akun lama: kelas dari booking tutorial terakhir.
+            $userClassAktif = app(\App\Services\Kmd\KelasAktifService::class)->forUser($user);
             $classTutorial = KmdUserClassTutorial::where('user_id', $userId)
                 ->orderBy('created_at', 'desc')
                 ->first();
 
-            if (!$classTutorial) {
-                return back()->with('error', 'Anda belum terdaftar di kelas manapun.');
+            $classId = $userClassAktif->class_id ?? optional($classTutorial)->class_id;
+
+            if (!$classId) {
+                return back()->with('error', __('Anda belum terdaftar di kelas manapun.'));
             }
 
-            $classId = $classTutorial->class_id;
-            $classTutorialId = $classTutorial->id;
-            $classTutorialCreatedAt = $classTutorial->created_at;
+            $bahasa = $userClassAktif->language_code ?? 'id';
 
-            // Ambil semua modul wajib berdasarkan class_id dari admin
-            $modulWajib = KmdClassTutorial::where('class_id', $classId)
-                ->pluck('modul_id')
-                ->unique()
-                ->toArray();
+            // Sertifikat yang SUDAH terbit tetap ditampilkan (aturan baru tidak berlaku mundur)
+            $sudahAda = KmdCertificates::where('user_id', $userId)
+                ->where(function ($q) use ($classId) {
+                    $q->where('class_id', $classId)->orWhereNull('class_id');
+                })
+                ->exists();
 
-            if (empty($modulWajib)) {
-                return back()->with('error', 'Modul belum ditentukan untuk kelas ini.');
-            }
-
-            // Ambil seluruh booking peserta untuk modul-modul wajib di kelas ini
-            $userClassTutorials = KmdUserClassTutorial::where('user_id', $userId)
-                ->where('class_id', $classId)
-                ->whereIn('modul_id', $modulWajib)
+            // kom_v02: syarat sertifikat = HADIR di SEMUA kelas tutorial kelas ini
+            // (tengah modul + akhir modul setiap modul aktif, sesuai bahasa peserta).
+            $moduls = KmdModuls::with(['videos' => fn ($q) => $q->where('status', 'active')->orderBy('sort_video')])
+                ->where('kom_class_id', $classId)
+                ->where('language_code', $bahasa)
+                ->where('status', 'active')
+                ->orderBy('order')
                 ->get();
 
-            // Sertifikat hanya berhak didapat jika admin cabang menandai peserta
-            // HADIR (kmd_user_absensi.hadir = true) di setiap sesi/modul wajib.
-            // Catatan: status 'selesai' yang di-set otomatis saat admin cabang
-            // mengakhiri Zoom (End Meeting) TIDAK dipakai lagi sebagai syarat,
-            // karena tidak mencerminkan kehadiran peserta yang sebenarnya.
-            $modulHadir = KmdUserAbsensi::where('user_id', $userId)
-                ->where('hadir', true)
-                ->whereIn('userclasstutorial_id', $userClassTutorials->pluck('id'))
-                ->get()
-                ->map(function ($absensi) use ($userClassTutorials) {
-                    return optional($userClassTutorials->firstWhere('id', $absensi->userclasstutorial_id))->modul_id;
-                })
-                ->filter()
-                ->unique()
-                ->toArray();
+            $syarat = app(\App\Services\Kmd\TitikTutorialService::class)->syaratSertifikat($userId, $moduls);
+            $userClassTutorials = $syarat['booking_hadir'];
 
-            // Cek apakah semua modul wajib sudah dihadiri (absensi = hadir)
-            $isCompleted = count(array_intersect($modulWajib, $modulHadir)) === count($modulWajib);
-
-            if (!$isCompleted) {
+            if (!$sudahAda && !$syarat['lulus']) {
                 return view('a_kom_digital_pusat.peserta.esertifikat', [
                     'status' => 'belum',
-                    'modulSelesai' => count($modulHadir),
-                    'totalModul' => count($modulWajib),
+                    'modulSelesai' => $syarat['hadir'],
+                    'totalModul' => $syarat['total'],
                     'certificate_number' => null,
                 ]);
             }
@@ -683,7 +670,7 @@ public function updatePertanyaanSaya(Request $request, $id)
                 'trace' => $e->getTraceAsString(), // Jika ingin detail lengkap
             ]);
 
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat memuat halaman sertifikat.');
+            return redirect()->back()->with('error', __('Terjadi kesalahan saat memuat halaman sertifikat.'));
         }
 
     }
@@ -772,7 +759,7 @@ public function updatePertanyaanSaya(Request $request, $id)
             ->exists();
 
         if ($alreadyReviewed) {
-            return redirect()->back()->with('error', 'Anda sudah mengisi review untuk kelas ini.');
+            return redirect()->back()->with('error', __('Anda sudah mengisi review untuk kelas ini.'));
         }
 
         // Simpan data review
@@ -792,7 +779,7 @@ public function updatePertanyaanSaya(Request $request, $id)
             'sesuai_dengan_materi' => $request->sesuai_dengan_materi,
         ]);
 
-        return redirect()->route('kom.peserta.kelas_tutorial')->with('success', 'Terima kasih! Review Anda berhasil dikirim.');
+        return redirect()->route('kom.peserta.kelas_tutorial')->with('success', __('Terima kasih! Review Anda berhasil dikirim.'));
     }
 
 

@@ -331,6 +331,11 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    {{-- kom_v02: pop-up wajib pilih bahasa untuk user baru --}}
+    @if (!empty($komPopupPilihBahasa) && !request()->routeIs('kom.bahasa.*'))
+        @include('a_kom_digital_pusat.partials._popup_bahasa', ['mode' => 'baru'])
+    @endif
+
     
     
 

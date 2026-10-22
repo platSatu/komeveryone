@@ -31,13 +31,21 @@ class BahasaController extends Controller
         $classes = KmdClass::with('translations')->orderBy('sort_order')->get();
 
         $ringkasan = [];
+        $hapus = []; // kom_v02: ringkasan untuk tombol Hapus Konten / Hapus Bahasa
+        $penghapus = app(\App\Services\Kmd\HapusKontenBahasaService::class);
         foreach ($languages as $lang) {
             foreach ($classes as $kelas) {
                 $ringkasan[$lang->code][$kelas->id] = $this->konten->kelengkapan($kelas, $lang->code);
+                if (! $lang->is_default && $ringkasan[$lang->code][$kelas->id]['modul'] > 0) {
+                    $hapus[$lang->code]['kelas'][$kelas->id] = $penghapus->ringkasan($lang->code, $kelas);
+                }
+            }
+            if (! $lang->is_default) {
+                $hapus[$lang->code]['semua'] = $penghapus->ringkasan($lang->code);
             }
         }
 
-        return view('a_kom_digital_pusat.superadmin.bahasa.index', compact('languages', 'classes', 'ringkasan'));
+        return view('a_kom_digital_pusat.superadmin.bahasa.index', compact('languages', 'classes', 'ringkasan', 'hapus'));
     }
 
     public function create()
@@ -113,6 +121,63 @@ class BahasaController extends Controller
         return redirect()->route('kom.super_kom-modul.index')->with('success', __(
             'Berhasil disalin: :modul modul, :video video, :soal pertanyaan, :jawaban jawaban (:dilewati modul dilewati karena sudah pernah disalin). Sekarang Anda sedang mengelola bahasa tujuan — silakan terjemahkan teks dan ganti file videonya.',
             $hasil
+        ));
+    }
+
+    /**
+     * kom_v02: hapus konten salinan satu kelas (atau semua kelas) untuk sebuah bahasa.
+     */
+    public function hapusKonten(Request $request, Language $language, \App\Services\Kmd\HapusKontenBahasaService $penghapus)
+    {
+        $data = $request->validate([
+            'class_id' => ['nullable', 'exists:kmd_classes,id'],
+            'konfirmasi' => ['required', 'string'],
+            'termasuk_peserta' => ['nullable', 'boolean'],
+        ]);
+
+        if (strtolower(trim($data['konfirmasi'])) !== strtolower($language->code)) {
+            return back()->with('error', __('Konfirmasi tidak cocok. Ketik kode bahasa :kode untuk menghapus.', ['kode' => strtoupper($language->code)]));
+        }
+
+        $kelas = ! empty($data['class_id']) ? KmdClass::find($data['class_id']) : null;
+
+        try {
+            $hasil = $penghapus->hapusKonten($language->code, $kelas, $request->boolean('termasuk_peserta'));
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', __(
+            'Konten :bahasa dihapus: :modul modul, :video video, :soal pertanyaan, :jawaban jawaban, :file file video. Konten Bahasa Indonesia tidak tersentuh.',
+            $hasil + ['bahasa' => $language->name]
+        ));
+    }
+
+    /**
+     * kom_v02: hapus bahasa sampai bersih (konten semua kelas, nama kelas, terjemahan tampilan, data bahasa).
+     */
+    public function destroy(Request $request, Language $language, \App\Services\Kmd\HapusKontenBahasaService $penghapus)
+    {
+        $data = $request->validate([
+            'konfirmasi' => ['required', 'string'],
+            'termasuk_peserta' => ['nullable', 'boolean'],
+        ]);
+
+        if (strtolower(trim($data['konfirmasi'])) !== strtolower($language->code)) {
+            return back()->with('error', __('Konfirmasi tidak cocok. Ketik kode bahasa :kode untuk menghapus.', ['kode' => strtoupper($language->code)]));
+        }
+
+        $nama = $language->name;
+
+        try {
+            $hasil = $penghapus->hapusBahasa($language, $request->boolean('termasuk_peserta'));
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('kom.super_bahasa.index')->with('success', __(
+            'Bahasa :bahasa sudah dihapus bersih: :modul modul, :video video, :soal pertanyaan, :jawaban jawaban, :file file video, :nama_kelas nama kelas, :teks_tampilan teks tampilan.',
+            $hasil + ['bahasa' => $nama]
         ));
     }
 

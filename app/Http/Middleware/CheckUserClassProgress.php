@@ -19,7 +19,6 @@ class CheckUserClassProgress
      */
     public function handle(Request $request, Closure $next)
     {
-        Log::info('🛡️ Middleware triggered.');
         $user = Auth::user();
         //$user = Auth::guard('kom')->user();
 
@@ -29,7 +28,7 @@ class CheckUserClassProgress
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Sesi login telah berakhir. Silakan login ulang.'
+                    'message' => __('Sesi login telah berakhir. Silakan login ulang.')
                 ], 401);
             }
 
@@ -42,7 +41,6 @@ class CheckUserClassProgress
             ->first();
 
         if (!$progress) {
-            Log::info("No active progress found for user_id={$user->id}. Passing request without redirect.");
             return $next($request);
         }
 
@@ -50,19 +48,46 @@ class CheckUserClassProgress
         $cutoffDate = now()->createFromFormat('Y-m-d H:i:s', '2025-10-09 00:00:00');
 
         if ($progress->created_at->lessThan($cutoffDate)) {
-            Log::info("⏩ Progress lama (dibuat {$progress->created_at}), dilewati middleware. User ID: {$user->id}, Progress ID: {$progress->id}");
             return $next($request);
         }
 
         $currentRoute = $request->route()->getName();
-        Log::info("📍 Current route: $currentRoute | User ID: {$user->id} | Step progress: {$progress->step}");
+
+        // kom_v02: lewat batas waktu (tidak jadi memberikan persembahan) → hapus pendaftaran,
+        // pertanyaan & persembahan yang belum lunas, lalu kembalikan ke daftar jadwal kelas tutorial.
+        // Sebelum menghapus, status Midtrans dicek dulu (jika sudah dibayar → diproses lunas).
+        $checkout = app(\App\Services\Kmd\CheckoutTutorialService::class);
+        if ($checkout->sudahKedaluwarsa($progress)) {
+            $hasil = $checkout->bersihkan($progress);
+
+            if ($hasil === \App\Services\Kmd\CheckoutTutorialService::LUNAS) {
+                return $next($request);
+            }
+
+            if ($hasil === \App\Services\Kmd\CheckoutTutorialService::DIHAPUS) {
+                // middleware ini berjalan sebelum kom.bahasa → set bahasa pesan sesuai peserta
+                if ($user->language_code) {
+                    app()->setLocale($user->language_code);
+                }
+                $pesan = __('Waktu memberikan persembahan sudah habis, jadi pendaftaran kelas tutorial dibatalkan. Silakan pilih jadwal kelas tutorial lagi.');
+                $tujuan = $progress->category_diklat
+                    ? route('kom.diklat_tutor.index')
+                    : route('kom.kelas_tutorial.index', ['modul_id' => $progress->modul_id, 'titik' => $progress->video_id ?: 'akhir']);
+
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => $pesan, 'redirect' => $tujuan], 409);
+                }
+
+                return redirect($tujuan)->with('error', $pesan);
+            }
+            // TUNGGU: pembayaran transfer/VA sedang diproses bank → tetap di halaman persembahan
+        }
 
         // Step: PILIH
         if ($progress->step === 'pilih') {
             $allowedRoutes = ['kom.kelas_tutorial.index'];
 
             if (!in_array($currentRoute, $allowedRoutes)) {
-                Log::info("🔁 Redirect karena belum menyelesaikan step 'pilih'. User ID: {$user->id}, Current route: {$currentRoute}");
                 return redirect()->route('kom.kelas_tutorial.index');
             }
         }
@@ -72,15 +97,15 @@ class CheckUserClassProgress
             $allowedRoutes = [
                 'kom.kelas_tutorial.pertanyaan.form',
                 'kom.kelas_tutorial.pertanyaan-kom-100.store', // Sesuaikan jika perlu
+                'kom.persembahan.batal', // kom_v02: batalkan pendaftaran & pilih jadwal lain
             ];
 
             if (!in_array($currentRoute, $allowedRoutes)) {
-                Log::info("🔁 Redirect karena belum menyelesaikan step 'pertanyaan'. User ID: {$user->id}, Current route: {$currentRoute}");
 
                 if ($request->expectsJson()) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Anda belum menyelesaikan tahapan pertanyaan.',
+                        'message' => __('Anda belum menyelesaikan tahapan pertanyaan.'),
                         'redirect' => route('kom.kelas_tutorial.pertanyaan.form'),
                     ], 403);
                 }
@@ -95,18 +120,18 @@ class CheckUserClassProgress
                 'kom.form.persembahan',
                 'kom.form.persembahan.store',
                 'kom.persembahan.token',
+                'kom.persembahan.batal', // kom_v02: batalkan pendaftaran & pilih jadwal lain
+                'kom.persembahan.cek',   // kom_v02: cek status pembayaran BB (Bizbos)
             ];
 
-            Log::info("➡️ Step 'donasi' detected for user_id={$user->id}. Checking allowed routes.");
 
             if (!in_array($currentRoute, $allowedRoutes)) {
                 Log::warning("🔁 Redirect karena belum menyelesaikan step 'donasi'. User ID: {$user->id}, Current route: {$currentRoute}");
-                Log::debug('Allowed routes: ' . implode(', ', $allowedRoutes));
 
                 if ($request->expectsJson()) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Anda belum menyelesaikan tahap persembahan.',
+                        'message' => __('Anda belum menyelesaikan tahap persembahan.'),
                         'redirect' => route('kom.form.persembahan'),
                     ], 403);
                 }
@@ -114,7 +139,6 @@ class CheckUserClassProgress
                 return redirect()->route('kom.form.persembahan');
             }
 
-            Log::info("✅ User ID {$user->id} allowed to access route {$currentRoute} on step 'donasi'.");
         }
 
         return $next($request);

@@ -26,6 +26,13 @@
                 </div>
             </div>
 
+            {{-- kom_v02: isi halaman dibungkus kartu supaya terpisah dari latar belakang --}}
+            <div class="kom-bahasa-panel">
+            <div class="kom-bahasa-panel-head">
+                <h5 class="mb-0">{{ __('Pilih Bahasa') }}</h5>
+                <span class="kom-bahasa-jumlah">{{ __(':jumlah bahasa tersedia', ['jumlah' => count($languages)]) }}</span>
+            </div>
+
             @if ($isLocked)
                 <div class="kom-note kom-note-warning mb-4">
                     <i class="fas fa-lock mr-2"></i>
@@ -84,9 +91,28 @@
                     @endunless
                 </div>
             </form>
+            </div>{{-- /kom-bahasa-panel --}}
         </div>
     </div>
 </div>
+
+<style>
+    .kom-bahasa-panel {
+        background:#fff; border:1px solid #e6edf7; border-radius:20px; padding:24px;
+        box-shadow: 0 14px 34px -24px rgba(30, 60, 120, .45);
+    }
+    .kom-bahasa-panel-head {
+        display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+        padding-bottom:16px; margin-bottom:20px; border-bottom:1px solid #eef2f8;
+    }
+    .kom-bahasa-panel-head h5 { font-weight:700; color:#1c2b43; }
+    .kom-bahasa-jumlah { font-size:.78rem; font-weight:600; color:#5d6a7e; background:#f2f6fc; padding:4px 10px; border-radius:99px; }
+    .kom-bahasa-panel .kom-lang-card { background:#f7f9fc; }
+    .kom-bahasa-panel .kom-lang-card.is-selected { background:#f2f6ff; }
+    .kom-bahasa-panel .btn-light.kom-btn { background:#fff; border:1px solid #dfe6f0; }
+    .kom-bahasa-panel .btn-light.kom-btn:hover { background:#f7f9fc; }
+    @media (max-width: 576px) { .kom-bahasa-panel { padding:18px; border-radius:16px; } }
+</style>
 
 @include('a_kom_digital_pusat.katalog._style')
 

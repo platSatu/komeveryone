@@ -53,8 +53,8 @@
 
                         <div class="form-row">
                             <div class="form-group col-md-6">
-                                <label>{{ __('Durasi (detik)') }}</label>
-                                <input type="text" name="durations" class="form-control" value="{{ old('durations', $video->durations) }}">
+                                <label>{{ __('Durasi (jam:menit:detik)') }}</label>
+                                <input type="text" name="durations" class="form-control" value="{{ old('durations', $video->durations) }}" placeholder="00:18:46">
                             </div>
                             <div class="form-group col-md-6">
                                 <label>{{ __('Urutan Video') }}</label>
@@ -86,6 +86,8 @@
                             <input type="file" name="video" class="form-control" accept="video/*">
                             <small class="text-muted">{{ __('Kosongkan jika tidak ingin mengganti file.') }}</small>
                         </div>
+
+                        @include('a_kom_digital_pusat.superadmin.video._titik_tutorial', ['video' => $video])
 
                         <div class="form-group">
                             <label>{{ __('Status') }}</label>

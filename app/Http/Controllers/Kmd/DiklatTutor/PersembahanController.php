@@ -20,15 +20,13 @@ class PersembahanController extends Controller
     public function __construct()
     {
         // Debug log untuk memastikan key terbaca
-        Log::info('Server Key: ' . env('MIDTRANS_SERVER_KEY'));
-        Log::info('Client Key: ' . env('MIDTRANS_CLIENT_KEY'));
 
         // Set konfigurasi Midtrans langsung dari .env
-        Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-        Config::$clientKey = env('MIDTRANS_CLIENT_KEY');
-        Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', true); // false = sandbox
-        Config::$isSanitized = env('MIDTRANS_IS_SANITIZED', true);
-        Config::$is3ds = env('MIDTRANS_IS_3DS', true);
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$clientKey = config('midtrans.client_key');
+        Config::$isProduction = config('midtrans.is_production', true); // false = sandbox
+        Config::$isSanitized = config('midtrans.is_sanitized', true);
+        Config::$is3ds = config('midtrans.is_3ds', true);
     }
 
     public function formPersembahan()
@@ -409,28 +407,8 @@ class PersembahanController extends Controller
                 $userClassTutorial = $donasi->userclasstutorial;
 
                 if ($userClassTutorial) {
-                    // Panggil handlePaidStatus()
-                    app(KelasTutorialController::class)->handlePaidStatus($userClassTutorial->id);
-
-                    // Kirim email ucapan + link Zoom (jika sudah tersedia)*
-                    try {
-                        $userEmail = optional($donasi->user)->email;
-                        $joinUrl = $userClassTutorial->zoom_join_url;
-
-                        if ($userEmail && $joinUrl) {
-                            Mail::to($userEmail)->send(new ThankYouDonasiMail($donasi, $joinUrl));
-                            Log::info('[EMAIL] Link Zoom berhasil dikirim ke: ' . $userEmail);
-                        } else {
-                            Log::warning('[EMAIL] Tidak kirim email karena data tidak lengkap.', [
-                                'email' => $userEmail,
-                                'join_url' => $joinUrl
-                            ]);
-                        }
-                    } catch (\Exception $e) {
-                        Log::error('[EMAIL] Gagal mengirim email link Zoom.', [
-                            'message' => $e->getMessage()
-                        ]);
-                    }
+                    // kom_v02: sama dengan callback utama — Zoom + email link Zoom diproses di queue
+                    app(KelasTutorialController::class)->handlePaidStatus($userClassTutorial->id, $donasi->id);
                 } else {
                     Log::warning('[DONASI] userclasstutorial tidak ditemukan untuk donasi ID: ' . $donasi->id);
                 }

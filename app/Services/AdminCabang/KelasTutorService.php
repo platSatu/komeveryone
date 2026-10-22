@@ -62,6 +62,7 @@ class KelasTutorService
 
         return KmdPertanyaanUser::with(['user', 'modul', 'kelasTutorial'])
             ->whereIn('kelas_tutorial_id', $kelasTutorialIds)
+            ->sudahLunas() // kom_v02: hanya dari peserta yang persembahannya sudah lunas
             ->latest()
             ->get();
     }
@@ -75,23 +76,11 @@ class KelasTutorService
     // }
     public function getPertanyaanByKelasTutorialId(string $kelasTutorialId)
     {
-        // Cari user_id yang sudah melakukan donasi paid untuk kelas ini
-        $paidUserIds = KmdDonasi::where('status', 'paid')
-            ->whereHas('userClassTutorial', function ($query) use ($kelasTutorialId) {
-                $query->where('class_tutorial_id', $kelasTutorialId);
-            })
-            ->pluck('user_id')
-            ->unique()
-            ->toArray();
-
-        if (empty($paidUserIds)) {
-            return collect(); // Tidak ada yang sudah bayar
-        }
-
-        // Ambil pertanyaan dari user yang sudah membayar & sesuai kelas tutorial
+        // kom_v02: pertanyaan dari peserta yang pendaftarannya di jadwal INI sudah lunas
+        // (termasuk jadwal pengganti karena tidak hadir — persembahannya tercatat di jadwal lama).
         return KmdPertanyaanUser::with(['user', 'modul', 'kelasTutorial'])
             ->where('kelas_tutorial_id', $kelasTutorialId)
-            ->whereIn('user_id', $paidUserIds)
+            ->sudahLunas()
             ->latest()
             ->get();
     }
@@ -534,13 +523,26 @@ class KelasTutorService
     {
         KmdUserClassTutorial::where('class_tutorial_id', $classTutorialId)
             ->where('status', 'booked')
+            ->lunas() // kom_v02
             ->update(['status' => 'selesai']);
+    }
+
+    /**
+     * kom_v02: dipanggil SendClassTutorialNotificationJob (queue) beberapa menit sebelum kelas mulai.
+     */
+    public function kirimNotifikasiPeserta(KmdClassTutorial $kelas): void
+    {
+        $this->sendNotificationEmails($kelas);
     }
 
     protected function sendNotificationEmails(KmdClassTutorial $kelas)
     {
-        $peserta = \App\Models\Kmd\KmdUserClassTutorial::where('class_tutorial_id', $kelas->id)
-            ->where('status', 'aktif') // atau sesuai status valid
+        // kom_v02 (perbaikan): peserta terdaftar berstatus 'booked' + persembahan lunas
+        // (dulu mencari status 'aktif' yang tidak pernah dipakai → notifikasi tidak pernah terkirim)
+        $peserta = \App\Models\Kmd\KmdUserClassTutorial::with('user')
+            ->where('class_tutorial_id', $kelas->id)
+            ->whereIn('status', ['booked', 'aktif'])
+            ->where('status_progress', 'paid')
             ->get();
 
         foreach ($peserta as $p) {

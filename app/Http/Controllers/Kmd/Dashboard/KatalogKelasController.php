@@ -44,7 +44,13 @@ class KatalogKelasController extends Controller
 
         $classes = KmdClass::with('translations')->orderBy('sort_order')->orderBy('name')->get();
 
-        $kartu = $classes->map(fn (KmdClass $kelas) => $this->kartuKelas($kelas, $user, $language));
+        $kartu = $classes->map(function (KmdClass $kelas) use ($user, $language) {
+            $data = $this->kartuKelas($kelas, $user, $language);
+            // kom_v02: kelas berikutnya (mis. KOM 200) → tanya bahasa lewat pop-up di katalog
+            $data['perlu_bahasa'] = $data['status'] === 'tersedia' && $this->perluPilihBahasa($user, $kelas);
+
+            return $data;
+        });
 
         $bahasa = Language::activeList()->firstWhere('code', $language);
 

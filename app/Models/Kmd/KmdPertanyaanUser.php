@@ -17,6 +17,7 @@ class KmdPertanyaanUser extends Model
         'user_id',
         'class_id',
         'modul_id',
+        'video_id', // kom_v02: titik tutorial (NULL = akhir modul)
         'category_diklat',
         'kelas_tutorial_id',
         'pengajar_id',
@@ -32,6 +33,27 @@ class KmdPertanyaanUser extends Model
         'tgl_submit' => 'datetime',
         'tgl_edit' => 'datetime',
     ];
+
+    /**
+     * kom_v02: pertanyaan baru dianggap MASUK ke pengajar setelah persembahan lunas
+     * (callback Midtrans). Pertanyaan dari pendaftaran yang belum lunas tidak ditampilkan.
+     */
+    public function scopeSudahLunas($query)
+    {
+        return $query->whereExists(function ($b) {
+            $b->selectRaw('1')->from('kmd_user_class_tutorial as kuct_lunas')
+              ->whereColumn('kuct_lunas.user_id', 'kmd_pertanyaan_user.user_id')
+              ->whereColumn('kuct_lunas.class_tutorial_id', 'kmd_pertanyaan_user.kelas_tutorial_id')
+              ->where(function ($q) {
+                  $q->where('kuct_lunas.status_progress', 'paid')
+                    ->orWhereExists(function ($d) {
+                        $d->selectRaw('1')->from('kmd_donations')
+                          ->whereColumn('kmd_donations.userclasstutorial_id', 'kuct_lunas.id')
+                          ->where('kmd_donations.status', 'paid');
+                    });
+              });
+        });
+    }
 
     // Relasi ke model User (kmd_users)
     public function user()

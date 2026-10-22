@@ -81,7 +81,11 @@
                                 </a>
                                 @break
                             @case('tersedia')
-                                <a href="{{ route('kom.katalog.kode_buku', $kelas->code) }}" class="btn btn-primary kom-btn">
+                                <a href="{{ route('kom.katalog.kode_buku', $kelas->code) }}" class="btn btn-primary kom-btn"
+                                   @if (!empty($item['perlu_bahasa']))
+                                       {{-- kom_v02: tanya bahasa dulu lewat pop-up (tanpa pindah halaman) --}}
+                                       onclick="return !(window.komBukaPopupBahasa && window.komBukaPopupBahasa(@js($kelas->code), @js($item['nama'])));"
+                                   @endif>
                                     <i class="fas fa-book-open mr-1"></i>{{ __('Mulai Kelas') }}
                                 </a>
                                 @break
@@ -98,4 +102,12 @@
 </div>
 
 @include('a_kom_digital_pusat.katalog._style')
+
+{{-- kom_v02: pop-up pilih bahasa sebelum memulai kelas berikutnya (mis. KOM 200) --}}
+@if ($kartu->contains(fn ($k) => !empty($k['perlu_bahasa'])))
+    @include('a_kom_digital_pusat.partials._popup_bahasa', [
+        'mode' => 'kelas',
+        'bahasaBawaan' => $bahasa->code ?? null,
+    ])
+@endif
 @endsection

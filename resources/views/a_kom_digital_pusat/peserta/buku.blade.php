@@ -7,11 +7,11 @@
                 {{-- Header Section --}}
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
                     <div>
-                        <h5 class="fw-bold text-dark mb-1">📚 e-Book Saya</h5>
-                        <p class="text-muted mb-0">Koleksi buku digital yang telah Anda miliki</p>
+                        <h5 class="fw-bold text-dark mb-1">📚 {{ __('e-Book Saya') }}</h5>
+                        <p class="text-muted mb-0">{{ __('Koleksi buku digital yang telah Anda miliki') }}</p>
                     </div>
                     <button class="btn btn-outline-primary btn-sm mt-2 mt-md-0" onclick="location.reload()">
-                        <i class="fas fa-sync-alt me-1"></i> Refresh
+                        <i class="fas fa-sync-alt me-1"></i> {{ __('Refresh') }}
                     </button>
                 </div>
 
@@ -23,7 +23,7 @@
                                 <i class="fas fa-book fa-2x opacity-75 flex-shrink-0 me-4"></i>
                                 <div>
                                     <div class="fw-bold fs-4">{{ $data->total() }}</div>
-                                    <div class="small opacity-75">Total e-Book</div>
+                                    <div class="small opacity-75">{{ __('Total e-Book') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -34,7 +34,7 @@
                                 <i class="fas fa-check-circle fa-2x opacity-75 flex-shrink-0 me-4"></i>
                                 <div>
                                     <div class="fw-bold fs-4">{{ $data->where('status', 'active')->count() }}</div>
-                                    <div class="small opacity-75">Aktif</div>
+                                    <div class="small opacity-75">{{ __('Aktif') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -46,7 +46,7 @@
                                 <div>
                                     <div class="fw-bold fs-4">
                                         {{ $data->where('date_publish', '>=', now()->startOfMonth())->count() }}</div>
-                                    <div class="small opacity-75">Bulan Ini</div>
+                                    <div class="small opacity-75">{{ __('Bulan Ini') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -57,7 +57,7 @@
                                 <i class="fas fa-list fa-2x opacity-75 flex-shrink-0 me-4"></i>
                                 <div>
                                     <div class="fw-bold fs-4">{{ $data->groupBy('class.name')->count() }}</div>
-                                    <div class="small opacity-75">Kelas</div>
+                                    <div class="small opacity-75">{{ __('Kelas') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -68,7 +68,7 @@
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom py-3">
                         <h5 class="card-title mb-0 fw-bold d-flex align-items-center gap-2 flex-wrap">
-                            <i class="fas fa-list text-primary"></i> Daftar e-Book
+                            <i class="fas fa-list text-primary"></i> {{ __('Daftar e-Book') }}
                         </h5>
                     </div>
 
@@ -79,16 +79,16 @@
                                     <tr>
                                         <th class="border-0 fw-bold text-center" style="min-width: 40px;">#</th>
                                         <th class="border-0 fw-bold text-nowrap">
-                                            <i class="fas fa-barcode me-1 text-primary"></i> Kode Buku
+                                            <i class="fas fa-barcode me-1 text-primary"></i> {{ __('Kode Buku') }}
                                         </th>
                                         <th class="border-0 fw-bold text-nowrap">
-                                            <i class="fas fa-graduation-cap me-1 text-success"></i> Kelas
+                                            <i class="fas fa-graduation-cap me-1 text-success"></i> {{ __('Kelas') }}
                                         </th>
                                         <th class="border-0 fw-bold text-nowrap">
-                                            <i class="fas fa-calendar-alt me-1 text-info"></i> Tanggal Aktivasi
+                                            <i class="fas fa-calendar-alt me-1 text-info"></i> {{ __('Tanggal Aktivasi') }}
                                         </th>
                                         <th class="border-0 fw-bold text-nowrap">
-                                            <i class="fas fa-toggle-on me-1 text-warning"></i> Status
+                                            <i class="fas fa-toggle-on me-1 text-warning"></i> {{ __('Status') }}
                                         </th>
                                     </tr>
                                 </thead>
@@ -120,7 +120,7 @@
                                                     @php
                                                         $date = \Carbon\Carbon::parse($item->date_publish);
                                                     @endphp
-                                                    <div class="fw-bold">{{ $date->format('d M Y') }}</div>
+                                                    <div class="fw-bold">{{ $date->translatedFormat('d M Y') }}</div>
                                                     <small class="text-muted">{{ $date->diffForHumans() }}</small>
                                                 @else
                                                     <span class="text-muted">-</span>
@@ -145,7 +145,7 @@
                                                 <span
                                                     class="badge {{ $statusClass }} px-3 py-2 d-inline-flex align-items-center gap-1">
                                                     <i class="fas {{ $statusIcon }}"></i>
-                                                    {{ ucfirst($item->status ?? 'Unknown') }}
+                                                    {{ ['active' => __('Aktif'), 'inactive' => __('Tidak Aktif'), 'pending' => __('Menunggu')][$item->status] ?? ucfirst($item->status ?? '-') }}
                                                 </span>
                                             </td>
                                         </tr>
@@ -154,7 +154,7 @@
                                             <td colspan="5" class="text-center py-5">
                                                 <div class="empty-state">
                                                     <i class="fas fa-book fa-3x text-muted mb-3"></i>
-                                                    <h5 class="text-muted">Belum Ada e-Book</h5>
+                                                    <h5 class="text-muted">{{ __('Belum Ada e-Book') }}</h5>
                                                 </div>
                                             </td>
                                         </tr>
@@ -169,8 +169,7 @@
                         <div class="card-footer bg-white border-top-0">
                             <div class="d-flex justify-content-between align-items-center flex-wrap">
                                 <div class="text-muted small mb-2 mb-md-0">
-                                    Menampilkan {{ $data->firstItem() ?? 0 }} - {{ $data->lastItem() ?? 0 }} dari
-                                    {{ $data->total() }} hasil
+                                    {{ __('Menampilkan :awal - :akhir dari :total hasil', ['awal' => $data->firstItem() ?? 0, 'akhir' => $data->lastItem() ?? 0, 'total' => $data->total()]) }}
                                 </div>
                                 <nav>
                                     {{ $data->links('pagination::bootstrap-4') }}

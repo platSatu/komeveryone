@@ -8,7 +8,7 @@
                 {{-- Jika sudah selesai dan sertifikat tersedia --}}
                 <div class="card border-success">
                     <div class="card-header bg-success text-white">
-                        <h4 class="card-title">E-Sertifikat</h4>
+                        <h4 class="card-title">{{ __('E-Sertifikat') }}</h4>
                     </div>
 
 
@@ -17,7 +17,7 @@
                     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
                     <!-- Tombol download -->
-                    <button id="downloadPdfBtn" class="btn btn-primary btn-sm">Download Sertifikat PDF</button>
+                    <button id="downloadPdfBtn" class="btn btn-primary btn-sm">{{ __('Download Sertifikat PDF') }}</button>
 
                     <!-- Sertifikat Content -->
                     <div id="sertifikatContent"
@@ -139,21 +139,20 @@
                 {{-- Jika belum selesai --}}
                 <div class="card border-warning">
                     <div class="card-header bg-warning text-white">
-                        <h4 class="card-title">E-Sertifikat</h4>
+                        <h4 class="card-title">{{ __('E-Sertifikat') }}</h4>
                     </div>
 
                     <div class="card-body">
                         <div class="alert alert-info text-center">
-                            <h5><i class="mdi mdi-alert-circle-outline"></i> E-Sertifikat Belum Tersedia</h5>
+                            <h5><i class="mdi mdi-alert-circle-outline"></i> {{ __('E-Sertifikat Belum Tersedia') }}</h5>
                             <p>
-                                Sertifikat digital akan tersedia setelah Anda menyelesaikan seluruh materi dan
-                                persyaratan
-                                pelatihan.
+                                {{ __('Sertifikat digital tersedia setelah Anda menyelesaikan seluruh materi dan hadir di semua kelas tutorial.') }}
                             </p>
 
                             @if (isset($modulSelesai) && isset($totalModul))
-                                <p class="mt-3">Status Anda: <strong>{{ $modulSelesai }}/{{ $totalModul }}
-                                        Modul</strong></p>
+                                {{-- kom_v02: dihitung dari kehadiran di setiap kelas tutorial (tengah & akhir modul) --}}
+                                <p class="mt-3">{{ __('Status Anda') }}: <strong>{{ $modulSelesai }}/{{ $totalModul }}
+                                        {{ __('Kelas Tutorial dihadiri') }}</strong></p>
                             @endif
                         </div>
                     </div>

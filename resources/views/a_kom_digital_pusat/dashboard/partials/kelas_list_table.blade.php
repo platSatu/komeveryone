@@ -1,51 +1,53 @@
+{{-- kom_v02: tabel jadwal kelas tutorial — modern & minimalis --}}
 @if($kelasTutorials->isEmpty())
-    <div class="alert alert-info text-center">Tidak ada kelas tutorial ditemukan.</div>
+    <div class="kom-kt-kosong">
+        <div class="kom-kt-kosong-icon"><i class="far fa-calendar-times"></i></div>
+        <div>{{ __('Tidak ada kelas tutorial ditemukan.') }}</div>
+    </div>
 @else
-<div class="table-responsive">
-    <table class="table table-hover align-middle">
-        <thead class="table-light">
+<div class="kom-kt-table-wrap">
+    <table class="table kom-kt-table mb-0">
+        <thead>
             <tr>
                 <th>#</th>
-                <th><i class="fas fa-book me-1 text-primary"></i>&nbsp;&nbsp;Modul</th>
-                <th><i class="fas fa-graduation-cap me-1 text-success"></i>&nbsp;&nbsp;Kelas</th>
-                <th><i class="fas fa-map-marker-alt me-1 text-info"></i>&nbsp;&nbsp;Rayon</th>
-                <th><i class="fas fa-calendar-alt me-1 text-warning"></i>&nbsp;&nbsp;Waktu Pelaksanaan Kelas</th>
-                
-                <th><i class="fas fa-user-alt me-1 text-primary"></i>&nbsp;&nbsp;Kuota Tersisa</th>
-                
-                <th>Join Kelas</th>
+                <th>{{ __('Modul') }}</th>
+                <th>{{ __('Kelas') }}</th>
+                <th>{{ __('Rayon') }}</th>
+                <th>{{ __('Waktu Pelaksanaan Kelas') }}</th>
+                <th class="text-center">{{ __('Kuota Tersisa') }}</th>
+                <th class="text-right">{{ __('Ikut Kelas') }}</th>
             </tr>
         </thead>
         <tbody>
             @foreach($kelasTutorials as $index => $kelas)
                 <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>{{ $kelas->modul->name ?? '-' }}</td>
+                    <td class="text-muted">{{ $index + 1 }}</td>
+                    <td>
+                        <div class="font-weight-bold">{{ $kelas->modul->name ?? '-' }}</div>
+                        <span class="kom-kt-chip"><i class="fas fa-flag-checkered mr-1"></i>{{ $kelas->label_titik }}</span>
+                    </td>
                     <td>{{ $kelas->kelas->name ?? '-' }}</td>
                     <td>{{ $kelas->rayon->name ?? '-' }}</td>
-                   
-                    <td> {{ \Carbon\Carbon::parse($kelas->start_time)->translatedFormat('l, d F Y H:i') }}</td>
-                    
+                    <td>{{ \Carbon\Carbon::parse($kelas->start_time)->translatedFormat('l, d F Y H:i') }}</td>
                     <td class="text-center">
                         @if($kelas->sisa_quota > 0)
-                            <span class="badge bg-primary text-white">{{ $kelas->sisa_quota }}</span>
+                            <span class="kom-kt-chip biru">{{ $kelas->sisa_quota }}</span>
                         @else
-                            <span class="badge bg-danger">Penuh</span>
+                            <span class="kom-kt-chip merah">{{ __('Penuh') }}</span>
                         @endif
                     </td>
-                   
-                    <td>
+                    <td class="text-right">
                         @if($kelas->sisa_quota > 0)
-                            <form action="{{ route('kom.kelas_tutorial.join') }}" method="POST" class="joinClassForm">
+                            <form action="{{ route('kom.kelas_tutorial.join') }}" method="POST" class="joinClassForm d-inline">
                                 @csrf
                                 <input type="hidden" name="class_tutorial_id" value="{{ $kelas->id }}">
-                                <button type="submit" class="btn btn-primary btn-sm fw-semibold">
-                                    <i class="fas fa-sign-in-alt me-1"></i> Ikut Kelas
+                                <button type="submit" class="kom-btn-primary kecil">
+                                    <i class="fas fa-sign-in-alt"></i> {{ __('Ikut Kelas') }}
                                 </button>
                             </form>
                         @else
-                            <button class="btn btn-secondary btn-sm" disabled title="Kuota kelas sudah penuh">
-                                <i class="fas fa-times-circle me-1"></i> Kuota Penuh
+                            <button class="kom-btn-penuh kecil" disabled title="{{ __('Kuota kelas sudah penuh') }}">
+                                <i class="fas fa-times-circle"></i> {{ __('Kuota Penuh') }}
                             </button>
                         @endif
                     </td>
@@ -53,5 +55,19 @@
             @endforeach
         </tbody>
     </table>
-</div>    
+</div>
 @endif
+@once
+    <style>
+        .kom-kt-table-wrap { border:1px solid #e9eef6; border-radius:18px; overflow:auto; background:#fff; }
+        .kom-kt-table thead th { background:#f7f9fc; border:0; color:#7b879a; font-size:.75rem; font-weight:600;
+            text-transform:uppercase; letter-spacing:.4px; padding:14px 16px; white-space:nowrap; }
+        .kom-kt-table td { border-top:1px solid #f0f3f8; padding:14px 16px; vertical-align:middle; color:#33415a; font-size:.9rem; }
+        .kom-kt-table tbody tr:hover { background:#fafcff; }
+        .kom-kt-chip { display:inline-block; font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:99px; background:#eef2f8; color:#5d6a7e; margin-top:4px; }
+        .kom-kt-chip.biru { background:#eaf2ff; color:#2f6fed; }
+        .kom-kt-chip.merah { background:#fdecec; color:#b42318; }
+        .kom-kt-kosong { text-align:center; padding:40px 16px; color:#7b879a; background:#f7f9fc; border-radius:18px; }
+        .kom-kt-kosong-icon { font-size:2rem; color:#b6c2d4; margin-bottom:8px; }
+    </style>
+@endonce

@@ -44,6 +44,10 @@
                                         {{ $lang->is_active ? __('Nonaktifkan') : __('Aktifkan') }}
                                     </button>
                                 </form>
+                                {{-- kom_v02: hapus bahasa sampai bersih --}}
+                                @include('a_kom_digital_pusat.superadmin.bahasa._hapus', [
+                                    'mode' => 'bahasa', 'info' => $hapus[$lang->code]['semua'],
+                                ])
                             @endunless
                         </div>
                     </div>
@@ -100,6 +104,13 @@
                                                     <input type="hidden" name="lanjut" value="modul">
                                                     <button class="btn btn-light btn-sm"><i class="fas fa-edit mr-1"></i>{{ __('Kelola Konten') }}</button>
                                                 </form>
+                                                {{-- kom_v02: hapus salinan konten kelas ini --}}
+                                                @if (isset($hapus[$lang->code]['kelas'][$kelas->id]))
+                                                    @include('a_kom_digital_pusat.superadmin.bahasa._hapus', [
+                                                        'mode' => 'konten', 'kelas' => $kelas,
+                                                        'info' => $hapus[$lang->code]['kelas'][$kelas->id],
+                                                    ])
+                                                @endif
                                             @endif
                                         </td>
                                     </tr>
@@ -121,6 +132,10 @@
             <li>{{ __('Isi Terjemahan Tampilan (menu & tombol) dan nama kelas di Kelola Kelas.') }}</li>
             <li>{{ __('Setelah kelengkapan "Siap", klik Aktifkan.') }}</li>
         </ol>
+        <div class="mt-2 small">
+            <i class="fas fa-trash-alt text-danger mr-1"></i>
+            {{ __('Hapus: menghapus salinan konten satu kelas. Hapus Bahasa: menghapus semua konten, nama kelas, terjemahan tampilan, dan bahasanya. Bahasa Indonesia tidak bisa dihapus. Bahasa yang sudah punya sertifikat, persembahan, atau jadwal kelas tutorial juga tidak bisa dihapus.') }}
+        </div>
     </div>
 </div>
 @include('a_kom_digital_pusat.katalog._style')

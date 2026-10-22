@@ -23,6 +23,9 @@ class KmdDonasi extends Model
         'amount',
         'fee_payment_gateway',
         'payment_type',
+        'payment_gateway',     // kom_v02: midtrans | bizbos (NULL = data lama Midtrans)
+        'gateway_invoice_id',  // kom_v02: id invoice Bizbos
+        'checkout_url',        // kom_v02: link bayar Bizbos
         'transaction_time',
         'transaction_status',
         'payment_token',

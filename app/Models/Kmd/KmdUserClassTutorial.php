@@ -18,6 +18,9 @@ class KmdUserClassTutorial extends Model
         'user_id',
         'class_tutorial_id',
         'modul_id',
+        'video_id',       // kom_v02: titik tutorial (NULL = akhir modul)
+        'is_rebook',      // kom_v02: jadwal pengganti (tidak hadir) tanpa persembahan lagi
+        'rebook_from_id', // kom_v02
         'category_diklat',
         'class_id',
         'rayon_id',
@@ -27,7 +30,13 @@ class KmdUserClassTutorial extends Model
         'zoom_join_url',
         'step',
         'pengajar_id',
-        'status_progress'
+        'status_progress',
+        'checkout_expires_at', // kom_v02: batas waktu memberikan persembahan
+    ];
+
+    protected $casts = [
+        'checkout_expires_at' => 'datetime', // kom_v02
+        'is_rebook' => 'boolean',
     ];
 
     protected static function boot()
@@ -87,9 +96,34 @@ class KmdUserClassTutorial extends Model
         return $this->belongsTo(KomUser::class, 'pengajar_id');
     }
     
+    /** kom_v02 */
+    public function titikVideo()
+    {
+        return $this->belongsTo(KmdVideo::class, 'video_id');
+    }
+
     public function absensi()
     {
         return $this->hasOne(KmdUserAbsensi::class, 'userclasstutorial_id', 'id');
+    }
+
+    /**
+     * kom_v02: hanya pendaftaran yang SUDAH LUNAS (rangkaian selesai).
+     * Termasuk jadwal pengganti (is_rebook) yang tidak membayar lagi, dan data lama
+     * yang lunasnya hanya tercatat di tabel persembahan (kmd_donations).
+     */
+    public function scopeLunas($query)
+    {
+        $tabel = $this->getTable();
+
+        return $query->where(function ($q) use ($tabel) {
+            $q->where($tabel . '.status_progress', 'paid')
+              ->orWhereExists(function ($d) use ($tabel) {
+                  $d->selectRaw('1')->from('kmd_donations')
+                    ->whereColumn('kmd_donations.userclasstutorial_id', $tabel . '.id')
+                    ->where('kmd_donations.status', 'paid');
+              });
+        });
     }
 
 }

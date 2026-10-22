@@ -7,11 +7,11 @@
                 {{-- Header Section --}}
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
                     <div>
-                        <h5 class="fw-bold text-dark mb-1">💰 Persembahan Saya</h5>
-                        <p class="text-muted mb-0">History persembahan yang telah Anda berikan</p>
+                        <h5 class="fw-bold text-dark mb-1">💰 {{ __('Persembahan Saya') }}</h5>
+                        <p class="text-muted mb-0">{{ __('History persembahan yang telah Anda berikan') }}</p>
                     </div>
                     <button class="btn btn-outline-primary btn-sm mt-2 mt-md-0" onclick="location.reload()">
-                        <i class="fas fa-sync-alt me-1"></i> Refresh
+                        <i class="fas fa-sync-alt me-1"></i> {{ __('Refresh') }}
                     </button>
                 </div>
 
@@ -23,7 +23,7 @@
                                 <i class="fas fa-hand-holding-heart fa-2x opacity-75 flex-shrink-0 me-4"></i>
                                 <div>
                                     <div class="fw-bold fs-4">{{ $data->total() }}</div>
-                                    <div class="small opacity-75">Total Persembahan</div>
+                                    <div class="small opacity-75">{{ __('Total Persembahan') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -35,7 +35,7 @@
                                 <div>
                                     <div class="fw-bold fs-4">
                                         {{ $data->whereIn('status', ['paid', 'settlement','pending', 'expired', 'denied'])->count() }}</div>
-                                    <div class="small opacity-75">Persembahan</div>
+                                    <div class="small opacity-75">{{ __('Persembahan') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -48,7 +48,7 @@
                                     <div class="fw-bold fs-6">Rp
                                         {{ number_format($data->whereIn('status', ['paid', 'settlement','pending'])->sum('amount'), 0, ',', '.') }}
                                     </div>
-                                    <div class="small opacity-75">Total Nominal</div>
+                                    <div class="small opacity-75">{{ __('Total Nominal') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -60,7 +60,7 @@
                                 <div>
                                     <div class="fw-bold fs-4">
                                         {{ $data->where('transaction_time', '>=', now()->startOfMonth())->count() }}</div>
-                                    <div class="small opacity-75">Bulan Ini</div>
+                                    <div class="small opacity-75">{{ __('Bulan Ini') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -71,7 +71,7 @@
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom py-3">
                         <h5 class="card-title mb-0 fw-bold d-flex align-items-center gap-2 flex-wrap">
-                            <i class="fas fa-list text-primary"></i> Riwayat Persembahan
+                            <i class="fas fa-list text-primary"></i> {{ __('Riwayat Persembahan') }}
                         </h5>
                     </div>
 
@@ -80,7 +80,7 @@
                             <div class="text-center py-5">
                                 <div class="empty-state">
                                     <i class="fas fa-hand-holding-heart fa-4x text-muted mb-4"></i>
-                                    <h4 class="text-muted mb-3">Belum Ada Persembahan</h4>
+                                    <h4 class="text-muted mb-3">{{ __('Belum Ada Persembahan') }}</h4>
                                 </div>
                             </div>
                         @else
@@ -90,22 +90,22 @@
                                         <tr>
                                             <th class="border-0 fw-bold text-center" style="min-width: 40px;">#</th>
                                             <th class="border-0 fw-bold text-nowrap">
-                                                <i class="fas fa-book me-1 text-primary"></i> Modul
+                                                <i class="fas fa-book me-1 text-primary"></i> {{ __('Modul') }}
                                             </th>
                                             {{-- <th class="border-0 fw-bold text-nowrap">
-                                            <i class="fas fa-map-marker-alt me-1 text-success"></i> Rayon
+                                            <i class="fas fa-map-marker-alt me-1 text-success"></i> {{ __('Rayon') }}
                                         </th> --}}
                                             <th class="border-0 fw-bold text-nowrap">
-                                                <i class="fas fa-clock me-1 text-info"></i> Jadwal Kelas Tutorial
+                                                <i class="fas fa-clock me-1 text-info"></i> {{ __('Jadwal Kelas Tutorial') }}
                                             </th>
                                             <th class="border-0 fw-bold text-nowrap">
-                                                <i class="fas fa-money-bill-wave me-1 text-warning"></i> Nominal
+                                                <i class="fas fa-money-bill-wave me-1 text-warning"></i> {{ __('Nominal') }}
                                             </th>
                                             <th class="border-0 fw-bold text-nowrap">
-                                                <i class="fas fa-toggle-on me-1 text-secondary"></i> Status
+                                                <i class="fas fa-toggle-on me-1 text-secondary"></i> {{ __('Status') }}
                                             </th>
                                             <th class="border-0 fw-bold text-nowrap">
-                                                <i class="fas fa-calendar-alt me-1 text-dark"></i> Tanggal
+                                                <i class="fas fa-calendar-alt me-1 text-dark"></i> {{ __('Tanggal') }}
                                             </th>
                                         </tr>
                                     </thead>
@@ -118,13 +118,13 @@
                                                 <td>
                                                     <div class="d-flex flex-column">
                                                         <div class="fw-bold">{{ $item->modul->name ?? '-' }}</div>
-                                                        <small class="text-muted">Modul Pembelajaran</small>
+                                                        <small class="text-muted">{{ __('Modul Pembelajaran') }}</small>
                                                     </div>
                                                 </td>
                                                 {{-- <td>
                                                 <div class="d-flex flex-column">
                                                     <div class="fw-bold">{{ $item->cabang->name ?? '-' }}</div>
-                                                    <small class="text-muted">Lokasi</small>
+                                                    <small class="text-muted">{{ __('Lokasi') }}</small>
                                                 </div>
                                             </td> --}}
                                                 <td>
@@ -132,7 +132,7 @@
                                                         <div class="fw-bold text-warning">
                                                             {{ \Carbon\Carbon::parse($item->userClassTutorial->classTutorial->start_time)->translatedFormat('d F Y') }}
                                                         </div>
-                                                        <small class="text-muted">Waktu Kelas</small>
+                                                        <small class="text-muted">{{ __('Waktu Kelas') }}</small>
                                                     @else
                                                         <span class="text-muted">-</span>
                                                     @endif
@@ -141,7 +141,7 @@
                                                     <div class="fw-bold text-success">
                                                         Rp {{ number_format($item->amount, 0, ',', '.') }}
                                                     </div>
-                                                    <small class="text-muted">Nominal</small>
+                                                    <small class="text-muted">{{ __('Nominal') }}</small>
                                                 </td>
                                                 <td>
                                                     @php
@@ -158,13 +158,13 @@
                                                             default => 'fa-question-circle',
                                                         };
                                                         $statusText = match (strtolower($item->status ?? '')) {
-                                                            'paid' => 'Paid',
-                                                            'settlement' => 'Selesai',
-                                                            'pending' => 'Pending',
-                                                            'failed' => 'Gagal',
-                                                            'cancel' => 'Dibatalkan',
-                                                            'expired' => 'Kedaluwarsa',
-                                                            'denied' => 'ditolak',
+                                                            'paid' => __('Lunas'),
+                                                            'settlement' => __('Selesai'),
+                                                            'pending' => __('Menunggu Pembayaran'),
+                                                            'failed' => __('Gagal'),
+                                                            'cancel' => __('Dibatalkan'),
+                                                            'expired' => __('Kedaluwarsa'),
+                                                            'denied' => __('Ditolak'),
                                                             default => ucfirst($item->status ?? 'Unknown'),
                                                         };
                                                     @endphp
@@ -175,7 +175,7 @@
                                                 </td>
                                                 <td>
                                                     @if ($item->transaction_time)
-                                                        <div class="fw-bold">{{ $item->transaction_time->format('d M Y') }}
+                                                        <div class="fw-bold">{{ $item->transaction_time->translatedFormat('d M Y') }}
                                                         </div>
                                                         <small
                                                             class="text-muted">{{ $item->transaction_time->format('H:i') }}</small>
@@ -198,8 +198,7 @@
                         <div class="card-footer bg-white border-top-0">
                             <div class="d-flex justify-content-between align-items-center flex-wrap">
                                 <div class="text-muted small mb-2 mb-md-0">
-                                    Menampilkan {{ $data->firstItem() ?? 0 }} - {{ $data->lastItem() ?? 0 }} dari
-                                    {{ $data->total() }} hasil
+                                    {{ __('Menampilkan :awal - :akhir dari :total hasil', ['awal' => $data->firstItem() ?? 0, 'akhir' => $data->lastItem() ?? 0, 'total' => $data->total()]) }}
                                 </div>
                                 <nav>
                                     {{ $data->links('pagination::bootstrap-4') }}

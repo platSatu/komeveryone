@@ -600,8 +600,8 @@ class AuthController extends Controller
 
         // Kirim email verifikasi
         try {
-            Mail::to($komUser->email)->send(new KomUserVerificationMail($komUser));
-            Log::info('Verifikasi email dikirim ke: ' . $komUser->email);
+            // kom_v02 (performa): dikirim lewat queue → pendaftaran tidak menunggu server email
+            Mail::to($komUser->email)->queue(new KomUserVerificationMail($komUser));
         } catch (\Exception $e) {
             Log::error('Gagal mengirim email verifikasi: ' . $e->getMessage());
             return redirect()->route('kom.login')->with('error', 'Registrasi berhasil, tapi gagal mengirim email verifikasi. Silakan hubungi admin.');
@@ -696,8 +696,8 @@ class AuthController extends Controller
 
         // Kirim email verifikasi
         try {
-            Mail::to($komUser->email)->send(new KomUserVerificationMail($komUser));
-            Log::info('Verifikasi email dikirim ke: ' . $komUser->email);
+            // kom_v02 (performa): dikirim lewat queue → pendaftaran tidak menunggu server email
+            Mail::to($komUser->email)->queue(new KomUserVerificationMail($komUser));
         } catch (\Exception $e) {
             Log::error('Gagal mengirim email verifikasi: ' . $e->getMessage());
             return redirect()->route('kom.login')->with('error', 'Registrasi berhasil, tapi gagal mengirim email verifikasi. Silakan hubungi admin.');
@@ -764,7 +764,7 @@ class AuthController extends Controller
         ]);
 
         try {
-            Mail::to($user->email)->send(new KomUserVerificationMail($user));
+            Mail::to($user->email)->queue(new KomUserVerificationMail($user)); // kom_v02: lewat queue
             return redirect()->route('kom.login')->with('success', 'Link verifikasi baru telah dikirim ke email Anda.');
         } catch (\Exception $e) {
             Log::error('Gagal mengirim ulang email verifikasi: ' . $e->getMessage());
@@ -800,7 +800,7 @@ class AuthController extends Controller
         );
 
         try {
-            Mail::to($user->email)->send(new ResetPasswordMail($token, $user->email));
+            Mail::to($user->email)->queue(new ResetPasswordMail($token, $user->email)); // kom_v02: lewat queue
             return back()->with('success', 'Link reset password telah dikirim ke email Anda.');
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal mengirim email reset password. Silakan coba lagi.');

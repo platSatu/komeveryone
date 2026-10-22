@@ -235,7 +235,7 @@ class ClassTutorialAdminCabangController extends Controller
     // }
     public function create()
     {
-        $moduls = KmdModuls::orderBy('created_at', 'asc')->get();
+        $moduls = KmdModuls::with('kelas')->orderBy('kom_class_id')->orderBy('language_code')->orderBy('order')->get(); // kom_v02
         $kelas = KmdClass::all();
 
             $praktikalModulIds = [
@@ -308,6 +308,23 @@ class ClassTutorialAdminCabangController extends Controller
             'category'
         ));
     }
+
+/**
+ * kom_v02: daftar titik kelas tutorial untuk satu modul (dropdown "Titik Kelas Tutorial").
+ * value kosong = Akhir Modul.
+ */
+public function getTitikByModul(Request $request, \App\Services\Kmd\TitikTutorialService $titikService)
+{
+    $modul = KmdModuls::find($request->query('modul_id'));
+    if (! $modul) {
+        return response()->json([]);
+    }
+
+    return response()->json($titikService->titikModul($modul)->map(fn ($t) => [
+        'value' => $t['video_id'] ?? '',
+        'label' => $t['label'] . ($t['video'] ? ' — ' . $t['video']->name : ''),
+    ])->values());
+}
 
 public function getPengajarsByModul(Request $request)
 {
@@ -406,7 +423,7 @@ public function getPengajarsByModul(Request $request)
             abort(403, 'Unauthorized');
         }
 
-        $moduls = KmdModuls::orderBy('created_at', 'asc')->get();
+        $moduls = KmdModuls::with('kelas')->orderBy('kom_class_id')->orderBy('language_code')->orderBy('order')->get(); // kom_v02
         $kelas = KmdClass::all();
 
         $praktikalModulIds = [
@@ -485,6 +502,15 @@ public function getPengajarsByModul(Request $request)
         try {
             // Samakan dengan alur create: perubahan jadwal/topic/durasi ikut
             // di-PATCH ke meeting Zoom yang sudah ada, bukan cuma update DB lokal.
+            // kom_v02: modul / titik tutorial tidak boleh diganti jika sudah ada peserta
+            $lama = $this->kelasTutorService->find($encryptedId);
+            $titikBerubah = $lama->modul_id !== $request->input('modul_id')
+                || ($lama->video_id ?: null) !== ($request->input('video_id') ?: null);
+            if ($titikBerubah && KmdUserClassTutorial::where('class_tutorial_id', $lama->id)->exists()) {
+                return redirect()->back()->withInput()
+                    ->withErrors(['video_id' => __('Modul / titik kelas tutorial tidak bisa diganti karena sudah ada peserta yang mendaftar.')]);
+            }
+
             $this->kelasTutorService->editZoomMeeting($encryptedId, $request->validated());
 
             return redirect()->route('kom.kelas_tutor_cabang.index')

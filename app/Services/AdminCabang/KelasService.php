@@ -46,20 +46,13 @@ class KelasService
         $classTutorial = KmdClassTutorial::with(['pengajar', 'kelas', 'modul', 'rayon'])
             ->findOrFail($classTutorialId);
 
-        // Ambil hanya userclasstutorial_id yang sudah paid
-        $paidUserClassTutorialIds = KmdDonasi::where('status', 'paid')
-            ->whereHas('userClassTutorial', function ($query) use ($classTutorialId) {
-                $query->where('class_tutorial_id', $classTutorialId);
-            })
-            ->pluck('userclasstutorial_id')
-            ->unique()
-            ->toArray();
-
+        // kom_v02: hanya peserta yang rangkaiannya sudah LUNAS (callback Midtrans),
+        // termasuk jadwal pengganti karena tidak hadir (tanpa persembahan baru).
         // Eager load 'absensi' supaya form absensi bisa menampilkan status
         // hadir/tidak hadir yang sudah pernah diinput sebelumnya (untuk edit/koreksi)
         $userClassTutorials = KmdUserClassTutorial::with(['user', 'absensi'])
             ->where('class_tutorial_id', $classTutorialId)
-            ->whereIn('id', $paidUserClassTutorialIds)
+            ->lunas()
             ->get();
 
         Log::info('Absensi data retrieved successfully', [
@@ -163,6 +156,7 @@ public function storeAbsensi(string $classTutorialId, array $data): array
 
             $userClassTutorials = KmdUserClassTutorial::with(['user'])
                 ->where('class_tutorial_id', $classTutorialId)
+                ->lunas() // kom_v02
                 ->get();
 
             Log::info('Review data retrieved successfully', [

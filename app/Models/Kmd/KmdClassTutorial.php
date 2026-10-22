@@ -20,6 +20,7 @@ class KmdClassTutorial extends Model
         'pengajar_id',
         'class_id',
         'modul_id',
+        'video_id', // kom_v02: titik tutorial (NULL = akhir modul)
         'category_diklat',
         'quota',
         'jml_ikut',
@@ -81,6 +82,18 @@ class KmdClassTutorial extends Model
     public function modul()
     {
         return $this->belongsTo(KmdModuls::class, 'modul_id');
+    }
+
+    /** kom_v02: video titik tutorial (NULL = akhir modul) */
+    public function titikVideo()
+    {
+        return $this->belongsTo(KmdVideo::class, 'video_id');
+    }
+
+    /** kom_v02: label titik, mis. "Setelah Video 4" / "Akhir Modul" */
+    public function getLabelTitikAttribute(): string
+    {
+        return \App\Services\Kmd\TitikTutorialService::label($this->titikVideo);
     }
 
     public function donations()

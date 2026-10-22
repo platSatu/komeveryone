@@ -19,12 +19,32 @@ class KelasTutorRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
+    /** kom_v02: pilihan "Akhir Modul" dikirim sebagai string kosong → simpan NULL */
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['video_id' => $this->filled('video_id') ? $this->input('video_id') : null]);
+    }
+
     public function rules(): array
     {
         return [
             'pengajar_id' => 'required|string',
             'class_id' => 'required|string',
             'modul_id' => 'required|string',
+            // kom_v02: titik tutorial. Kosong = Akhir Modul; diisi = setelah video (tengah modul)
+            'video_id' => [
+                'nullable',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $ok = \App\Models\Kmd\KmdVideo::where('id', $value)
+                        ->where('modul_id', $this->input('modul_id'))
+                        ->where('has_tutorial', true)
+                        ->exists();
+                    if (! $ok) {
+                        $fail(__('Titik kelas tutorial tidak sesuai dengan modul yang dipilih.'));
+                    }
+                },
+            ],
 
             'topic' => 'nullable|string',
             'start_time' => 'required|date',

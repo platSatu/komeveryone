@@ -7,11 +7,11 @@
             {{-- Header Section --}}
             <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
                 <div>
-                    <h5 class="fw-bold text-dark mb-1">🎓 Kelas Tutorial Saya</h5>
-                    <p class="text-muted mb-0">Daftar kelas tutorial yang telah Anda ikuti</p>
+                    <h5 class="fw-bold text-dark mb-1">🎓 {{ __('Kelas Tutorial Saya') }}</h5>
+                    <p class="text-muted mb-0">{{ __('Daftar kelas tutorial yang telah Anda ikuti') }}</p>
                 </div>
                 <button class="btn btn-outline-primary btn-sm mt-2 mt-md-0" onclick="location.reload()">
-                    <i class="fas fa-sync-alt me-1"></i> Refresh
+                    <i class="fas fa-sync-alt me-1"></i> {{ __('Refresh') }}
                 </button>
             </div>
 
@@ -23,7 +23,7 @@
                             <i class="fas fa-chalkboard-teacher fa-2x opacity-75 flex-shrink-0"></i>
                             <div>
                                 <div class="fw-bold fs-4">{{ $data->count() }}</div>
-                                <div class="small opacity-75">Total Kelas</div>
+                                <div class="small opacity-75">{{ __('Total Kelas') }}</div>
                             </div>
                         </div>
                     </div>
@@ -34,7 +34,7 @@
                             <i class="fas fa-check-circle fa-2x opacity-75 flex-shrink-0"></i>
                             <div>
                                 <div class="fw-bold fs-4">{{ $data->where('status', 'active')->count() }}</div>
-                                <div class="small opacity-75">Aktif</div>
+                                <div class="small opacity-75">{{ __('Aktif') }}</div>
                             </div>
                         </div>
                     </div>
@@ -45,7 +45,7 @@
                             <i class="fas fa-book fa-2x opacity-75 flex-shrink-0"></i>
                             <div>
                                 <div class="fw-bold fs-4">{{ $data->groupBy('modul.name')->count() }}</div>
-                                <div class="small opacity-75">Modul</div>
+                                <div class="small opacity-75">{{ __('Modul') }}</div>
                             </div>
                         </div>
                     </div>
@@ -56,7 +56,7 @@
                             <i class="fas fa-map-marker-alt fa-2x opacity-75 flex-shrink-0"></i>
                             <div>
                                 <div class="fw-bold fs-4">{{ $data->groupBy('rayon.name')->count() }}</div>
-                                <div class="small opacity-75">Rayon</div>
+                                <div class="small opacity-75">{{ __('Rayon') }}</div>
                             </div>
                         </div>
                     </div>
@@ -67,7 +67,7 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-bottom py-3">
                     <h5 class="card-title mb-0 fw-bold d-flex align-items-center gap-2">
-                        <i class="fas fa-list text-primary"></i> Kelas Tutorial
+                        <i class="fas fa-list text-primary"></i> {{ __('Kelas Tutorial') }}
                     </h5>
                 </div>
 
@@ -76,7 +76,7 @@
                         <div class="text-center py-5">
                             <div class="empty-state">
                                 <i class="fas fa-chalkboard-teacher fa-4x text-muted mb-4"></i>
-                                <h4 class="text-muted mb-3">Belum Ada Kelas Tutorial</h4>
+                                <h4 class="text-muted mb-3">{{ __('Belum Ada Kelas Tutorial') }}</h4>
                             </div>
                         </div>
                     @else
@@ -86,28 +86,28 @@
                                     <tr>
                                         <th class="border-0 fw-bold text-center">#</th>
                                         <th class="border-0 fw-bold text-nowrap">
-                                            <i class="fas fa-book me-1 text-primary"></i> Modul
+                                            <i class="fas fa-book me-1 text-primary"></i> {{ __('Modul') }}
                                         </th>
                                         <th class="border-0 fw-bold text-center text-nowrap">
-                                            <i class="fas fa-graduation-cap me-1 text-success"></i> Kelas
+                                            <i class="fas fa-graduation-cap me-1 text-success"></i> {{ __('Kelas') }}
                                         </th>
                                         <th class="border-0 fw-bold text-center text-nowrap">
-                                            <i class="fas fa-map-marker-alt me-1 text-info"></i> Rayon
+                                            <i class="fas fa-map-marker-alt me-1 text-info"></i> {{ __('Rayon') }}
                                         </th>
                                         <th class="border-0 fw-bold text-center text-nowrap">
-                                            <i class="fas fa-clock me-1 text-warning"></i> Hari & Jam
+                                            <i class="fas fa-clock me-1 text-warning"></i> {{ __('Hari & Jam') }}
                                         </th>
                                         <th class="border-0 fw-bold text-center text-nowrap">
-                                            <i class="fas fa-video me-1 text-primary"></i> Join Zoom
+                                            <i class="fas fa-video me-1 text-primary"></i> {{ __('Join Zoom') }}
                                         </th>
                                         <th class="border-0 fw-bold text-center text-nowrap">
-                                            <i class="fas fa-calendar-alt me-1 text-secondary"></i> Tanggal Booking
+                                            <i class="fas fa-calendar-alt me-1 text-secondary"></i> {{ __('Tanggal Booking') }}
                                         </th>
                                         <th class="border-0 fw-bold text-center text-nowrap">
-                                            <i class="fas fa-star text-warning"></i> Review Pengajar
+                                            <i class="fas fa-star text-warning"></i> {{ __('Review Pengajar') }}
                                         </th>
                                         <th class="border-0 fw-bold text-center text-nowrap">
-                                            <i class="fas fa-toggle-on me-1 text-danger"></i> Status
+                                            <i class="fas fa-toggle-on me-1 text-danger"></i> {{ __('Status') }}
                                         </th>
                                     </tr>
                                 </thead>
@@ -118,6 +118,13 @@
                                             <td>
                                                 <div class="d-flex align-items-center gap-2">
                                                     <div class="fw-bold">{{ $kelas->modul->name ?? '-' }}</div>
+                                                </div>
+                                                {{-- kom_v02: titik tutorial (tengah / akhir modul) & jadwal pengganti --}}
+                                                <div class="small text-muted">
+                                                    {{ \App\Services\Kmd\TitikTutorialService::label($kelas->titikVideo) }}
+                                                    @if ($kelas->is_rebook)
+                                                        <span class="badge badge-info ml-1">{{ __('Jadwal Pengganti') }}</span>
+                                                    @endif
                                                 </div>
                                             </td>
                                             <td class="text-center">{{ $kelas->kelas->name ?? '-' }}</td>
@@ -150,7 +157,7 @@
                                                         <i class="fas fa-video me-1 text-primary mr-1"></i>
                                                         <a href="{{ $kelas->zoom_join_url }}" target="_blank"
                                                             rel="noopener noreferrer">
-                                                            {{ $kelas->name ?? ($kelas->topic ?? 'Join Zoom') }}
+                                                            {{ $kelas->name ?? ($kelas->topic ?? __('Join Zoom')) }}
                                                         </a>
                                                     </span>
                                                 @else
@@ -162,7 +169,7 @@
                                             <td class="text-center">
                                                 @if ($kelas->date_booking)
                                                     <div class="fw-bold">
-                                                        {{ \Carbon\Carbon::parse($kelas->date_booking)->format('d M Y') }}
+                                                        {{ \Carbon\Carbon::parse($kelas->date_booking)->translatedFormat('d M Y') }}
                                                     </div>
                                                     <small
                                                         class="text-muted">{{ \Carbon\Carbon::parse($kelas->date_booking)->diffForHumans() }}</small>
@@ -173,19 +180,19 @@
                                             <td class="text-center">
                                                 <a href="{{ route('kom.peserta.formReviewPeserta', ['id' => Crypt::encryptString($kelas->id)]) }}"
                                                     class="badge bg-light text-dark border px-3 py-2 d-inline-flex align-items-center gap-1">
-                                                    <i class="fas fa-star text-warning mr-1"></i> Isi Review
+                                                    <i class="fas fa-star text-warning mr-1"></i> {{ __('Isi Review') }}
                                                 </a>
                                             </td>
                                             <td class="text-center">
                                                 @if ($kelas->status === 'booked')
                                                     <span
                                                         class="badge bg-success px-3 py-2 text-white d-inline-flex align-items-center gap-1">
-                                                        <i class="fas fa-check-circle mr-1"></i> Aktif
+                                                        <i class="fas fa-check-circle mr-1"></i> {{ __('Aktif') }}
                                                     </span>
                                                 @else
                                                     <span
                                                         class="badge bg-secondary px-3 py-2 d-inline-flex align-items-center gap-1">
-                                                        <i class="fas fa-times-circle mr-1"></i> Tidak Aktif
+                                                        <i class="fas fa-times-circle mr-1"></i> {{ __('Tidak Aktif') }}
                                                     </span>
                                                 @endif
                                             </td>
@@ -293,7 +300,7 @@
             @if (session('success'))
                 Swal.fire({
                     icon: 'success',
-                    title: 'Berhasil',
+                    title: @json(__('Berhasil')),
                     text: "{{ session('success') }}",
                     timer: 3000,
                     timerProgressBar: true,
@@ -304,7 +311,7 @@
             @if (session('error'))
                 Swal.fire({
                     icon: 'error',
-                    title: 'Gagal',
+                    title: @json(__('Gagal')),
                     text: "{{ session('error') }}",
                     timer: 3000,
                     timerProgressBar: true,
@@ -315,7 +322,7 @@
             @if ($errors->any())
                 Swal.fire({
                     icon: 'error',
-                    title: 'Validasi Gagal',
+                    title: @json(__('Validasi Gagal')),
                     html: `<ul style="text-align:left;">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>

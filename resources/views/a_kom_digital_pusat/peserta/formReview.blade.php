@@ -7,7 +7,7 @@
                 @csrf
                 <div class="card">
                     <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">Form Review Pengajaran</h5>
+                        <h5 class="mb-0">{{ __('Form Review Pengajaran') }}</h5>
                     </div>
                     <div class="card-body">
                         {{-- Hidden inputs --}}
@@ -17,22 +17,22 @@
 
                         @php
                             $questions = [
-                                'isi_pengajaran' => 'Bagaimana penilaian Anda terhadap isi pengajaran?',
-                                'kebenaran_teologis' => 'Apakah isi pengajaran memiliki kebenaran teologis?',
-                                'pengajar_sampaikan_seluruh_materi' => 'Apakah pengajar menyampaikan seluruh materi?',
-                                'pengajar_sampaikan_materi_utama' => 'Apakah pengajar menyampaikan materi utama?',
-                                'pembukaan_materi' => 'Apakah pembukaan materi menarik dan jelas?',
-                                'kesinambungan_materi' => 'Apakah materi disampaikan secara berkesinambungan?',
-                                'kesaksian_pribadi' => 'Apakah pengajar menyertakan kesaksian pribadi?',
-                                'materi_dipahami' => 'Apakah materi mudah dipahami?',
-                                'sesuai_dengan_materi' => 'Apakah pengajaran sesuai dengan materi yang diberikan?',
+                                'isi_pengajaran' => __('Bagaimana penilaian Anda terhadap isi pengajaran?'),
+                                'kebenaran_teologis' => __('Apakah isi pengajaran memiliki kebenaran teologis?'),
+                                'pengajar_sampaikan_seluruh_materi' => __('Apakah pengajar menyampaikan seluruh materi?'),
+                                'pengajar_sampaikan_materi_utama' => __('Apakah pengajar menyampaikan materi utama?'),
+                                'pembukaan_materi' => __('Apakah pembukaan materi menarik dan jelas?'),
+                                'kesinambungan_materi' => __('Apakah materi disampaikan secara berkesinambungan?'),
+                                'kesaksian_pribadi' => __('Apakah pengajar menyertakan kesaksian pribadi?'),
+                                'materi_dipahami' => __('Apakah materi mudah dipahami?'),
+                                'sesuai_dengan_materi' => __('Apakah pengajaran sesuai dengan materi yang diberikan?'),
                             ];
 
                             $options = [
-                                1 => 'Sangat Baik',
-                                2 => 'Baik',
-                                3 => 'Cukup',
-                                4 => 'Kurang',
+                                1 => __('Sangat Baik'),
+                                2 => __('Baik'),
+                                3 => __('Cukup'),
+                                4 => __('Kurang'),
                             ];
                         @endphp
 
@@ -59,7 +59,7 @@
 
                     <div class="card-footer text-end">
                         <button type="submit" class="btn btn-success">
-                            <i class="bi bi-check-circle"></i> Kirim Review
+                            <i class="bi bi-check-circle"></i> {{ __('Kirim Review') }}
                         </button>
                     </div>
                 </div>
@@ -72,7 +72,7 @@
             @if (session('success'))
                 Swal.fire({
                     icon: 'success',
-                    title: 'Berhasil',
+                    title: @json(__('Berhasil')),
                     text: "{{ session('success') }}",
                     timer: 3000,
                     timerProgressBar: true,
@@ -83,7 +83,7 @@
             @if (session('error'))
                 Swal.fire({
                     icon: 'error',
-                    title: 'Gagal',
+                    title: @json(__('Gagal')),
                     text: "{{ session('error') }}",
                     timer: 3000,
                     timerProgressBar: true,
@@ -94,7 +94,7 @@
             @if ($errors->any())
                 Swal.fire({
                     icon: 'error',
-                    title: 'Validasi Gagal',
+                    title: @json(__('Validasi Gagal')),
                     html: `<ul style="text-align:left;">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>

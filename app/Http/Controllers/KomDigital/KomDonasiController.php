@@ -30,15 +30,13 @@ class KomDonasiController extends Controller
     public function __construct()
     {
         // Set Midtrans Config
-        \Log::info('Server Key: ' . env('MIDTRANS_SERVER_KEY'));
-        \Log::info('Client Key: ' . env('MIDTRANS_CLIENT_KEY'));
 
 
-        Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-        Config::$clientKey = env('MIDTRANS_CLIENT_KEY');
-        Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', true);
-        Config::$isSanitized = env('MIDTRANS_IS_SANITIZED');
-        Config::$is3ds = env('MIDTRANS_IS_3DS');
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$clientKey = config('midtrans.client_key');
+        Config::$isProduction = config('midtrans.is_production', true);
+        Config::$isSanitized = config('midtrans.is_sanitized');
+        Config::$is3ds = config('midtrans.is_3ds');
     }
 
     public function indexCabang()
@@ -104,8 +102,6 @@ class KomDonasiController extends Controller
     public function store(Request $request)
     {
         Log::info('[DONASI] Mulai proses donasi');
-        Log::info('Server Key: ' . env('MIDTRANS_SERVER_KEY'));
-        Log::info('Client Key: ' . env('MIDTRANS_CLIENT_KEY'));
 
         DB::beginTransaction();
 

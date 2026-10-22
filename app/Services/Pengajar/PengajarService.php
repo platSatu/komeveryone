@@ -33,7 +33,8 @@ class PengajarService
                 'cabang_id_user' => $user->cabang_id
             ]);
 
-            $query = KmdPertanyaanUser::with(['user', 'class', 'modul', 'rayon']);
+            $query = KmdPertanyaanUser::with(['user', 'class', 'modul', 'rayon'])
+                ->sudahLunas(); // kom_v02: hanya dari peserta yang persembahannya sudah lunas
 
             if ($user->role === 'pengajar') {
                 $query->where('pengajar_id', $user->id);
@@ -169,6 +170,7 @@ class PengajarService
             // Ambil peserta yang terdaftar di kelas ini
             $peserta = KmdUserClassTutorial::with(['user'])
                 ->where('class_tutorial_id', $kelasId)
+                ->lunas() // kom_v02: hanya peserta yang rangkaiannya selesai
                 ->orderBy('date_booking', 'desc')
                 ->get();
 
@@ -207,7 +209,7 @@ class PengajarService
         }
 
         try {
-            $pertanyaanQuery = KmdPertanyaanUser::where('rayon_id', $user->cabang_id);
+            $pertanyaanQuery = KmdPertanyaanUser::where('rayon_id', $user->cabang_id)->sudahLunas(); // kom_v02
 
             // Jika pengajar, filter berdasarkan pengajar_id
             // Jika admin_cabang, hitung semua di cabang tersebut

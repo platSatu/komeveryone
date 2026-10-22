@@ -72,6 +72,7 @@ class KontenBahasaService
                 'description' => $video->description,
                 'durations' => $video->durations,
                 'sort_video' => $video->sort_video,
+                'has_tutorial' => (bool) $video->has_tutorial, // kom_v02: titik tutorial ikut tersalin
                 'url_video' => $video->url_video,
                 'video' => $video->video, // sementara memakai file yang sama; superadmin mengganti versi bahasa baru
                 'modul_id' => $modulBaru->id,
