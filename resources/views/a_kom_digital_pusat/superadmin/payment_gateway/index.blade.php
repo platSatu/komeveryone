@@ -85,6 +85,20 @@
                     </div>
                 </div>
 
+                <div class="kom-card mb-3">
+                    <h5 class="kom-card-title">{{ __('Tarik Dana Admin Cabang') }}</h5>
+                    <div class="custom-control custom-switch mb-2">
+                        <input type="hidden" name="bizbos_payout" value="0">
+                        <input type="checkbox" class="custom-control-input" id="bizbosPayout" name="bizbos_payout" value="1" {{ old('bizbos_payout', $payoutDipilih ? '1' : '0') === '1' ? 'checked' : '' }}>
+                        <label class="custom-control-label" for="bizbosPayout"><strong>{{ __('Kirim dana otomatis lewat Disbursement Bizbos') }}</strong></label>
+                        @if ($payoutAktif)<span class="kom-pill ml-1">{{ __('Aktif') }}</span>@endif
+                    </div>
+                    <p class="small text-muted mb-2">{{ __('Kalau aktif: rekening admin cabang dicek ke bank lewat Bizbos, lalu tombol "Setujui & Kirim" di Request Saldo langsung mentransfer dari saldo Bizbos. Biaya transfer mengikuti setting Bizbos dan dipotong dari jumlah yang dikirim.') }}</p>
+                    <div class="kom-note mb-0">
+                        <i class="fas fa-info-circle mr-1"></i>{{ __('Di Bizbos: buka Invoice › Disbursement › Pengaturan & API, lalu nyalakan "Izinkan website mengirim dana lewat API" untuk API Key ini. Saldo Bizbos bisa dicek dengan tombol Tes Koneksi.') }}
+                    </div>
+                </div>
+
                 <div class="d-flex flex-wrap justify-content-end" style="gap:10px">
                     <button type="submit" class="btn btn-primary kom-btn"><i class="fas fa-save mr-1"></i>{{ __('Simpan Setting') }}</button>
                 </div>

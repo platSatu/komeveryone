@@ -12,11 +12,14 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Kmd\KmdClassTutorial;
 use App\Models\Kmd\KmdUserClassTutorial;
 use App\Models\Kmd\KmdTarikSaldo;
+use App\Models\Kmd\KmdUserRekening;
+use App\Services\Payment\BizbosDisbursementService;
 
 class TarikSaldoAdminCabangController extends Controller
 {
     public function __construct(
-        protected TarikSaldoService $tarikSaldoService
+        protected TarikSaldoService $tarikSaldoService,
+        protected BizbosDisbursementService $payout
     ) {
     }
 
@@ -42,10 +45,14 @@ class TarikSaldoAdminCabangController extends Controller
             // Get statistik overall
             $overallStats = $this->tarikSaldoService->getOverallStats($user->cabang_id, $user->id);
 
+            $rekening = KmdUserRekening::where('user_id', $user->id)->first();
+            $rekeningBelumSiap = $this->payout->aktif() && ! $rekening?->terverifikasi();
+
             return view('a_kom_digital_pusat.admin_cabang.tarik_saldo.index', compact(
                 'saldoPerKelas',
                 'riwayatPenarikan',
-                'overallStats'
+                'overallStats',
+                'rekeningBelumSiap'
             ));
 
         } catch (\Exception $e) {
@@ -63,6 +70,7 @@ class TarikSaldoAdminCabangController extends Controller
                     'total_pending' => 0,
                     'jumlah_kelas' => 0
                 ],
+                'rekeningBelumSiap' => false,
                 'error' => 'Terjadi kesalahan'
             ]);
         }
@@ -143,9 +151,19 @@ class TarikSaldoAdminCabangController extends Controller
                 ], 403);
             }
 
-            // Gunakan transaction di mysql2 (asumsi service pakai mysql2)
-            Log::info('[TARIK SALDO] Mulai transaction di mysql2');
+            // Dana dikirim otomatis lewat Bizbos → rekening wajib sudah dicek ke bank
+            if ($this->payout->aktif() && ! KmdUserRekening::where('user_id', $user->id)->first()?->terverifikasi()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Rekening Anda belum diverifikasi. Buka menu Info Rekening dan klik "Verifikasi Rekening" dulu.'
+                ], 422);
+            }
+
+            Log::info('[TARIK SALDO] Mulai transaction');
             DB::beginTransaction();
+
+            // Kunci kelas supaya pengajuan ganda (klik dua kali) tidak lolos bersamaan
+            KmdClassTutorial::whereKey($classTutorial->id)->lockForUpdate()->first();
 
             // Cek saldo tersedia via service
             Log::info('[TARIK SALDO] Cek saldo tersedia via service');
@@ -200,9 +218,10 @@ class TarikSaldoAdminCabangController extends Controller
                 ], 403);
             }
 
-            // Pengajuan penarikan hanya boleh 1x per kelas tutorial (berapapun statusnya)
+            // Pengajuan penarikan hanya boleh 1x per kelas tutorial (kecuali yang ditolak / gagal kirim)
             $sudahPernahMengajukan = KmdTarikSaldo::where('user_id', $user->id)
                 ->where('userclasstutorial_id', $userClassTutorial->id)
+                ->whereNotIn('status', KmdTarikSaldo::STATUS_KEMBALI)
                 ->exists();
 
             if ($sudahPernahMengajukan) {

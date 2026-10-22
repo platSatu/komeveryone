@@ -62,9 +62,10 @@ class TarikSaldoService
                 // Hitung jumlah donatur unik
                 $jumlahDonatur = $donasiQuery->distinct('user_id')->count('user_id');
 
-                // Pengajuan penarikan hanya boleh 1x per kelas tutorial (berapapun statusnya)
+                // Pengajuan penarikan hanya boleh 1x per kelas tutorial (kecuali yang ditolak / gagal kirim)
                 $sudahPernahTarik = KmdTarikSaldo::where('user_id', $userId)
                     ->whereIn('userclasstutorial_id', $userClassTutorialIds)
+                    ->whereNotIn('status', KmdTarikSaldo::STATUS_KEMBALI)
                     ->exists();
 
                 return [
@@ -107,6 +108,7 @@ class TarikSaldoService
             ->whereHas('userClassTutorial', function ($q) use ($classTutorialId) {
                 $q->where('class_tutorial_id', $classTutorialId);
             })
+            ->where('status', 'paid') // sama dengan getSaldoPerKelas: hanya persembahan lunas
             ->sum('amount');
 
         // Query penarikan yang sudah approved atau completed

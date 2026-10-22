@@ -2,6 +2,17 @@
 @section('content')
     <div class="row">
         <div class="col-md-12">
+            @foreach (['success' => 'success', 'error' => 'danger'] as $kunci => $warna)
+                @if (session($kunci))
+                    <div class="alert alert-{{ $warna }}">{{ session($kunci) }}</div>
+                @endif
+            @endforeach
+            @if ($errors->any())
+                <div class="alert alert-danger">{{ $errors->first() }}</div>
+            @endif
+            @unless ($payoutAktif)
+                <div class="alert alert-info">Tarik dana lewat Bizbos belum aktif — pengajuan diproses manual. Aktifkan di menu Payment Gateway.</div>
+            @endunless
             {{-- Card filter & info --}}
             <div class="card mb-4 shadow-sm">
                 <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
@@ -17,6 +28,8 @@
                                 Selesai</option>
                             <option value="rejected" {{ ($filters['status'] ?? '') == 'rejected' ? 'selected' : '' }}>
                                 Ditolak</option>
+                            <option value="failed" {{ ($filters['status'] ?? '') == 'failed' ? 'selected' : '' }}>
+                                Gagal (saldo kembali)</option>
                         </select>
                         <button type="submit" class="btn btn-primary btn-sm">Tampilkan</button>
                     </form>
@@ -66,16 +79,47 @@
                                                 <span class="badge {{ $item->status_badge_class }} text-white">
                                                     {{ $item->status_label }}
                                                 </span>
+                                                @if ($item->bizbos_status)
+                                                    <small class="d-block text-muted">Bizbos: {{ $item->bizbos_status === 'mengirim' ? 'belum pasti, klik Cek Status' : $item->bizbos_status }}</small>
+                                                @endif
+                                                @if ($item->alasan || ($item->status === 'pending' && $item->gagal_alasan))
+                                                    <small class="d-block text-danger text-wrap" style="max-width:220px">{{ $item->alasan ?? $item->gagal_alasan }}</small>
+                                                @endif
                                             </td>
                                             <td>{{ $item->catatan ?? '-' }}</td>
                                             <td>
-                                                <form action="{{ route('kom.super_tarik-saldo.destroy', Crypt::encrypt($item->id)) }}"
+                                                @php $kunciId = Crypt::encrypt($item->id); @endphp
+                                                @if ($item->status === 'pending' && $payoutAktif)
+                                                    <form action="{{ route('kom.super_tarik-saldo.kirim', $kunciId) }}" method="POST" class="d-inline"
+                                                        data-konfirmasi="Kirim {{ $item->formatted_jumlah }} ke rekening {{ $item->user->name ?? '-' }} lewat Bizbos?"
+                                                        onsubmit="if (!confirm(this.dataset.konfirmasi)) return false; this.querySelector('button').disabled = true; return true;">
+                                                        @csrf
+                                                        <button class="btn btn-sm btn-success" type="submit">Setujui &amp; Kirim</button>
+                                                    </form>
+                                                @endif
+                                                @if ($item->sudahKeBizbos() && ! in_array($item->status, ['completed', 'failed', 'rejected'], true))
+                                                    <form action="{{ route('kom.super_tarik-saldo.cek', $kunciId) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button class="btn btn-sm btn-info" type="submit">Cek Status</button>
+                                                    </form>
+                                                @endif
+                                                @if ($item->status === 'pending' && ! $item->sudahKeBizbos())
+                                                    <form action="{{ route('kom.super_tarik-saldo.tolak', $kunciId) }}" method="POST" class="d-inline"
+                                                        onsubmit="var a = prompt('Alasan penolakan:'); if (!a) return false; this.alasan.value = a; return true;">
+                                                        @csrf
+                                                        <input type="hidden" name="alasan">
+                                                        <button class="btn btn-sm btn-warning" type="submit">Tolak</button>
+                                                    </form>
+                                                @endif
+                                                @unless ($item->sudahKeBizbos())
+                                                <form action="{{ route('kom.super_tarik-saldo.destroy', $kunciId) }}"
                                                     method="POST" onsubmit="return confirm('Yakin ingin hapus pengajuan ini?')"
                                                     class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button class="btn btn-sm btn-danger" type="submit">Hapus</button>
                                                 </form>
+                                                @endunless
                                             </td>
                                         </tr>
                                     @endforeach

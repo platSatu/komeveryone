@@ -60,6 +60,30 @@ class BizbosClient
         return $this->kirim('GET', '/api/v1/balance')['data'] ?? [];
     }
 
+    /** Disbursement: daftar bank tujuan [{bank_code, bank_name}]. */
+    public function banks(): array
+    {
+        return $this->kirim('GET', '/api/v1/banks')['data'] ?? [];
+    }
+
+    /** Disbursement: daftarkan & verifikasi rekening penerima. external_id sama = rekening yang sama. */
+    public function daftarRekening(array $payload): array
+    {
+        return $this->kirim('POST', '/api/v1/payout-accounts', $payload)['data'] ?? [];
+    }
+
+    /** Disbursement: kirim dana. external_id sama → payout yang sama (aman diulang). */
+    public function buatPayout(array $payload): array
+    {
+        return $this->kirim('POST', '/api/v1/payouts', $payload)['data'] ?? [];
+    }
+
+    /** @param string $id id Bizbos ATAU external_id */
+    public function payout(string $id): array
+    {
+        return $this->kirim('GET', '/api/v1/payouts/' . rawurlencode($id))['data'] ?? [];
+    }
+
     /** Periksa tanda tangan webhook (raw body sebelum di-parse). */
     public function webhookSah(string $rawBody, ?string $timestamp, ?string $signature): bool
     {

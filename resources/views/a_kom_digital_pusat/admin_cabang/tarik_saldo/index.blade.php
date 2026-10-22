@@ -31,6 +31,14 @@
                 </div>
             </div>
 
+            @if ($rekeningBelumSiap ?? false)
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Rekening Anda belum diverifikasi, jadi penarikan belum bisa diajukan.
+                    <a href="{{ route('kom.rekening_cabang.index') }}" class="alert-link">Buka Info Rekening</a> lalu klik "Verifikasi Rekening".
+                </div>
+            @endif
+
             {{-- Overall Statistics Cards --}}
             <div class="row mb-4">
                 <div class="col-xl-3 col-md-6 mb-4">
@@ -251,6 +259,9 @@
                                                 <span class="badge {{ $penarikan->status_badge_class }}">
                                                     {{ $penarikan->status_label }}
                                                 </span>
+                                                @if ($penarikan->alasan)
+                                                    <small class="d-block text-danger">{{ $penarikan->alasan }}</small>
+                                                @endif
                                             </td>
                                             <td>
                                                 <small>{{ $penarikan->catatan ?? '-' }}</small>
@@ -343,6 +354,9 @@
                                                                                     <span class="badge {{ $penarikan->status_badge_class }}">
                                                                                         {{ $penarikan->status_label }}
                                                                                     </span>
+                                                                                    @if ($penarikan->alasan)
+                                                                                        <small class="d-block text-danger">Alasan: {{ $penarikan->alasan }}</small>
+                                                                                    @endif
                                                                                 </td>
                                                                             </tr>
                                                                             <tr>
@@ -854,6 +868,13 @@
                     if (!response.ok) {
                         return response.text().then(text => {
                             console.error('[AJAX Error] Response body (text):', text.substring(0, 500)); // Log snippet
+                            // Pesan dari server (JSON) ditampilkan apa adanya
+                            try {
+                                const json = JSON.parse(text);
+                                if (json && json.message) throw new Error(json.message);
+                            } catch (e) {
+                                if (!(e instanceof SyntaxError)) throw e;
+                            }
                             let errorMsg = `HTTP ${response.status}`;
                             if (response.status === 419) errorMsg += ' (CSRF Token Mismatch - Refresh halaman)';
                             if (response.status === 403) errorMsg += ' (Akses Ditolak - Cek role user)';

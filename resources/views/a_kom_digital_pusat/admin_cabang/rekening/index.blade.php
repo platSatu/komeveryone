@@ -31,16 +31,6 @@
             </div>
 
             @if ($userRekening)
-                {{-- Tambahkan setelah @if ($userRekening) untuk debugging --}}
-                @if (!$userRekening)
-                    <div class="alert alert-info">
-                        <strong>Debug:</strong> Form should be rendered (userRekening is null)
-                    </div>
-                @else
-                    <div class="alert alert-warning">
-                        <strong>Debug:</strong> Form NOT rendered (userRekening exists)
-                    </div>
-                @endif
                 {{-- Data Rekening Sudah Ada --}}
                 <div class="card shadow-sm">
                     <div class="card-header bg-success text-white">
@@ -118,6 +108,38 @@
                             </div>
                         </div>
 
+                        @if ($payoutAktif)
+                            @if ($userRekening->terverifikasi())
+                                <div class="alert alert-success mt-4 mb-0">
+                                    <i class="fas fa-shield-alt me-2"></i>
+                                    <strong>Terverifikasi:</strong> rekening sudah dicek ke bank atas nama
+                                    <strong>{{ $userRekening->bizbos_verified_name }}</strong>
+                                    ({{ $userRekening->bizbos_verified_at->format('d M Y H:i') }}). Dana penarikan dikirim ke rekening ini.
+                                </div>
+                            @else
+                                <div class="card border-warning mt-4">
+                                    <div class="card-body">
+                                        <p class="mb-2"><i class="fas fa-exclamation-circle text-warning me-2"></i>
+                                            <strong>Rekening belum diverifikasi.</strong> Supaya dana penarikan bisa dikirim otomatis,
+                                            pilih bank Anda lalu klik Verifikasi. Nama pemilik di bank harus sama dengan
+                                            <strong>{{ $userRekening->nama_rek }}</strong>.</p>
+                                        <form method="POST" action="{{ route('kom.rekening_cabang.verifikasi') }}" class="d-flex flex-wrap align-items-center" style="gap:8px"
+                                            onsubmit="this.querySelector('button').disabled = true;">
+                                            @csrf
+                                            <select name="bank_code" class="form-control" style="max-width:320px" required>
+                                                <option value="">Pilih Bank</option>
+                                                @foreach ($listBank as $code => $name)
+                                                    <option value="{{ $code }}" @selected(old('bank_code', $userRekening->bank_code) === $code)>{{ $name }}</option>
+                                                @endforeach
+                                            </select>
+                                            <button type="submit" class="btn btn-warning"><i class="fas fa-check me-1"></i>&nbsp;Verifikasi Rekening</button>
+                                        </form>
+                                        @error('bank_code')<small class="text-danger d-block mt-1">{{ $message }}</small>@enderror
+                                    </div>
+                                </div>
+                            @endif
+                        @endif
+
                         <div class="alert alert-info mt-4">
                             <i class="fas fa-info-circle me-2"></i>
                             <strong>Informasi:</strong> Data rekening sudah tersimpan dan tidak dapat diubah.
@@ -138,6 +160,9 @@
                             <i class="fas fa-exclamation-triangle me-2"></i>
                             <strong>Perhatian:</strong> Data rekening hanya dapat diinput sekali.
                             Pastikan data yang Anda masukkan sudah benar sebelum menyimpan.
+                            @if ($payoutAktif)
+                                <br>Rekening akan dicek langsung ke bank — nama pemilik harus sama dengan nama di rekening.
+                            @endif
                         </div>
                         
                        
@@ -453,13 +478,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .then(response => {
-            console.log('Response status:', response.status);
-            console.log('Response OK:', response.ok);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
+            // Pesan dari server tetap ditampilkan walau status bukan 2xx
             return response.text();
         })
         .then(text => {

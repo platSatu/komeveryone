@@ -37,6 +37,7 @@ class PaymentGatewaySetting
         'bizbos_api_key' => false,
         'bizbos_secret' => true,
         'bizbos_webhook_secret' => true,
+        'bizbos_payout' => false,
     ];
 
     /** Gateway yang sedang aktif untuk persembahan baru. */
@@ -99,6 +100,12 @@ class PaymentGatewaySetting
     public function bizbosLengkap(): bool
     {
         return $this->bizbosBaseUrl() && $this->bizbosApiKey() && $this->bizbosSecret() && $this->bizbosWebhookSecret();
+    }
+
+    /** Tarik dana admin cabang dikirim otomatis lewat Disbursement Bizbos (bukan transfer manual). */
+    public function payoutAktif(): bool
+    {
+        return $this->get('bizbos_payout') === '1' && $this->bizbosLengkap();
     }
 
     public function midtransLengkap(): bool

@@ -87,6 +87,7 @@
                             <th>Nama Bank</th>
                             <th>Cabang</th>
                             <th>User</th>
+                            <th>Verifikasi Bizbos</th>
                             <th class="text-center" style="width: 120px;">Aksi</th>
                         </tr>
                     </thead>
@@ -99,6 +100,14 @@
                                 <td>{{ $rekening->nama_bank ?? '-' }}</td>
                                 <td>{{ $rekening->cabang_bank ?? '-' }}</td>
                                 <td>{{ $rekening->user->name ?? '-' }}</td>
+                                <td>
+                                    @if ($rekening->terverifikasi())
+                                        <span class="badge bg-success text-white">Terverifikasi</span>
+                                        <small class="d-block text-muted">{{ $rekening->bizbos_verified_name }}</small>
+                                    @else
+                                        <span class="badge bg-secondary text-white">Belum</span>
+                                    @endif
+                                </td>
                                 <td class="text-center">
                                     <div class="btn-group" role="group">
                                         <a href="{{ route('kom.super_daftar-rekening.show', $rekening->id) }}" 
@@ -122,7 +131,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center">
+                                <td colspan="8" class="text-center">
                                     <div class="alert alert-secondary mb-0">
                                         <i class="fas fa-info-circle"></i> Data tidak ditemukan
                                     </div>

@@ -39,7 +39,14 @@ class UserRekeningService
     public function update(string $id, array $data): bool
     {
         $rekening = $this->find($id);
-        return $rekening->update($data);
+        $rekening->fill($data);
+
+        // Nomor / bank / nama berubah → wajib verifikasi ulang ke Bizbos sebelum bisa menerima dana
+        if ($rekening->isDirty(['no_rek', 'nama_bank', 'nama_rek'])) {
+            $rekening->forceFill(array_fill_keys(KmdUserRekening::KOLOM_VERIFIKASI, null));
+        }
+
+        return $rekening->save();
     }
 
     public function delete(string $id): bool

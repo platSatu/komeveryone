@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Kmd\Superadmin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Services\Superadmin\TarikSaldoService;
+use App\Services\Payment\BizbosDisbursementService;
+use App\Services\Payment\BizbosException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 
@@ -12,7 +15,7 @@ class TarikSaldoController extends Controller
 {
     protected $service;
 
-    public function __construct(TarikSaldoService $service)
+    public function __construct(TarikSaldoService $service, protected BizbosDisbursementService $payout)
     {
         $this->service = $service;
     }
@@ -22,7 +25,9 @@ class TarikSaldoController extends Controller
         $filters = $request->only(['user_id', 'cabang_id', 'status', 'tanggal_penarikan']);
         $tarikSaldos = $this->service->getAll($filters);
 
-        return view('a_kom_digital_pusat.superadmin.tarik_saldo.index', compact('tarikSaldos', 'filters'));
+        $payoutAktif = $this->payout->aktif();
+
+        return view('a_kom_digital_pusat.superadmin.tarik_saldo.index', compact('tarikSaldos', 'filters', 'payoutAktif'));
     }
 
     public function create()
@@ -76,6 +81,10 @@ class TarikSaldoController extends Controller
         ]);
 
         try {
+            if ($this->service->find(Crypt::decrypt($id))->sudahKeBizbos()) {
+                return redirect()->back()->with('error', 'Pengajuan ini dikirim lewat Bizbos. Statusnya hanya berubah dari Bizbos (tombol Cek Status).');
+            }
+
             $this->service->update(Crypt::decrypt($id), $request->all());
             return redirect()->route('kom.super_tarik-saldo.index')->with('success', 'Data tarik saldo berhasil diperbarui.');
         } catch (\Exception $e) {
@@ -84,9 +93,57 @@ class TarikSaldoController extends Controller
         }
     }
 
+    /** Setujui & kirim dana lewat Bizbos. Aman diklik ulang (idempoten). */
+    public function kirim($id)
+    {
+        try {
+            $tarik = $this->payout->kirim(Crypt::decrypt($id), Auth::id());
+        } catch (BizbosException $e) {
+            return back()->with('error', $e->status >= 500 || $e->status === 408
+                ? 'Bizbos sedang bermasalah, status belum pasti. Klik "Cek Status" sebelum melakukan hal lain.'
+                : 'Bizbos menolak: ' . $e->getMessage());
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('[Tarik Saldo] Kirim ke Bizbos gagal/terputus.', ['id' => $id, 'error' => $e->getMessage()]);
+
+            return back()->with('error', 'Koneksi ke Bizbos terputus, status belum pasti. Klik "Cek Status" sebelum melakukan hal lain.');
+        }
+
+        return back()->with('success', 'Dana dikirim lewat Bizbos. Status: ' . $tarik->status_label . '.');
+    }
+
+    public function cek($id)
+    {
+        try {
+            $tarik = $this->payout->cek(Crypt::decrypt($id));
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Status belum bisa dicek: ' . $e->getMessage());
+        }
+
+        return back()->with('success', 'Status terbaru: ' . $tarik->status_label . '.');
+    }
+
+    public function tolak(Request $request, $id)
+    {
+        $data = $request->validate(['alasan' => 'required|string|max:255'], ['alasan.required' => 'Alasan penolakan wajib diisi.']);
+
+        try {
+            $this->payout->tolak(Crypt::decrypt($id), Auth::id(), $data['alasan']);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Pengajuan ditolak. Saldo kelas kembali ke admin cabang.');
+    }
+
     public function destroy($id)
     {
         try {
+            if ($this->service->find(Crypt::decrypt($id))->sudahKeBizbos()) {
+                return redirect()->back()->with('error', 'Pengajuan yang sudah dikirim lewat Bizbos tidak bisa dihapus.');
+            }
+
             $this->service->delete(Crypt::decrypt($id));
             return redirect()->route('kom.super_tarik-saldo.index')->with('success', 'Data tarik saldo berhasil dihapus.');
         } catch (\Exception $e) {

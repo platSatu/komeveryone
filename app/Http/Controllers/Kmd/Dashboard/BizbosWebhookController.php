@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Kmd\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Kmd\KmdDonasi;
+use App\Models\Kmd\KmdTarikSaldo;
 use App\Services\Payment\BizbosClient;
+use App\Services\Payment\BizbosDisbursementService;
 use App\Services\Payment\BizbosPembayaranService;
 use App\Services\Payment\PaymentGatewaySetting;
 use Illuminate\Http\Request;
@@ -19,7 +21,7 @@ use Illuminate\Support\Facades\Log;
  */
 class BizbosWebhookController extends Controller
 {
-    public function __invoke(Request $request, BizbosClient $client, BizbosPembayaranService $pembayaran)
+    public function __invoke(Request $request, BizbosClient $client, BizbosPembayaranService $pembayaran, BizbosDisbursementService $payout)
     {
         $raw = $request->getContent();
 
@@ -35,6 +37,10 @@ class BizbosWebhookController extends Controller
 
         if ($nama === 'ping') {
             return response('OK', 200);
+        }
+
+        if (str_starts_with($nama, 'payout.')) {
+            return $this->payout($nama, $invoice, $payout);
         }
 
         $externalId = $invoice['external_id'] ?? null;
@@ -61,6 +67,33 @@ class BizbosWebhookController extends Controller
             Log::error('[Bizbos Webhook] Gagal memproses event.', ['event' => $nama, 'donasi_id' => $donasi->id, 'error' => $e->getMessage()]);
 
             return response('error', 500); // Bizbos akan mencoba ulang
+        }
+
+        return response('OK', 200);
+    }
+
+    /** payout.success | payout.failed | payout.needs_review → tarik dana admin cabang. */
+    protected function payout(string $nama, array $data, BizbosDisbursementService $payout)
+    {
+        $externalId = (string) ($data['external_id'] ?? '');
+        $tarik = str_starts_with($externalId, 'kom-tarik-')
+            ? KmdTarikSaldo::find(substr($externalId, strlen('kom-tarik-')))
+            : null;
+
+        if (! $tarik) {
+            Log::critical('[Bizbos Webhook] Payout tanpa pengajuan tarik dana — cek manual di Bizbos.', [
+                'event' => $nama, 'external_id' => $externalId, 'payout_id' => $data['id'] ?? null,
+            ]);
+
+            return response('OK', 200);
+        }
+
+        try {
+            $payout->sinkron($tarik, $data);
+        } catch (\Throwable $e) {
+            Log::error('[Bizbos Webhook] Gagal memproses payout.', ['event' => $nama, 'tarik_id' => $tarik->id, 'error' => $e->getMessage()]);
+
+            return response('error', 500);
         }
 
         return response('OK', 200);

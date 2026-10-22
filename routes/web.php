@@ -395,6 +395,7 @@ Route::prefix('app')->group(function () {
             Route::prefix('rekening')->controller(RekeningAdminCabangController::class)->name('rekening_cabang.')->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::post('/store', 'store')->name('store');
+                Route::post('/verifikasi', 'verifikasi')->name('verifikasi');
             });
         });
 
@@ -682,6 +683,9 @@ Route::prefix('app')->group(function () {
 
             Route::prefix('tarik-saldo')->controller(TarikSaldoController::class)->name('super_tarik-saldo.')->group(function () {
                 Route::get('/', 'index')->name('index');
+                Route::post('/{id}/kirim', 'kirim')->name('kirim');
+                Route::post('/{id}/cek', 'cek')->name('cek');
+                Route::post('/{id}/tolak', 'tolak')->name('tolak');
                 Route::get('/create', 'create')->name('create');
                 Route::post('/', 'store')->name('store');
                 Route::get('/{id}', 'show')->name('show');

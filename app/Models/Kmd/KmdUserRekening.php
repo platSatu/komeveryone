@@ -22,6 +22,24 @@ class KmdUserRekening extends Model
         'cabang_bank',
     ];
 
+    /** bank_code & bizbos_* diisi lewat forceFill setelah verifikasi Bizbos. */
+    protected $casts = [
+        'bizbos_verified_at' => 'datetime',
+    ];
+
+    public const KOLOM_VERIFIKASI = ['bank_code', 'bizbos_account_id', 'bizbos_verified_name', 'bizbos_verified_at'];
+
+    /** Rekening sudah dicek ke bank lewat Bizbos dan siap menerima dana. */
+    public function terverifikasi(): bool
+    {
+        return (bool) ($this->bizbos_account_id && $this->bizbos_verified_at);
+    }
+
+    public function bizbosExternalId(): string
+    {
+        return 'kom-user-' . $this->user_id;
+    }
+
     // Otomatis generate UUID saat membuat record baru
     protected static function boot()
     {

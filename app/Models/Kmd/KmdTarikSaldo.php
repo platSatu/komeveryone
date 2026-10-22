@@ -26,6 +26,10 @@ class KmdTarikSaldo extends Model
         // 'rejected_reason'
     ];
 
+    /** Status yang membuat saldo kelas kembali & boleh mengajukan lagi. */
+    public const STATUS_KEMBALI = ['rejected', 'failed'];
+
+    /** Kolom bizbos_*, approved_*, rejected_reason, gagal_alasan sengaja tidak fillable (diisi lewat forceFill). */
     protected $casts = [
         'tanggal_penarikan' => 'datetime',
         'approved_at' => 'datetime',
@@ -62,6 +66,27 @@ class KmdTarikSaldo extends Model
         return $this->belongsTo(KomUser::class, 'approved_by');
     }
 
+    /** external_id di Bizbos (idempoten: id yang sama tidak akan dikirim dua kali). */
+    public function bizbosExternalId(): string
+    {
+        return 'kom-tarik-' . $this->id;
+    }
+
+    /** Sudah pernah dicoba dikirim ke Bizbos → tidak boleh ditolak/diubah manual sebelum dicek. */
+    public function sudahKeBizbos(): bool
+    {
+        return (bool) ($this->bizbos_payout_id || $this->bizbos_status);
+    }
+
+    public function getAlasanAttribute(): ?string
+    {
+        return match ($this->status) {
+            'rejected' => $this->rejected_reason,
+            'failed' => $this->gagal_alasan,
+            default => null,
+        };
+    }
+
     /**
      * Get formatted amount
      */
@@ -79,7 +104,7 @@ class KmdTarikSaldo extends Model
             'pending' => 'bg-warning',
             'approved' => 'bg-info',
             'completed' => 'bg-success',
-            'rejected' => 'bg-danger',
+            'rejected', 'failed' => 'bg-danger',
             default => 'bg-secondary'
         };
     }
@@ -94,6 +119,7 @@ class KmdTarikSaldo extends Model
             'approved' => 'Disetujui',
             'completed' => 'Selesai',
             'rejected' => 'Ditolak',
+            'failed' => 'Gagal (saldo kembali)',
             default => ucfirst($this->status)
         };
     }

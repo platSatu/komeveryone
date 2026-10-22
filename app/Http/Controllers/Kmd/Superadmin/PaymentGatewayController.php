@@ -34,6 +34,8 @@ class PaymentGatewayController extends Controller
             'adaSecret' => $this->setting->adaNilai('bizbos_secret'),
             'adaWebhookSecret' => $this->setting->adaNilai('bizbos_webhook_secret'),
             'bizbosLengkap' => $this->setting->bizbosLengkap(),
+            'payoutDipilih' => $this->setting->get('bizbos_payout') === '1',
+            'payoutAktif' => $this->setting->payoutAktif(),
             'webhookUrl' => url('/api/bizbos/webhook'),
             'originPopup' => $this->origin(url('/')),
         ]);
@@ -47,12 +49,15 @@ class PaymentGatewayController extends Controller
             'bizbos_api_key' => ['nullable', 'string', 'max:255'],
             'bizbos_secret' => ['nullable', 'string', 'max:255'],
             'bizbos_webhook_secret' => ['nullable', 'string', 'max:255'],
+            'bizbos_payout' => ['nullable', 'boolean'],
         ], [
             'bizbos_base_url.url' => __('Base URL Bizbos harus berupa alamat lengkap, mis. https://app.bizbos.id'),
         ]);
 
-        // Memilih BB (Bizbos) → semua kredensial wajib ada (yang baru diisi atau yang sudah tersimpan)
-        if ($data['gateway'] === PaymentGatewaySetting::BIZBOS) {
+        $data['bizbos_payout'] = $request->boolean('bizbos_payout') ? '1' : '0';
+
+        // Memilih BB (Bizbos) / tarik dana lewat Bizbos → semua kredensial wajib ada (yang baru diisi atau yang sudah tersimpan)
+        if ($data['gateway'] === PaymentGatewaySetting::BIZBOS || $data['bizbos_payout'] === '1') {
             $kurang = [];
             if (! ($data['bizbos_base_url'] ?? $this->setting->bizbosBaseUrl())) $kurang['bizbos_base_url'] = __('Base URL wajib diisi.');
             if (! ($data['bizbos_api_key'] ?? $this->setting->bizbosApiKey())) $kurang['bizbos_api_key'] = __('API Key wajib diisi.');
@@ -72,7 +77,7 @@ class PaymentGatewayController extends Controller
         $this->setting->simpan($data, Auth::id());
 
         Log::warning('[PaymentGateway] Setting diubah.', [
-            'oleh' => Auth::id(), 'gateway_lama' => $lama, 'gateway_baru' => $data['gateway'],
+            'oleh' => Auth::id(), 'gateway_lama' => $lama, 'gateway_baru' => $data['gateway'], 'tarik_dana_bizbos' => $data['bizbos_payout'],
         ]);
 
         return redirect()->route('kom.super_payment_gateway.index')
