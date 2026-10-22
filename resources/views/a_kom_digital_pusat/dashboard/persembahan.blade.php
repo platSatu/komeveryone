@@ -174,6 +174,10 @@ document.getElementById('donationForm').addEventListener('submit', function(e) {
         'Memeriksa pembayaran...' => __('Memeriksa pembayaran...'),
         'Pembayaran belum kami terima. Jika Anda sudah membayar, tunggu sebentar lalu klik tombol cek lagi.' => __('Pembayaran belum kami terima. Jika Anda sudah membayar, tunggu sebentar lalu klik tombol cek lagi.'),
         'Cek lagi' => __('Cek lagi'),
+        'Menunggu pembayaran' => __('Menunggu pembayaran'),
+        'Silakan selesaikan pembayaran di jendela pembayaran. Halaman ini akan otomatis diperbarui begitu pembayaran kami terima.' => __('Silakan selesaikan pembayaran di jendela pembayaran. Halaman ini akan otomatis diperbarui begitu pembayaran kami terima.'),
+        'Saya sudah bayar, cek sekarang' => __('Saya sudah bayar, cek sekarang'),
+        'Pembayaran ini sudah tidak berlaku. Silakan muat ulang halaman untuk membuat pembayaran baru.' => __('Pembayaran ini sudah tidak berlaku. Silakan muat ulang halaman untuk membuat pembayaran baru.'),
         'Tutup' => __('Tutup'),
         'Belum dibayar' => __('Belum dibayar'),
         'Terjadi kesalahan jaringan. Silakan coba lagi.' => __('Terjadi kesalahan jaringan. Silakan coba lagi.'),
@@ -318,8 +322,10 @@ document.getElementById('donationForm').addEventListener('submit', function (e) 
           // kom_v02: popup BB (Bizbos). Status lunas tetap dicek ke server, bukan dari popup.
           if (window.BizbosPay) {
             window.BizbosPay.open(data.checkout_url, {
-              onSuccess: () => cekPembayaranBizbos(true),
-              onClose: () => cekPembayaranBizbos(false),
+              // Popup bisa "terputus" saat pindah ke Duitku (aturan keamanan browser), jadi
+              // jendela ini menunggu sambil mengecek ke server, bukan langsung bilang belum dibayar.
+              onSuccess: () => tungguPembayaranBizbos(),
+              onClose: () => tungguPembayaranBizbos(),
             });
           } else {
             window.location.href = data.checkout_url;
@@ -368,6 +374,57 @@ function cekPembayaranBizbos(dariPopupBerhasil) {
       }).then(r => { if (r.isConfirmed) cekPembayaranBizbos(dariPopupBerhasil); });
     })
     .catch(() => Swal.fire(komT('Error'), komT('Terjadi kesalahan jaringan. Silakan coba lagi.'), 'error'));
+}
+
+// kom_v02: tunggu pembayaran BB (Bizbos) — cek otomatis ke server tiap 5 detik, maksimal 10 menit
+let timerBizbos = null;
+function tungguPembayaranBizbos() {
+  clearInterval(timerBizbos);
+  let percobaan = 0, selesai = false;
+
+  const akhiri = (data) => {
+    if (selesai) return;
+    selesai = true;
+    clearInterval(timerBizbos);
+    if (data.status === 'paid' || data.redirect) {
+      Swal.fire(komT('Berhasil'), komT('Terima kasih atas persembahan Anda!'), 'success')
+        .then(() => window.location.href = data.redirect || "{{ route('kom.peserta.kelas_tutorial') }}");
+    } else {
+      Swal.fire(komT('Waktu habis'), komT('Pembayaran ini sudah tidak berlaku. Silakan muat ulang halaman untuk membuat pembayaran baru.'), 'warning');
+    }
+  };
+  const final = (data) => data.status === 'paid' || !!data.redirect || data.status === 'expired' || data.status === 'cancelled';
+  const cek = () => fetch("{{ route('kom.persembahan.cek') }}", {
+    method: 'POST',
+    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+  }).then(res => res.json());
+
+  Swal.fire({
+    icon: 'info',
+    title: komT('Menunggu pembayaran'),
+    text: komT('Silakan selesaikan pembayaran di jendela pembayaran. Halaman ini akan otomatis diperbarui begitu pembayaran kami terima.'),
+    showCancelButton: true,
+    confirmButtonText: komT('Saya sudah bayar, cek sekarang'),
+    cancelButtonText: komT('Tutup'),
+    showLoaderOnConfirm: true,
+    allowOutsideClick: false,
+    // tombol cek manual: dialog tetap terbuka sampai pembayaran diterima
+    preConfirm: () => cek()
+      .then(data => {
+        if (final(data)) return data;
+        Swal.showValidationMessage(komT('Pembayaran belum kami terima. Jika Anda sudah membayar, tunggu sebentar lalu klik tombol cek lagi.'));
+        return false;
+      })
+      .catch(() => {
+        Swal.showValidationMessage(komT('Terjadi kesalahan jaringan. Silakan coba lagi.'));
+        return false;
+      }),
+  }).then(r => { if (r.isConfirmed && r.value) akhiri(r.value); });
+
+  // cek otomatis di belakang layar (tetap jalan walau dialog ditutup)
+  const cekOtomatis = () => cek().then(data => { if (final(data)) akhiri(data); }).catch(() => {});
+  cekOtomatis();
+  timerBizbos = setInterval(() => { if (++percobaan > 120) return clearInterval(timerBizbos); cekOtomatis(); }, 5000);
 }
 
 // kembali dari halaman bayar Bizbos (mode redirect) → langsung cek status
