@@ -162,9 +162,8 @@ document.getElementById('donationForm').addEventListener('submit', function(e) {
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 {{-- kom_v02: script pembayaran mengikuti gateway aktif (menu Admin Kom › Payment Gateway) --}}
-@if (($gateway ?? 'midtrans') === 'bizbos' && !empty($bizbosBaseUrl))
-<script src="{{ $bizbosBaseUrl }}/js/bizbos-pay.js"></script>
-@else
+{{-- BB (Bizbos) dibuka di tab yang sama (tanpa popup), jadi tidak perlu script tambahan --}}
+@if (($gateway ?? 'midtrans') !== 'bizbos')
 {{-- snap.js sandbox / production mengikuti MIDTRANS_IS_PRODUCTION --}}
 <script src="{{ config('midtrans.is_production', true) ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js' }}" data-client-key="{{ config('midtrans.client_key') }}"></script>
 @endif
@@ -175,7 +174,8 @@ document.getElementById('donationForm').addEventListener('submit', function(e) {
         'Pembayaran belum kami terima. Jika Anda sudah membayar, tunggu sebentar lalu klik tombol cek lagi.' => __('Pembayaran belum kami terima. Jika Anda sudah membayar, tunggu sebentar lalu klik tombol cek lagi.'),
         'Cek lagi' => __('Cek lagi'),
         'Menunggu pembayaran' => __('Menunggu pembayaran'),
-        'Silakan selesaikan pembayaran di jendela pembayaran. Halaman ini akan otomatis diperbarui begitu pembayaran kami terima.' => __('Silakan selesaikan pembayaran di jendela pembayaran. Halaman ini akan otomatis diperbarui begitu pembayaran kami terima.'),
+        'Kami sedang memastikan pembayaran Anda. Halaman ini akan otomatis diperbarui begitu pembayaran kami terima.' => __('Kami sedang memastikan pembayaran Anda. Halaman ini akan otomatis diperbarui begitu pembayaran kami terima.'),
+        'Membuka halaman pembayaran...' => __('Membuka halaman pembayaran...'),
         'Saya sudah bayar, cek sekarang' => __('Saya sudah bayar, cek sekarang'),
         'Pembayaran ini sudah tidak berlaku. Silakan muat ulang halaman untuk membuat pembayaran baru.' => __('Pembayaran ini sudah tidak berlaku. Silakan muat ulang halaman untuk membuat pembayaran baru.'),
         'Tutup' => __('Tutup'),
@@ -319,17 +319,10 @@ document.getElementById('donationForm').addEventListener('submit', function (e) 
         cancelButtonText: komT('Batal'),
       }).then((result) => {
         if (result.isConfirmed && data.gateway === 'bizbos') {
-          // kom_v02: popup BB (Bizbos). Status lunas tetap dicek ke server, bukan dari popup.
-          if (window.BizbosPay) {
-            window.BizbosPay.open(data.checkout_url, {
-              // Popup bisa "terputus" saat pindah ke Duitku (aturan keamanan browser), jadi
-              // jendela ini menunggu sambil mengecek ke server, bukan langsung bilang belum dibayar.
-              onSuccess: () => tungguPembayaranBizbos(),
-              onClose: () => tungguPembayaranBizbos(),
-            });
-          } else {
-            window.location.href = data.checkout_url;
-          }
+          // kom_v02: BB (Bizbos) di tab yang sama — satu window saja. Setelah bayar, Bizbos
+          // mengarahkan kembali ke halaman ini (?cek=1) dan status lunas dicek ke server.
+          Swal.fire({ title: komT('Membuka halaman pembayaran...'), allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+          window.location.href = data.checkout_url;
           return;
         }
         if (result.isConfirmed) {
@@ -402,7 +395,7 @@ function tungguPembayaranBizbos() {
   Swal.fire({
     icon: 'info',
     title: komT('Menunggu pembayaran'),
-    text: komT('Silakan selesaikan pembayaran di jendela pembayaran. Halaman ini akan otomatis diperbarui begitu pembayaran kami terima.'),
+    text: komT('Kami sedang memastikan pembayaran Anda. Halaman ini akan otomatis diperbarui begitu pembayaran kami terima.'),
     showCancelButton: true,
     confirmButtonText: komT('Saya sudah bayar, cek sekarang'),
     cancelButtonText: komT('Tutup'),
@@ -427,9 +420,9 @@ function tungguPembayaranBizbos() {
   timerBizbos = setInterval(() => { if (++percobaan > 120) return clearInterval(timerBizbos); cekOtomatis(); }, 5000);
 }
 
-// kembali dari halaman bayar Bizbos (mode redirect) → langsung cek status
+// kembali dari halaman bayar Bizbos → cek & tunggu otomatis sampai lunas
 if (new URLSearchParams(window.location.search).get('cek') === '1') {
-  document.addEventListener('DOMContentLoaded', () => cekPembayaranBizbos(true));
+  document.addEventListener('DOMContentLoaded', () => tungguPembayaranBizbos());
 }
 </script>
 <style>
