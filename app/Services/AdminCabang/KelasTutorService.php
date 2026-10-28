@@ -390,6 +390,13 @@ class KelasTutorService
 
         $kelas = KmdClassTutorial::create($data);
 
+        // kom_v02: kabar ke pusat & admin cabang bahwa kelas baru dibuka (lewat antrean, tidak memperlambat)
+        try {
+            app(\App\Services\Kmd\NotifikasiKelasService::class)->kelasDibuka($kelas);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         if ($data['notifikasi']) {
             // Hitung waktu delay untuk job, notifMinutesBefore menit sebelum start_time
             $startAt = Carbon::parse($data['start_time'], 'Asia/Jakarta');

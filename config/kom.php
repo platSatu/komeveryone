@@ -18,4 +18,19 @@ return [
         'tenggang_menit' => (int) env('KOM_TENGGANG_CHECKOUT_MENIT', 5),
     ],
 
+    // Email notifikasi kelas tutorial (App\Services\Kmd\NotifikasiKelasService).
+    'notifikasi' => [
+        // Saklar utama. Mati = tidak ada email notifikasi baru (email terima kasih yang lama tetap jalan).
+        'aktif' => (bool) env('KOM_NOTIFIKASI_AKTIF', false),
+
+        // Penerima tetap saat kelas tutorial baru dibuka (selain admin cabang).
+        'email_pusat' => env('KOM_EMAIL_NOTIFIKASI', 'natanaeltamto@gmail.com'),
+
+        // Jarak pengingat persembahan yang belum selesai (menit).
+        'pengingat_bayar_menit' => (int) env('KOM_PENGINGAT_BAYAR_MENIT', 5),
+
+        // Pengingat "hari H" dikirim mulai jam ini (WIB) pada hari kelas.
+        'jam_pengingat_hari_h' => (int) env('KOM_JAM_PENGINGAT_HARI_H', 6),
+    ],
+
 ];

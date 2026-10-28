@@ -19,6 +19,10 @@ Artisan::command('inspire', function () {
 // supaya peserta tidak terkunci di halaman persembahan. Lokal: `php artisan schedule:work`.
 Schedule::command('kom:bersihkan-checkout')->everyMinute()->withoutOverlapping();
 
+// kom_v02: pengingat persembahan (tiap 5 menit) & pengingat kelas tutorial (H-3, H-2, hari H, 1 jam).
+// Hanya mengirim kalau KOM_NOTIFIKASI_AKTIF=true; tiap email tercatat supaya tidak terkirim dobel.
+Schedule::command('kom:kirim-notifikasi')->everyMinute()->withoutOverlapping();
+
 // kom_v02: email (verifikasi daftar, reset password, dll.) dikirim lewat antrean (QUEUE_CONNECTION=database).
 // Tanpa queue worker yang menyala terus, email hanya menumpuk di tabel `jobs` dan tidak pernah terkirim.
 // Antrean diproses tiap menit lewat scheduler yang sama (cron `schedule:run`), berhenti sendiri saat antrean kosong.

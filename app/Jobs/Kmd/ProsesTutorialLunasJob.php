@@ -2,22 +2,21 @@
 
 namespace App\Jobs\Kmd;
 
-use App\Mail\ThankYouDonasiMail;
 use App\Models\Kmd\KmdDonasi;
 use App\Models\Kmd\KmdUserClassTutorial;
 use App\Services\AdminCabang\KelasTutorService;
+use App\Services\Kmd\NotifikasiKelasService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 /**
  * kom_v02 (performa) — pekerjaan SETELAH pendaftaran kelas tutorial lunas, dijalankan di queue:
  *   1. daftarkan peserta ke meeting Zoom (ambil link join pribadi)
- *   2. kirim email terima kasih + link Zoom (hanya jika ada persembahan)
+ *   2. kirim email terima kasih (+ link Zoom bila sudah ada), hanya jika ada persembahan
  *
  * Sebelumnya dua hal ini dikerjakan langsung di dalam callback Midtrans, sehingga kalau
  * Zoom / server email lambat, callback ikut lambat dan menumpuk saat banyak yang membayar.
@@ -60,35 +59,36 @@ class ProsesTutorialLunasJob implements ShouldQueue
         }
 
         // 1. Pendaftaran Zoom (lewati jika sudah pernah)
+        $gagalZoom = null;
         $meetingId = optional($booking->classTutorial)->zoom_meeting_id;
         if (! $booking->zoom_join_url && ! $booking->zoom_registrant_id && $meetingId && $user) {
-            // melempar exception jika gagal → job otomatis dicoba ulang
-            $registrant = $zoom->registerZoomRegistrant($meetingId, $user->email, $user->name ?? 'Peserta');
+            try {
+                $registrant = $zoom->registerZoomRegistrant($meetingId, $user->email, $user->name ?? 'Peserta');
 
-            $booking->zoom_join_url = $registrant['join_url'] ?? null;
-            $booking->zoom_registrant_id = $registrant['registrant_id'] ?? null;
-            $booking->save();
+                $booking->zoom_join_url = $registrant['join_url'] ?? null;
+                $booking->zoom_registrant_id = $registrant['registrant_id'] ?? null;
+                $booking->save();
+            } catch (\Throwable $e) {
+                $gagalZoom = $e; // dicoba ulang setelah email terima kasih tetap terkirim
+            }
         }
 
-        // 2. Email terima kasih + link Zoom (hanya untuk pendaftaran dengan persembahan)
-        if (! $this->donasiId) {
-            return;
-        }
+        // 2. Email terima kasih (hanya untuk pendaftaran dengan persembahan).
+        //    kom_v02: tetap terkirim walaupun Zoom gagal (link Zoom ada di menu "Kelas Tutorial Saya"),
+        //    dan hanya sekali walaupun job dicoba ulang (dicatat di kom_notifikasi_terkirim).
+        $donasi = $this->donasiId ? KmdDonasi::find($this->donasiId) : null;
 
-        $donasi = KmdDonasi::find($this->donasiId);
-        $email = optional($user)->email;
-        $joinUrl = $booking->zoom_join_url;
-
-        if (! $donasi || ! $email || ! $joinUrl) {
+        if ($donasi && optional($user)->email) {
+            app(NotifikasiKelasService::class)->terimaKasihPeserta($booking, $donasi);
+        } elseif ($this->donasiId) {
             Log::warning('[ProsesTutorialLunasJob] Email tidak dikirim karena data tidak lengkap.', [
-                'booking_id' => $booking->id, 'donasi_id' => $this->donasiId,
-                'ada_email' => (bool) $email, 'ada_link_zoom' => (bool) $joinUrl,
+                'booking_id' => $booking->id, 'donasi_id' => $this->donasiId, 'ada_email' => (bool) optional($user)->email,
             ]);
-
-            return;
         }
 
-        Mail::to($email)->send(new ThankYouDonasiMail($donasi, $joinUrl));
+        if ($gagalZoom) {
+            throw $gagalZoom; // job otomatis dicoba ulang untuk pendaftaran Zoom
+        }
     }
 
     public function failed(\Throwable $e): void

@@ -703,6 +703,13 @@ class KelasTutorialController extends Controller
         if ($diproses) {
             // dijalankan worker queue (php artisan queue:work); jika QUEUE_CONNECTION=sync, langsung jalan
             \App\Jobs\Kmd\ProsesTutorialLunasJob::dispatch((string) $userClassTutorialId, $donasiId);
+
+            // kom_v02: kabar ke admin cabang bahwa peserta sudah tergabung (lewat antrean)
+            try {
+                app(\App\Services\Kmd\NotifikasiKelasService::class)->pesertaBergabung((string) $userClassTutorialId);
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         return $diproses;
