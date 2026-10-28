@@ -26,3 +26,10 @@ public/videos/
 
 # kom_v02: paket upload VPS (dibuat deploy/buat-paket-upload.ps1)
 /deploy/paket/
+
+# File buatan aplikasi per user (QR & sertifikat): tidak ikut git, isinya dibawa dari server.
+# Template sertifikat tetap ikut git.
+/public/kmdqr/*
+!/public/kmdqr/.gitkeep
+/public/kmdsertifikat/*
+!/public/kmdsertifikat/sertifikat.jpg
