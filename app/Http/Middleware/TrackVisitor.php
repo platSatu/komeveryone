@@ -23,51 +23,47 @@ class TrackVisitor
      */
     public function handle(Request $request, Closure $next): Response
     {
+        return $next($request);
+    }
+
+    /**
+     * kom_v02 (performa): dicatat SETELAH halaman terkirim ke pengunjung (terminable middleware),
+     * cukup 1x simpan lengkap dengan status code. Sebelumnya 2x tulis database (simpan + update)
+     * sebelum halaman selesai, di setiap halaman. Gagal mencatat tidak boleh mengganggu pengunjung.
+     */
+    public function terminate(Request $request, Response $response): void
+    {
         if (! $this->shouldTrack($request)) {
-            return $next($request);
+            return;
         }
 
-        // Mendapatkan informasi yang diperlukan
-        $ipAddress = $request->ip(); // Mendapatkan IP pengunjung
-        $browser = $request->header('User-Agent'); // Mendapatkan informasi browser
-        $pageUrl = $request->url(); // URL halaman yang dikunjungi
-        $method = $request->method(); // HTTP Method (GET, POST, dll.)
-        $referrer = $request->header('Referer'); // Referrer URL (jika ada)
+        $data = [
+            'ip_address' => $request->ip(),
+            'browser' => $request->header('User-Agent'),
+            // Kolom page_url & referrer maksimal 500 karakter.
+            'page_url' => \Illuminate\Support\Str::limit($request->url(), 500, ''),
+            'method' => $request->method(),
+            'referrer' => \Illuminate\Support\Str::limit((string) $request->header('Referer'), 500, '') ?: null,
+            'status_code' => $response->getStatusCode(),
+            'visited_at' => now('Asia/Jakarta'),
+        ];
 
-        // Menyimpan data pengunjung ke dalam database sebelum response
-        $visitorHistory = VisitorHistory::create([
-            'ip_address' => $ipAddress,
-            'browser' => $browser,
-            'page_url' => $pageUrl,
-            'visited_at' => now('Asia/Jakarta'), // Waktu saat ini sesuai timezone Asia/Jakarta
-            'method' => $method, // HTTP method (GET, POST, dll.)
-            'referrer' => $referrer, // Referrer URL
-        ]);
+        try {
+            VisitorHistory::create($data);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
-        // Mendapatkan response setelah middleware selesai dan mendapatkan status code
-        $response = $next($request);
-
-        // Mendapatkan status code setelah response
-        $statusCode = $response->getStatusCode(); // Status code dari response
-
-        // Update status code pada visitor history
-        $visitorHistory->update(['status_code' => $statusCode]);
-
-        // Cek jika URL yang diakses mencurigakan
-        if ($this->isSuspiciousRequest($pageUrl)) {
-            // Menyimpan log jika URL yang diakses mencurigakan
+        if ($this->isSuspiciousRequest($data['page_url'])) {
             \Log::warning('Suspicious access attempt', [
-                'ip' => $ipAddress,
-                'user_agent' => $browser,
-                'url' => $pageUrl,
-                'method' => $method,
-                'referrer' => $referrer,
-                'status_code' => $statusCode,
+                'ip' => $data['ip_address'],
+                'user_agent' => $data['browser'],
+                'url' => $data['page_url'],
+                'method' => $data['method'],
+                'referrer' => $data['referrer'],
+                'status_code' => $data['status_code'],
             ]);
         }
-
-        // Mengembalikan response
-        return $response;
     }
 
     /**

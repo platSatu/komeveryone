@@ -726,9 +726,10 @@ Route::prefix('app')->group(function () {
             // Pengunjung versi log nginx (sumber beda dari VisitorStatisticController
             // di atas -- ini dari tabel nginx_access_logs hasil import access.log nginx,
             // lihat App\Console\Commands\ImportNginxLog).
-            Route::prefix('nginx-log-statistik')->controller(NginxLogStatisticController::class)->middleware(['auth:web', 'cekrolekom:superadmin'])->name('super_nginxlog.')->group(function () {
-                Route::get('/', 'index')->name('index');
-            });
+            // kom_v02: dinonaktifkan, cukup satu halaman (Statistik Pengunjung di atas). Aktifkan lagi dengan menghapus komentar.
+            // Route::prefix('nginx-log-statistik')->controller(NginxLogStatisticController::class)->middleware(['auth:web', 'cekrolekom:superadmin'])->name('super_nginxlog.')->group(function () {
+            //     Route::get('/', 'index')->name('index');
+            // });
 
             // kom_v02: Admin KOM — setting payment gateway (Midtrans / BB Bizbos)
             Route::prefix('payment-gateway')->controller(\App\Http\Controllers\Kmd\Superadmin\PaymentGatewayController::class)->middleware(['auth:web', 'cekrolekom:superadmin'])->name('super_payment_gateway.')->group(function () {

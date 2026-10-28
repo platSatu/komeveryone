@@ -33,3 +33,7 @@ public/videos/
 !/public/kmdqr/.gitkeep
 /public/kmdsertifikat/*
 !/public/kmdsertifikat/sertifikat.jpg
+
+# Foto profil yang di-upload user: tidak ikut git (foto lama yang sudah terlanjur tercatat dibiarkan,
+# supaya git pull di server tidak menghapus foto apa pun).
+/public/kom/profile/*

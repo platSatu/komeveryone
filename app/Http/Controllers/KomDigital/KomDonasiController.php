@@ -333,8 +333,9 @@ class KomDonasiController extends Controller
 
                     // Kirim email Zoom
                     try {
-                        Mail::to($donasi->virtual_account_email)->send(new \App\Mail\ZoomLinkMail($zoom->description));
-                        \Log::info('[EMAIL] Link Zoom berhasil dikirim ke: ' . $donasi->virtual_account_email);
+                        // kom_v02 (performa): lewat antrean, supaya callback pembayaran tidak menunggu server email.
+                        Mail::to($donasi->virtual_account_email)->queue(new \App\Mail\ZoomLinkMail($zoom->description));
+                        \Log::info('[EMAIL] Link Zoom masuk antrean untuk: ' . $donasi->virtual_account_email);
                     } catch (\Exception $e) {
                         \Log::error('[EMAIL] Gagal mengirim email Zoom ke: ' . $donasi->virtual_account_email, [
                             'message' => $e->getMessage()

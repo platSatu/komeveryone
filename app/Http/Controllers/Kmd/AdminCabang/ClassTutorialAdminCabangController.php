@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 // Services
 use App\Services\AdminCabang\KelasTutorService;
@@ -91,9 +92,15 @@ class ClassTutorialAdminCabangController extends Controller
                 continue;
             }
 
+            // kom_v02 (performa): data Zoom disimpan 10 menit supaya halaman tidak memanggil API Zoom
+            // setiap kali dibuka. Kalau Zoom gagal, tidak disimpan (dicoba lagi saat halaman dibuka lagi).
             try {
-                $registrants = $this->kelasTutorService->getZoomRegistrants($kelas->zoom_meeting_id);
-                $recordings = $this->kelasTutorService->getZoomCloudRecordings($kelas->zoom_meeting_id);
+                $zoom = Cache::remember(self::zoomCacheKey($kelas->zoom_meeting_id), now()->addMinutes(10), fn () => [
+                    'registrants' => $this->kelasTutorService->getZoomRegistrants($kelas->zoom_meeting_id),
+                    'recordings' => $this->kelasTutorService->getZoomCloudRecordings($kelas->zoom_meeting_id),
+                ]);
+                $registrants = $zoom['registrants'];
+                $recordings = $zoom['recordings'];
             } catch (\Exception $e) {
                 \Log::error("Gagal ambil data Zoom: " . $e->getMessage());
                 $registrants = null;
@@ -107,6 +114,12 @@ class ClassTutorialAdminCabangController extends Controller
         }
 
         return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.index', compact('data', 'zoomData', 'pertanyaans'));
+    }
+
+    /** Kunci cache data Zoom (peserta & rekaman) per meeting. */
+    private static function zoomCacheKey($meetingId): string
+    {
+        return 'kom:zoom-kelas:'.$meetingId;
     }
 
     public function addPesertaZoom($kelasId)
@@ -135,6 +148,7 @@ class ClassTutorialAdminCabangController extends Controller
                 $request->email,
                 $request->name
             );
+            Cache::forget(self::zoomCacheKey($kelas->zoom_meeting_id)); // daftar peserta langsung terlihat
 
             return redirect()->route('kom.kelas_tutor_cabang.index')
                 ->with('success', 'Peserta berhasil ditambahkan ke Zoom meeting.');

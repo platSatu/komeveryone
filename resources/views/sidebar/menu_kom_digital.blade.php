@@ -168,7 +168,9 @@
                 <li><a href="{{ route('kom.super_kelola_kelas.index') }}">{{ __('Kelola Kelas') }}</a></li>
                 <li><a href="{{ route('kom.super_terjemahan.index') }}">{{ __('Terjemahan Tampilan') }}</a></li>
                 <li><a href="{{ route('kom.super_visitor.index') }}">{{ __('Statistik Pengunjung') }}</a></li>
+                {{-- kom_v02: statistik versi log nginx dinonaktifkan (cukup satu: Statistik Pengunjung).
                 <li><a href="{{ route('kom.super_nginxlog.index') }}">{{ __('Statistik Pengunjung (Log Nginx)') }}</a></li>
+                --}}
                 <li><a href="{{ route('kom.super_user.index') }}">Daftar User</a></li>
                 <li><a href="{{ route('kom.inputMassal.index') }}">Input Massal</a></li>
                 <li><a href="{{ route('kom.super_books.index') }}">Input Kode Buku</a></li>

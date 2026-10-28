@@ -109,9 +109,17 @@ class VisitorStatisticController extends Controller
             ->limit(10)
             ->get();
 
+        // kom_v02: ringkasan untuk kartu statistik (rata-rata & puncak per hari/bulan).
+        $bucketCount = max(1, count($chartValues));
+        $peakIndex = $chartValues ? array_search(max($chartValues), $chartValues, true) : false;
+
         return view('a_kom_digital_pusat.superadmin.visitor.index', [
             'period' => $period,
             'totalVisits' => $totalVisits,
+            'bucketLabel' => $groupByMonth ? __('bulan') : __('hari'),
+            'average' => (int) round($totalVisits / $bucketCount),
+            'peakLabel' => $peakIndex !== false && $chartValues[$peakIndex] > 0 ? $chartLabels[$peakIndex] : null,
+            'peakValue' => $peakIndex !== false ? $chartValues[$peakIndex] : 0,
             'chartLabels' => $chartLabels,
             'chartValues' => $chartValues,
             'topPages' => $topPages,
