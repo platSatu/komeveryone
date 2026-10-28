@@ -17,3 +17,8 @@ Schedule::command('nginx:import-log')->everyFiveMinutes()->withoutOverlapping();
 // kom_v02: hapus pendaftaran kelas tutorial yang tidak jadi dibayar (lewat batas waktu persembahan),
 // supaya peserta tidak terkunci di halaman persembahan. Lokal: `php artisan schedule:work`.
 Schedule::command('kom:bersihkan-checkout')->everyMinute()->withoutOverlapping();
+
+// kom_v02: email (verifikasi daftar, reset password, dll.) dikirim lewat antrean (QUEUE_CONNECTION=database).
+// Tanpa queue worker yang menyala terus, email hanya menumpuk di tabel `jobs` dan tidak pernah terkirim.
+// Antrean diproses tiap menit lewat scheduler yang sama (cron `schedule:run`), berhenti sendiri saat antrean kosong.
+Schedule::command('queue:work --stop-when-empty --tries=3 --max-time=55')->everyMinute()->withoutOverlapping();

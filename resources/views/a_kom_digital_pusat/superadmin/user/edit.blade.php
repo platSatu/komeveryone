@@ -66,6 +66,22 @@
                             </select>
                         </div>
 
+                        {{-- kom_v02: status akun. Hanya "Aktif" yang bisa login. Data lama "1" juga dianggap aktif. --}}
+                        <div class="form-group">
+                            <label class="d-block">Status Akun</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="status" id="status_aktif" value="aktif"
+                                    {{ old('status', in_array((string) $data->status, ['aktif', '1'], true) ? 'aktif' : 'tidak_aktif') === 'aktif' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="status_aktif">Aktif (bisa login)</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="status" id="status_tidak_aktif" value="tidak_aktif"
+                                    {{ old('status', in_array((string) $data->status, ['aktif', '1'], true) ? 'aktif' : 'tidak_aktif') === 'tidak_aktif' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="status_tidak_aktif">Tidak Aktif</label>
+                            </div>
+                            <small class="form-text text-muted d-block">Mengaktifkan akun juga menandai email user sebagai sudah terverifikasi.</small>
+                        </div>
+
                         <div class="form-group">
                             <label for="role">Role</label>
                             <select name="role" class="form-control">

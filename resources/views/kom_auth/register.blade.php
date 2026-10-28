@@ -266,7 +266,7 @@
                 placeholder: "-- Pilih Rayon --",
                 allowClear: true,
                 ajax: {
-                    url: 'https://gbigatsu.id/api/kom-digital/api/rayon-search',
+                    url: @json(url('/api/kom-digital/api/rayon-search')), // kom_v02: panggil server sendiri (bukan domain lain)
                     dataType: 'json',
                     delay: 250,
                     data: params => ({
@@ -277,7 +277,7 @@
                     }),
                     cache: true
                 },
-                minimumInputLength: 1,
+                minimumInputLength: 0, // kom_v02: daftar cabang langsung tampil saat dibuka
                 width: '100%'
             });
 

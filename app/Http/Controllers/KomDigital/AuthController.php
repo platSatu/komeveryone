@@ -176,7 +176,8 @@ class AuthController extends Controller
     }
 
     // 🚫 cek status akun
-    if ($user->status !== 'aktif') {
+    // kom_v02: data lama yang tersimpan "1" (dari tombol status superadmin versi lama) juga dianggap aktif
+    if (! in_array((string) $user->status, ['aktif', '1'], true)) {
         Log::info('Login blocked: account not active', [
             'email' => $user->email,
             'status' => $user->status,
@@ -424,111 +425,86 @@ class AuthController extends Controller
         return $response;
     }
 
-    // Kalau perlu, method search untuk AJAX juga bisa dipisah:
+    /**
+     * kom_v02: daftar nama CABANG gereja untuk pilihan "Asal Gereja" di form register peserta.
+     * Sumber: API HM Ministry (cabang_api.php). Disimpan di cache 6 jam supaya form tetap cepat
+     * walau API sedang lambat; kalau API gagal, hasil terakhir yang berhasil tetap dipakai.
+     */
     public function rayonSearch(Request $request)
     {
-        try {
-            $searchTerm = $request->query('q');
-            Log::info('RayonSearch called', ['query' => $searchTerm]);
-
-            // Ambil data dari API eksternal
-            $response = Http::timeout(30)->withOptions(['verify' => false])
-                ->get('https://hmministry.net/api/cabang_api.php');
-
-            if (!$response->successful()) {
-                Log::error('API cabang gagal', [
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-                return response()->json(['results' => []]);
-            }
-
-            $cabangs = $response->json();
-
-            if (!is_array($cabangs)) {
-                Log::error('Data dari API bukan array', ['data' => $response->body()]);
-                return response()->json(['results' => []]);
-            }
-
-            Log::info('Jumlah cabang sebelum filter', ['total' => count($cabangs)]);
-
-            $filtered = collect($cabangs)->filter(function ($item) use ($searchTerm) {
-                return stripos($item['nmcabang'] ?? '', $searchTerm) !== false;
-            });
-
-            Log::info('Jumlah cabang setelah filter', ['filtered' => $filtered->count()]);
-
-            $results = $filtered->map(function ($item) {
-                return [
-                    'id' => $item['nmcabang'],
-                    'text' => $item['nmcabang']
-                ];
-            })->values();
-
-            Log::info('RayonSearch berhasil', ['result_count' => $results->count()]);
-
-            return response()->json(['results' => $results]);
-
-        } catch (\Exception $e) {
-            Log::error('Exception saat rayonSearch', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return response()->json(['results' => []], 500);
-        }
+        return $this->cariDaftarGereja(
+            'kom_daftar_cabang_gereja',
+            'https://hmministry.net/api/cabang_api.php',
+            'nmcabang',
+            (string) $request->query('q', ''),
+            true
+        );
     }
 
+    /** kom_v02: daftar nama CK / Rayon untuk form register pengajar (rayon_api.php). */
     public function asalRayon(Request $request)
     {
-        try {
-            $searchTerm = $request->query('q');
-            Log::info('RayonSearch called', ['query' => $searchTerm]);
+        return $this->cariDaftarGereja(
+            'kom_daftar_rayon_gereja',
+            'https://hmministry.net/api/rayon_api.php',
+            'nmrayon',
+            (string) $request->query('q', ''),
+            false
+        );
+    }
 
-            // Ambil data dari API eksternal
-            $response = Http::timeout(30)->withOptions(['verify' => false])
-                ->get('https://hmministry.net/api/rayon_api.php');
+    /**
+     * Ambil daftar nama dari API HM Ministry (pakai cache), saring sesuai ketikan,
+     * kembalikan format Select2: {"results":[{"id":"...","text":"..."}]}
+     */
+    protected function cariDaftarGereja(string $cacheKey, string $url, string $kolom, string $cari, bool $denganLainnya)
+    {
+        $daftar = \Illuminate\Support\Facades\Cache::get($cacheKey);
 
-            if (!$response->successful()) {
-                Log::error('API cabang gagal', [
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-                return response()->json(['results' => []]);
+        if (! is_array($daftar) || $daftar === []) {
+            try {
+                $response = Http::timeout(20)->withOptions(['verify' => false])->get($url);
+                $json = $response->successful() ? $response->json() : null;
+
+                if (is_array($json)) {
+                    $daftar = collect($json)
+                        ->pluck($kolom)
+                        ->filter(fn ($n) => is_string($n) && trim($n) !== '')
+                        ->map(fn ($n) => trim($n))
+                        ->unique()
+                        ->sort(SORT_NATURAL | SORT_FLAG_CASE)
+                        ->values()
+                        ->all();
+
+                    if ($daftar) {
+                        \Illuminate\Support\Facades\Cache::put($cacheKey, $daftar, now()->addHours(6));
+                        \Illuminate\Support\Facades\Cache::forever($cacheKey . '_cadangan', $daftar);
+                    }
+                } else {
+                    Log::warning('API daftar gereja gagal', ['url' => $url, 'status' => $response->status()]);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('API daftar gereja tidak bisa dihubungi', ['url' => $url, 'pesan' => $e->getMessage()]);
             }
 
-            $cabangs = $response->json();
-
-            if (!is_array($cabangs)) {
-                Log::error('Data dari API bukan array', ['data' => $response->body()]);
-                return response()->json(['results' => []]);
+            // API gagal → pakai hasil terakhir yang pernah berhasil
+            if (! is_array($daftar) || $daftar === []) {
+                $daftar = \Illuminate\Support\Facades\Cache::get($cacheKey . '_cadangan', []);
             }
-
-            Log::info('Jumlah cabang sebelum filter', ['total' => count($cabangs)]);
-
-            $filtered = collect($cabangs)->filter(function ($item) use ($searchTerm) {
-                return stripos($item['nmrayon'] ?? '', $searchTerm) !== false;
-            });
-
-            Log::info('Jumlah cabang setelah filter', ['filtered' => $filtered->count()]);
-
-            $results = $filtered->map(function ($item) {
-                return [
-                    'id' => $item['nmrayon'],
-                    'text' => $item['nmrayon']
-                ];
-            })->values();
-
-            Log::info('RayonSearch berhasil', ['result_count' => $results->count()]);
-
-            return response()->json(['results' => $results]);
-
-        } catch (\Exception $e) {
-            Log::error('Exception saat rayonSearch', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return response()->json(['results' => []], 500);
         }
+
+        $cari = trim($cari);
+        $hasil = collect($daftar)
+            ->filter(fn ($n) => $cari === '' || stripos($n, $cari) !== false)
+            ->take(100)
+            ->map(fn ($n) => ['id' => $n, 'text' => $n])
+            ->values();
+
+        if ($denganLainnya) {
+            $hasil->push(['id' => 'other', 'text' => 'Lainnya (tidak ada di daftar)']);
+        }
+
+        return response()->json(['results' => $hasil]);
     }
 
     public function registerTutor(Request $request)
@@ -970,7 +946,7 @@ class AuthController extends Controller
         ]);
 
         $user = KomUser::findOrFail($id);
-        $user->status = $request->status;
+        $user->status = $request->boolean('status') ? 'aktif' : 'tidak_aktif'; // kom_v02: samakan dengan login
         $user->save();
 
         return redirect()->route('kom.users.index')->with('success', 'Status user berhasil diperbarui.');

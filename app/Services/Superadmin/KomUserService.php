@@ -115,6 +115,11 @@ class KomUserService
             unset($data['password']);
         }
 
+        // kom_v02: diaktifkan superadmin = dianggap sudah terverifikasi (sama dengan tombol status di daftar user).
+        if (($data['status'] ?? null) === 'aktif' && ! $user->email_verified_at) {
+            $data['email_verified_at'] = now();
+        }
+
         return $user->update($data);
     }
 

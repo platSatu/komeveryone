@@ -28,6 +28,7 @@ use App\Models\Kmd\KmdBooks;
 use App\Models\Kmd\KmdPertanyaanUser;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 
 
 
@@ -59,6 +60,43 @@ class KomUserController extends Controller
             'totalActiveKmdClassTutorial',
             'totalDonations'
         ));
+    }
+
+    /**
+     * kom_v02: daftar CK/Rayon untuk filter halaman user.
+     * Dulu diambil langsung oleh browser dari gbigatsu.id, sering gagal (koneksi/CORS) sehingga muncul popup
+     * "Gagal Memuat Data". Sekarang diambil server dan disimpan 6 jam; kalau API luar sedang bermasalah,
+     * dipakai daftar terakhir yang berhasil, jadi halaman tetap jalan.
+     */
+    public function asalRayon()
+    {
+        $items = Cache::get('kom:asal-rayon');
+
+        if ($items === null) {
+            try {
+                $data = Http::timeout(10)->acceptJson()->get('https://gbigatsu.id/api/kom-digital/api/asal-rayon')->json();
+                $rows = $data['results'] ?? $data['data'] ?? (is_array($data) ? $data : []);
+                $items = collect(is_array($rows) ? $rows : [])
+                    ->map(fn ($item) => [
+                        'id' => $item['id'] ?? $item['value'] ?? $item['kode'] ?? $item['nama'] ?? null,
+                        'text' => $item['nama'] ?? $item['name'] ?? $item['text'] ?? null,
+                    ])
+                    ->filter(fn ($item) => $item['id'] !== null && filled($item['text']))
+                    ->values()->all();
+            } catch (\Throwable $e) {
+                Log::warning('Gagal mengambil daftar asal-rayon: '.$e->getMessage());
+                $items = [];
+            }
+
+            if ($items) {
+                Cache::put('kom:asal-rayon', $items, now()->addHours(6));
+                Cache::forever('kom:asal-rayon:last', $items);
+            } else {
+                $items = Cache::get('kom:asal-rayon:last', []);
+            }
+        }
+
+        return response()->json(['results' => $items]);
     }
 
     public function rayonSearch(Request $request)
@@ -262,7 +300,13 @@ class KomUserController extends Controller
 
         $user = KomUser::findOrFail($id);
 
-        $user->status = $request->input('status') === 'aktif' ? true : false;
+        // kom_v02 (perbaikan): simpan 'aktif' / 'tidak_aktif' — sama dengan yang dicek saat login.
+        // Dulu disimpan true/false ("1"/"0") sehingga user tetap ditolak "Akun Anda belum aktif".
+        $aktif = $request->input('status') === 'aktif';
+        $user->status = $aktif ? 'aktif' : 'tidak_aktif';
+        if ($aktif && ! $user->email_verified_at) {
+            $user->email_verified_at = now(); // diaktifkan superadmin = dianggap sudah terverifikasi
+        }
         $user->save();
 
         return redirect()->back()->with('success', 'Status user berhasil diupdate.');
@@ -390,7 +434,7 @@ class KomUserController extends Controller
                     break;
 
                 case 'nonaktif':
-                    KomUser::whereIn('id', $userIds)->update(['status' => 'nonaktif']);
+                    KomUser::whereIn('id', $userIds)->update(['status' => 'tidak_aktif']); // kom_v02: samakan dengan login
                     Log::info('Deactivated users', ['user_ids' => $userIds]);
                     $message = 'Pengguna terpilih berhasil dinonaktifkan.';
                     break;

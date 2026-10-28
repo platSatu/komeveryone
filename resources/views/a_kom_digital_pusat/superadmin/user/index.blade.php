@@ -188,12 +188,16 @@
                         const controller = new AbortController();
                         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 detik timeout
 
-                        const response = await fetch('https://gbigatsu.id/api/kom-digital/api/asal-rayon', {
+                        // kom_v02: lewat server sendiri (disimpan 6 jam), bukan langsung ke gbigatsu.id dari browser.
+                        // Kalau route-nya belum terdaftar di routes/web.php, halaman tetap jalan (filter Rayon saja yang kosong).
+                        const asalRayonUrl = @json(\Illuminate\Support\Facades\Route::has('kom.super_user.asalRayon') ? route('kom.super_user.asalRayon') : null);
+                        if (!asalRayonUrl) {
+                            $selectRayon.html('<option value="">Daftar rayon belum tersedia</option>');
+                            return;
+                        }
+                        const response = await fetch(asalRayonUrl, {
                             signal: controller.signal,
-                            headers: {
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json'
-                            }
+                            headers: { 'Accept': 'application/json' }
                         });
 
                         clearTimeout(timeoutId);
@@ -222,6 +226,15 @@
                             $selectRayon.append(new Option(text, id));
                         });
 
+                        // Pilihan filter yang sedang dipakai tetap terpilih setelah daftar dimuat.
+                        const terpilih = @json(request('asal_gereja'));
+                        if (terpilih) {
+                            if (!$selectRayon.find('option').filter(function () { return this.value == terpilih; }).length) {
+                                $selectRayon.append(new Option(@json(request('nama_rayon') ?? request('asal_gereja')), terpilih));
+                            }
+                            $selectRayon.val(terpilih);
+                        }
+
                         // Aktifkan Select2
                         $selectRayon.select2({
                             placeholder: "-- Pilih CK / Rayon --",
@@ -237,21 +250,8 @@
                         console.error(`❌ Attempt ${retryCount} failed:`, err.message);
 
                         if (retryCount >= maxRetries) {
-                            // Jika semua retry gagal, tampilkan error
-                            $selectRayon.html('<option value="">Gagal memuat data</option>');
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Gagal Memuat Data',
-                                text: 'Tidak dapat memuat data asal-rayon setelah beberapa percobaan. Periksa koneksi internet atau hubungi admin.',
-                                confirmButtonText: 'OK',
-                                footer: '<button id="retryBtn" class="btn btn-primary">Coba Lagi</button>'
-                            });
-
-                            // Tambahkan event listener untuk tombol retry
-                            document.getElementById('retryBtn').addEventListener('click', function() {
-                                Swal.close();
-                                initializeSelect2(); // Retry manual
-                            });
+                            // kom_v02: tanpa popup. Filter Rayon saja yang belum tersedia; halaman & data user tetap bisa dipakai.
+                            $selectRayon.html('<option value="">Daftar rayon belum tersedia</option>');
                         } else {
                             // Tunggu sebelum retry
                             await new Promise(resolve => setTimeout(resolve, 2000)); // Tunggu 2 detik

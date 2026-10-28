@@ -435,6 +435,7 @@ Route::prefix('app')->group(function () {
             Route::prefix('users')->controller(KomUserController::class)->middleware(['auth:web', 'cekrolekom:superadmin'])->name('super_user.')->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('/create', 'create')->name('create');
+                Route::get('/asal-rayon', 'asalRayon')->name('asalRayon'); // kom_v02: daftar CK/Rayon lewat server (cache)
                 Route::post('/', 'store')->name('store');
                 Route::get('/{id}', 'show')->name('show');
                 Route::get('/{id}/edit', 'edit')->name('edit');

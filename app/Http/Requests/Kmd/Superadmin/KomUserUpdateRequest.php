@@ -62,7 +62,8 @@ class KomUserUpdateRequest extends FormRequest
 
             'image' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
 
-            'status' => ['sometimes', 'nullable', 'in:active,inactive'],
+            // kom_v02: nilai yang sama dengan pengecekan login ('aktif' / 'tidak_aktif').
+            'status' => ['sometimes', 'required', 'in:aktif,tidak_aktif'],
 
             'cabang_id' => [
                 'sometimes',
@@ -95,7 +96,7 @@ class KomUserUpdateRequest extends FormRequest
             'image.image' => 'File harus berupa gambar.',
             'image.mimes' => 'Format gambar harus jpeg, png, jpg, atau gif.',
             'image.max' => 'Ukuran gambar maksimal 2MB.',
-            'status.in' => 'Status harus active atau inactive.',
+            'status.in' => 'Status harus Aktif atau Tidak Aktif.',
             'cabang_id.exists' => 'Rayon tidak ditemukan.',
         ];
     }

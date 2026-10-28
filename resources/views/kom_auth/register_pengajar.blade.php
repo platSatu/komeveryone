@@ -276,7 +276,7 @@
             placeholder: "-- Pilih CK / Rayon --",
             allowClear: false,
             ajax: {
-                url: 'https://gbigatsu.id/api/kom-digital/api/asal-rayon',
+                url: @json(url('/api/kom-digital/api/asal-rayon')), // kom_v02: panggil server sendiri (bukan domain lain)
                 dataType: 'json',
                 delay: 250,
                 data: params => ({
@@ -287,7 +287,7 @@
                 }),
                 cache: true
             },
-            minimumInputLength: 1,
+            minimumInputLength: 0, // kom_v02: daftar langsung tampil saat dibuka
             width: '100%'
         });
 

@@ -65,10 +65,14 @@
                                 style="display:inline;">
                                 @csrf
                                 @method('PUT')
-                                <input type="hidden" name="status" value="{{ $user->status ? 'nonaktif' : 'aktif' }}">
+                                {{-- kom_v02 (perbaikan): status aktif HANYA jika 'aktif' (sama dengan pengecekan login).
+                                     Dulu 'tidak_aktif' ikut tampil "aktif" karena teks apa pun dianggap benar. --}}
+                                @php $statusAktif = in_array((string) $user->status, ['aktif', '1'], true); @endphp
+                                <input type="hidden" name="status" value="{{ $statusAktif ? 'nonaktif' : 'aktif' }}">
                                 <button type="submit"
-                                    class="btn btn-sm {{ $user->status ? 'btn-success' : 'btn-secondary' }}">
-                                    {{ $user->status ? 'aktif' : 'nonaktif' }}
+                                    class="btn btn-sm {{ $statusAktif ? 'btn-success' : 'btn-secondary' }}"
+                                    title="{{ $statusAktif ? 'Klik untuk menonaktifkan' : 'Klik untuk mengaktifkan' }}">
+                                    {{ $statusAktif ? 'aktif' : 'nonaktif' }}
                                 </button>
                             </form>
                         </td>
