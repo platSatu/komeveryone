@@ -28,18 +28,6 @@
                         @csrf
                         @method('PUT')
 
-                        <div class="form-group">
-                            <label>Pengajar</label>
-                            <select name="pengajar_id" class="form-control" required>
-                                <option value="">-- Pilih Pengajar --</option>
-                                @foreach ($pengajars as $pengajar)
-                                    <option value="{{ $pengajar->id }}"
-                                        {{ old('pengajar_id', $data->pengajar_id) == $pengajar->id ? 'selected' : '' }}>
-                                        {{ $pengajar->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
 
                         <div class="form-group">
                             <label>Kelas</label>
@@ -71,6 +59,8 @@
                             'modulIdTerpilih' => $data->modul_id,
                             'videoIdTerpilih' => $data->video_id ?? '',
                         ])
+
+                        @include('a_kom_digital_pusat.admin_cabang.kelas_tutorial._pengajar_select', ['pengajarTerpilih' => $data->pengajar_id])
 
                         <div class="form-group">
                             <label for="start_time" class="form-label">Waktu Mulai</label>

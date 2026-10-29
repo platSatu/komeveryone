@@ -448,6 +448,14 @@ Route::prefix('app')->group(function () {
                 Route::get('/createBanyak', 'createBanyak')->name('createBanyak');
             });
 
+            // 29 Okt 2026: tandai pengajar manual sudah ikut Diklat Tutor (muncul di form Buat Kelas Tutorial admin cabang).
+            Route::prefix('pengajar-diklat')->controller(\App\Http\Controllers\Kmd\Superadmin\PengajarDiklatManualController::class)
+                ->middleware(['auth:web', 'cekrolekom:superadmin'])->name('super_pengajar_diklat.')->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::post('/', 'store')->name('store');
+                    Route::delete('/{id}', 'destroy')->name('destroy');
+                });
+
             Route::prefix('diklat_tutor')->controller(TutorClassTutorialAdminCabangController::class)->name('kelas_tutor_diklat.')->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('/create', 'create')->name('create');             // Form tambah user

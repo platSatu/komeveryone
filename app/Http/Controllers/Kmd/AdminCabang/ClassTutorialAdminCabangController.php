@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Services\AdminCabang\KelasTutorService;
 use App\Services\AdminCabang\KelasService;
 use App\Services\AdminCabang\AbsensiService;
+use App\Services\Kmd\PengajarDiklatService;
 
 // Requests
 use App\Http\Requests\Kmd\AdminCabang\KelasTutorRequest;
@@ -247,71 +248,21 @@ class ClassTutorialAdminCabangController extends Controller
 
     //     return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.create', compact('pengajars', 'moduls', 'kelas'));
     // }
-    public function create()
+    public function create(PengajarDiklatService $pengajarDiklat)
     {
         $moduls = KmdModuls::with('kelas')->orderBy('kom_class_id')->orderBy('language_code')->orderBy('order')->get(); // kom_v02
         $kelas = KmdClass::all();
 
-            $praktikalModulIds = [
-                'd191a090-53af-46dc-958d-5fbe0b883967',
-                '6d119ce4-8097-4311-b250-1b4b3f600685', 
-            ];
-
-            $doktrinalModulIds = [
-                '3d6d23ce-d56a-4bc8-a7fa-bee7dd9368be',
-                '36b0ed83-fb3e-476a-8af0-73d0610de12a',
-            ];
-
-        $category = null;
-
-        // Ambil modul dari request, fallback ke modul pertama
-        $selectedModulId = request('modul_id', optional($moduls->first())->id);
-
-        Log::info('Request modul_id:', ['modul_id' => $selectedModulId]);
-
-        // Ambil modul selected berdasarkan modul_id request
+        // Modul dari isian sebelumnya / request, fallback ke modul pertama.
+        $selectedModulId = old('modul_id', request('modul_id', optional($moduls->first())->id));
         $selectedModul = $moduls->firstWhere('id', $selectedModulId);
 
-        if ($selectedModul) {
-            if (in_array($selectedModul->id, $praktikalModulIds)) {
-                $category = 'Praktikal';
-            } elseif (in_array($selectedModul->id, $doktrinalModulIds)) {
-                $category = 'Doktrinal';
-            }
-        }
-
-        Log::info('Determined Category:', ['category' => $category]);
-
-        $qualifiedUserIds = collect();
-
-        // if ($category) {
-        //     $qualifiedUserIds = KmdUserClassTutorial::where('category_diklat', 'LIKE', "%{$category}%")
-        //         ->select('user_id')
-        //         ->selectRaw('COUNT(*) as total')
-        //         ->groupBy('user_id')
-        //         ->having('total', '>=', 2)
-        //         ->pluck('user_id');
-        // }
-        if ($selectedModulId) {
-
-                $qualifiedUserIds = KmdUserClassTutorial::where('modul_id', $selectedModulId)
-                    ->select('user_id')
-                    ->selectRaw('COUNT(*) as total')
-                    ->groupBy('user_id')
-                    ->having('total', '>=', 1)
-                    ->pluck('user_id');
-
-            }
-
-        if ($qualifiedUserIds->isEmpty()) {
-            Log::warning('Qualified User IDs empty, mengambil semua pengajar tanpa filter');
-            $pengajars = KomUser::where('role', 'pengajar')->get();
-        } else {
-            Log::info('Mencari pengajar dengan user_id qualified.');
-            $pengajars = KomUser::where('role', 'pengajar')->whereIn('id', $qualifiedUserIds)->get();
-        }
-
-        Log::info('Jumlah Pengajar yang diambil:', ['count' => $pengajars->count()]);
+        // 29 Okt 2026: pengajar sesuai kategori diklat modul (110 & 130 Doktrinal,
+        // 120 & 140 Praktikal) — aturan yang sama dengan saat modul diganti & Edit.
+        // Tidak ada lagi "tampilkan semua pengajar" kalau kosong.
+        $category = $pengajarDiklat->categoryForModul($selectedModulId);
+        $pengajars = $pengajarDiklat->pengajarsForCategory($category);
+        $pengajarKosong = $pengajarDiklat->emptyMessage($category);
 
         return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.create', compact(
             'pengajars',
@@ -319,7 +270,8 @@ class ClassTutorialAdminCabangController extends Controller
             'kelas',
             'selectedModul',
             'selectedModulId',
-            'category'
+            'category',
+            'pengajarKosong'
         ));
     }
 
@@ -340,58 +292,32 @@ public function getTitikByModul(Request $request, \App\Services\Kmd\TitikTutoria
     ])->values());
 }
 
-public function getPengajarsByModul(Request $request)
+public function getPengajarsByModul(Request $request, PengajarDiklatService $pengajarDiklat)
 {
-    // $praktikalModulIds = [
-    //     '3d191a090-53af-46dc-958d-5fbe0b883967',
-    //     '6d119ce4-8097-4311-b250-1b4b3f600685',
-    // ];
-    // $doktrinalModulIds = [
-    //     'd3d6d23ce-d56a-4bc8-a7fa-bee7dd9368be',
-    //     '36b0ed83-fb3e-476a-8af0-73d0610de12a',
-    // ];
-    $praktikalModulIds = [
-        'd191a090-53af-46dc-958d-5fbe0b883967',
-        '6d119ce4-8097-4311-b250-1b4b3f600685', 
-    ];
+    // 29 Okt 2026: satu aturan untuk semua tempat, lihat App\Services\Kmd\PengajarDiklatService.
+    $category = $pengajarDiklat->categoryForModul($request->query('modul_id'));
 
-    $doktrinalModulIds = [
-        '3d6d23ce-d56a-4bc8-a7fa-bee7dd9368be',
-        '36b0ed83-fb3e-476a-8af0-73d0610de12a',
-    ];
-
-    $modulId = $request->query('modul_id');
-
-    $category = null;
-    if (in_array($modulId, $praktikalModulIds)) {
-        $category = 'Praktikal';
-    } elseif (in_array($modulId, $doktrinalModulIds)) {
-        $category = 'Doktrinal';
-    }
-
-    $pengajars = [];
-
-    if ($category) {
-        $qualifiedUserIds = KmdUserClassTutorial::where('category_diklat', 'LIKE', "%{$category}%")
-            ->select('user_id')
-            ->selectRaw('COUNT(*) as total')
-            ->groupBy('user_id')
-            ->having('total', '>=', 2)
-            ->pluck('user_id');
-
-        $pengajars = KomUser::where('role', 'pengajar')
-            ->whereIn('id', $qualifiedUserIds)
-            ->orderBy('name', 'asc')
-            ->get(['id', 'name']);
-    }
-
-    // Jika tidak ada kategori atau user, kosongkan list
-    return response()->json($pengajars);
+    return response()->json([
+        'kategori' => $category,
+        'pesan_kosong' => $pengajarDiklat->emptyMessage($category),
+        'pengajar' => $pengajarDiklat->pengajarsForCategory($category)->map(fn ($p) => [
+            'id' => $p->id,
+            'name' => $p->name,
+        ])->values(),
+    ]);
 }
 
-    public function store(KelasTutorRequest $request): RedirectResponse
+    public function store(KelasTutorRequest $request, PengajarDiklatService $pengajarDiklat): RedirectResponse
     {
         $user = Auth::user();
+
+        // 29 Okt 2026: pengajar wajib sudah lulus Diklat Tutor kategori modul ini
+        // (dicek juga di server, bukan hanya di dropdown).
+        if (! $pengajarDiklat->isQualifiedForModul((string) $request->input('pengajar_id'), $request->input('modul_id'))) {
+            return back()->withInput()->withErrors([
+                'pengajar_id' => __('Pengajar yang dipilih belum lulus Diklat Tutor untuk kategori modul ini.'),
+            ]);
+        }
 
         try {
             $tutorial = $this->kelasTutorService->create($user->id, $request->all());
@@ -428,90 +354,48 @@ public function getPengajarsByModul(Request $request)
     //     }
     // }
 
-    public function edit(string $encryptedId): View
-{
-    try {
-        $data = $this->kelasTutorService->find($encryptedId);
+    public function edit(string $encryptedId, PengajarDiklatService $pengajarDiklat): View
+    {
+        try {
+            $data = $this->kelasTutorService->find($encryptedId);
 
-        if ($data->user_id !== Auth::id()) {
-            abort(403, 'Unauthorized');
-        }
-
-        $moduls = KmdModuls::with('kelas')->orderBy('kom_class_id')->orderBy('language_code')->orderBy('order')->get(); // kom_v02
-        $kelas = KmdClass::all();
-
-        $praktikalModulIds = [
-            'd191a090-53af-46dc-958d-5fbe0b883967',
-            '6d119ce4-8097-4311-b250-1b4b3f600685',
-        ];
-
-        $doktrinalModulIds = [
-         
-            '3d6d23ce-d56a-4bc8-a7fa-bee7dd9368be',
-            '36b0ed83-fb3e-476a-8af0-73d0610de12a',
-        ];
-
-        $category = null;
-
-        // Ambil modul dari data yang diedit, fallback ke modul pertama
-        $selectedModulId = optional($data)->modul_id ?? optional($moduls->first())->id;
-
-        Log::info('Edit - Request modul_id:', ['modul_id' => $selectedModulId]);
-
-        // Ambil modul selected berdasarkan modul_id
-        $selectedModul = $moduls->firstWhere('id', $selectedModulId);
-
-        if ($selectedModul) {
-            if (in_array($selectedModul->id, $praktikalModulIds)) {
-                $category = 'Praktikal';
-            } elseif (in_array($selectedModul->id, $doktrinalModulIds)) {
-                $category = 'Doktrinal';
+            if ($data->user_id !== Auth::id()) {
+                abort(403, 'Unauthorized');
             }
+
+            $moduls = KmdModuls::with('kelas')->orderBy('kom_class_id')->orderBy('language_code')->orderBy('order')->get(); // kom_v02
+            $kelas = KmdClass::all();
+
+            $selectedModulId = $data->modul_id ?? optional($moduls->first())->id;
+            $selectedModul = $moduls->firstWhere('id', $selectedModulId);
+
+            // 29 Okt 2026: aturan sama dengan Buat Kelas. Pengajar yang sudah terpilih
+            // di kelas ini tetap ditampilkan supaya data lama tidak hilang.
+            $category = $pengajarDiklat->categoryForModul($selectedModulId);
+            $pengajars = $pengajarDiklat->pengajarsForCategory($category, $data->pengajar_id);
+            $pengajarKosong = $pengajarDiklat->emptyMessage($category);
+
+            return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.edit', compact(
+                'data',
+                'pengajars',
+                'moduls',
+                'kelas',
+                'selectedModul',
+                'selectedModulId',
+                'category',
+                'pengajarKosong'
+            ));
+        } catch (DecryptException $e) {
+            abort(403, 'ID tidak valid.');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            abort(404, 'Data tidak ditemukan.');
         }
-
-        Log::info('Edit - Determined Category:', ['category' => $category]);
-
-        $qualifiedUserIds = collect();
-
-        if ($category) {
-            $qualifiedUserIds = KmdUserClassTutorial::where('category_diklat', 'LIKE', "%{$category}%")
-                ->select('user_id')
-                ->selectRaw('COUNT(*) as total')
-                ->groupBy('user_id')
-                ->having('total', '>=', 2)
-                ->pluck('user_id');
-        }
-
-        if ($qualifiedUserIds->isEmpty()) {
-            Log::warning('Edit - Qualified User IDs empty, mengambil semua pengajar tanpa filter');
-            $pengajars = KomUser::where('role', 'pengajar')->get();
-        } else {
-            Log::info('Edit - Mencari pengajar dengan user_id qualified.');
-            $pengajars = KomUser::where('role', 'pengajar')->whereIn('id', $qualifiedUserIds)->get();
-        }
-
-        Log::info('Edit - Jumlah Pengajar yang diambil:', ['count' => $pengajars->count()]);
-
-        return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.edit', compact(
-            'data',
-            'pengajars',
-            'moduls',
-            'kelas',
-            'selectedModul',
-            'selectedModulId',
-            'category'
-        ));
-    } catch (DecryptException $e) {
-        abort(403, 'ID tidak valid.');
-    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        abort(404, 'Data tidak ditemukan.');
     }
-}
 
 
 
 
-    public function update(KelasTutorRequest $request, string $encryptedId): RedirectResponse
+    public function update(KelasTutorRequest $request, string $encryptedId, PengajarDiklatService $pengajarDiklat): RedirectResponse
     {
         try {
             // Samakan dengan alur create: perubahan jadwal/topic/durasi ikut
@@ -523,6 +407,16 @@ public function getPengajarsByModul(Request $request)
             if ($titikBerubah && KmdUserClassTutorial::where('class_tutorial_id', $lama->id)->exists()) {
                 return redirect()->back()->withInput()
                     ->withErrors(['video_id' => __('Modul / titik kelas tutorial tidak bisa diganti karena sudah ada peserta yang mendaftar.')]);
+            }
+
+            // 29 Okt 2026: kalau pengajar atau modul diganti, pengajar baru wajib lulus
+            // Diklat Tutor kategori modulnya. Kelas lama yang tidak diganti tetap bisa disimpan.
+            $pengajarBerubah = (string) $lama->pengajar_id !== (string) $request->input('pengajar_id');
+            if (($pengajarBerubah || $lama->modul_id !== $request->input('modul_id'))
+                && ! $pengajarDiklat->isQualifiedForModul((string) $request->input('pengajar_id'), $request->input('modul_id'))) {
+                return redirect()->back()->withInput()->withErrors([
+                    'pengajar_id' => __('Pengajar yang dipilih belum lulus Diklat Tutor untuk kategori modul ini.'),
+                ]);
             }
 
             $this->kelasTutorService->editZoomMeeting($encryptedId, $request->validated());

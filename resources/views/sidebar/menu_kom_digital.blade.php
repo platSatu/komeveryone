@@ -151,6 +151,7 @@
             </a>
             <ul class="list-unstyled">
                <li><a href="{{ route('kom.kelas_tutor_diklat.index') }}">Diklat Tutor</a></li>
+               <li><a href="{{ route('kom.super_pengajar_diklat.index') }}">Pengajar Diklat</a></li>
                 {{-- <li><a href="javascript:void(0);">Data</a></li>
                 <li><a href="javascript:void(0);">Absensi</a></li>
                 <li><a href="javascript:void(0);">Review Pengajar</a></li>
