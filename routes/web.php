@@ -454,6 +454,8 @@ Route::prefix('app')->group(function () {
                     Route::get('/', 'index')->name('index');
                     Route::post('/', 'store')->name('store');
                     Route::put('/status', 'updateStatus')->name('status');
+                    Route::get('/{userId}/edit', 'edit')->name('edit');
+                    Route::put('/{userId}', 'update')->name('update');
                     Route::delete('/{id}', 'destroy')->name('destroy');
                 });
 

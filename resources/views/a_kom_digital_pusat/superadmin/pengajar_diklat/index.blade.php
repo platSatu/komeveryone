@@ -47,12 +47,18 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="category_diklat">Kategori Diklat</label>
-                        <select name="category_diklat" id="category_diklat" class="form-control" required {{ $tabelSiap ? '' : 'disabled' }}>
-                            <option value="">-- Pilih Kategori --</option>
-                            <option value="Doktrinal" {{ old('category_diklat') === 'Doktrinal' ? 'selected' : '' }}>Doktrinal (Modul 110 &amp; 130)</option>
-                            <option value="Praktikal" {{ old('category_diklat') === 'Praktikal' ? 'selected' : '' }}>Praktikal (Modul 120 &amp; 140)</option>
-                        </select>
+                        <label class="d-block">Kategori Diklat <small class="text-muted">(boleh dua-duanya)</small></label>
+                        @php $kategoriLama = (array) old('category_diklat', []); @endphp
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="kat_doktrinal" name="category_diklat[]" value="Doktrinal"
+                                   {{ in_array('Doktrinal', $kategoriLama, true) ? 'checked' : '' }} {{ $tabelSiap ? '' : 'disabled' }}>
+                            <label class="custom-control-label" for="kat_doktrinal">Doktrinal (Modul 110 &amp; 130)</label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="kat_praktikal" name="category_diklat[]" value="Praktikal"
+                                   {{ in_array('Praktikal', $kategoriLama, true) ? 'checked' : '' }} {{ $tabelSiap ? '' : 'disabled' }}>
+                            <label class="custom-control-label" for="kat_praktikal">Praktikal (Modul 120 &amp; 140)</label>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="catatan">Catatan <small class="text-muted">(opsional)</small></label>
@@ -138,6 +144,9 @@
                                         @endif
                                     </td>
                                     <td class="text-right text-nowrap">
+                                        @if ($statusSiap)
+                                            <a href="{{ route('kom.super_pengajar_diklat.edit', $row->user->id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        @endif
                                         @if ($statusSiap)
                                             <form method="POST" action="{{ route('kom.super_pengajar_diklat.status') }}" class="d-inline js-status"
                                                   data-nama="{{ $row->user->name }}" data-kategori="{{ $row->kategori }}" data-aktif="{{ $row->aktif ? 0 : 1 }}">
