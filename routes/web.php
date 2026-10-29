@@ -453,6 +453,7 @@ Route::prefix('app')->group(function () {
                 ->middleware(['auth:web', 'cekrolekom:superadmin'])->name('super_pengajar_diklat.')->group(function () {
                     Route::get('/', 'index')->name('index');
                     Route::post('/', 'store')->name('store');
+                    Route::put('/status', 'updateStatus')->name('status');
                     Route::delete('/{id}', 'destroy')->name('destroy');
                 });
 

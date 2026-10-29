@@ -22,7 +22,8 @@ use Illuminate\Support\Facades\Schema;
  * Pengajar muncul kalau role-nya 'pengajar' DAN:
  *   - sudah SELESAI Diklat Tutor kategori itu (status 'selesai', diisi saat
  *     Admin Tutor menekan End Zoom kelas diklat), ATAU
- *   - ditandai manual oleh superadmin (menu Diklat Tutor › Pengajar Diklat Manual).
+ *   - ditandai manual oleh superadmin (menu Diklat Tutor › Pengajar Diklat),
+ * DAN tidak sedang DINONAKTIFKAN superadmin untuk kategori itu.
  */
 class PengajarDiklatService
 {
@@ -68,12 +69,25 @@ class PengajarDiklatService
             ->distinct()
             ->pluck('user_id');
 
-        // Aman sebelum migration tabel manual dijalankan: dilewati saja.
-        $manual = self::manualTableExists()
-            ? KmdPengajarDiklatManual::where('category_diklat', $category)->pluck('user_id')
-            : collect();
+        // Aman sebelum migration dijalankan: tabel/kolom yang belum ada dilewati saja.
+        if (! self::manualTableExists()) {
+            return $fromDiklat->unique()->values();
+        }
 
-        return $fromDiklat->merge($manual)->unique()->values();
+        if (! self::statusColumnsExist()) {
+            $manual = KmdPengajarDiklatManual::where('category_diklat', $category)->pluck('user_id');
+
+            return $fromDiklat->merge($manual)->unique()->values();
+        }
+
+        $baris = KmdPengajarDiklatManual::where('category_diklat', $category)
+            ->get(['user_id', 'is_manual', 'is_active']);
+        $manual = $baris->where('is_manual', true)->pluck('user_id');
+        $nonaktif = $baris->where('is_active', false)->pluck('user_id')->flip();
+
+        return $fromDiklat->merge($manual)->unique()
+            ->reject(fn ($id) => $nonaktif->has($id))
+            ->values();
     }
 
     /**
@@ -116,9 +130,18 @@ class PengajarDiklatService
 
     private static ?bool $manualTable = null;
 
+    private static ?bool $statusColumns = null;
+
     public static function manualTableExists(): bool
     {
         return self::$manualTable ??= Schema::connection('mysql')->hasTable('kmd_pengajar_diklat_manual');
+    }
+
+    /** Kolom status (migration 2026_10_29_000015) sudah ada? */
+    public static function statusColumnsExist(): bool
+    {
+        return self::$statusColumns ??= self::manualTableExists()
+            && Schema::connection('mysql')->hasColumn('kmd_pengajar_diklat_manual', 'is_active');
     }
 
     /** Pesan untuk dropdown/validasi kalau tidak ada pengajar. */
