@@ -1970,6 +1970,12 @@
             playbackRates: [0.5, 1, 1.5, 2]
         });
     </script> --}}
+    {{--
+        Dinonaktifkan 3 Nov 2026: dua blok di bawah sama-sama mendeklarasikan "const video" di level atas,
+        sehingga browser menolak blok kedua ("Uncaught SyntaxError: redeclaration of const video").
+        - Blok #myVideo / #speedControls: elemennya tidak ada di halaman ini (kecepatan diatur oleh #speedControl di bawah).
+        - Blok "cegah seek mundur": karena error tadi, blok ini memang TIDAK PERNAH berjalan.
+        Dimatikan supaya perilaku video tetap sama seperti yang berjalan selama ini, hanya error-nya hilang.
     <script>
         const video = document.getElementById('myVideo');
         const buttons = document.querySelectorAll('#speedControls button');
@@ -1998,6 +2004,7 @@
             }
         });
     </script>
+    --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const video = document.getElementById('mainVideo');
