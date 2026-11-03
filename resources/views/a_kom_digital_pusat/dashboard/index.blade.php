@@ -31,7 +31,7 @@
                                         </video> -->
                             <video id="mainVideo" class="w-100" preload="metadata"
                                 style="max-height: 500px; background: #000; width: 100%; display: block;">
-                                <source id="videoSource" src="video.mp4" type="video/mp4">
+                                <source id="videoSource" type="video/mp4">{{-- src diisi JS (loadVideo) -- dulu "video.mp4" yang selalu 404 --}}
                                 {{ __('Browser Anda tidak mendukung video HTML5.') }}
                             </video>
 
