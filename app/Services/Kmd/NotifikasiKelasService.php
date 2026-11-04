@@ -218,6 +218,194 @@ class NotifikasiKelasService
         }
     }
 
+    /**
+     * 6. (4 Nov 2026) Peserta memilih jadwal kelas tutorial: email ke peserta (lanjut isi pertanyaan)
+     *    dan ke admin cabang. Dipanggil KelasTutorialController::prosesJoinClass setelah booking tersimpan.
+     */
+    public function pesertaMemilihJadwal(string $bookingId): void
+    {
+        if (! $this->aktif()) {
+            return;
+        }
+
+        $booking = KmdUserClassTutorial::with(['user', 'classTutorial.user', 'classTutorial.pengajar', 'classTutorial.modul', 'classTutorial.titikVideo', 'classTutorial.rayon'])->find($bookingId);
+        $kelas = optional($booking)->classTutorial;
+
+        if (! $booking || ! $kelas || ! $booking->user) {
+            return;
+        }
+
+        $peserta = $booking->user;
+        $batas = $this->checkout->batasWaktu($booking)->setTimezone(self::ZONA);
+
+        if (filter_var($peserta->email, FILTER_VALIDATE_EMAIL) && $this->klaim("pilih-jadwal:{$booking->id}:peserta")) {
+            $this->antre($peserta->email, $this->dalamBahasa($peserta->language_code, fn () => [
+                'subjek' => __('Anda sudah bergabung di kelas tutorial: :topik', ['topik' => $kelas->topic]),
+                'judul' => __('Jadwal Kelas Tutorial Tersimpan'),
+                'ikon' => '✅',
+                'aksen' => 'biru',
+                'sapaan' => __('Shalom, :nama!', ['nama' => $peserta->name]),
+                'paragraf' => [
+                    __('Terima kasih, Anda sudah memilih jadwal kelas tutorial ini.'),
+                    __('Langkah berikutnya: silakan isi pertanyaan untuk pengajar sebelum pukul :jam WIB, lalu selesaikan persembahan supaya tempat Anda di kelas tersimpan.', ['jam' => $batas->format('H.i')]),
+                ],
+                'detail' => $this->detailKelas($kelas),
+                'tombol' => ['label' => __('Isi Pertanyaan'), 'url' => $this->rute('kom.kelas_tutorial.pertanyaan.form')],
+                'catatan' => __('Kalau waktunya terlewat, pendaftaran dibatalkan otomatis dan Anda bisa memilih jadwal lagi kapan saja.'),
+            ]));
+        }
+
+        foreach ($this->unik($this->emailAdminCabang($kelas)) as $email) {
+            if (! $this->klaim("pilih-jadwal:{$booking->id}:{$email}")) {
+                continue;
+            }
+
+            $this->antre($email, $this->dalamBahasa('id', fn () => [
+                'subjek' => __(':nama memilih jadwal kelas :topik', ['nama' => $peserta->name, 'topik' => $kelas->topic]),
+                'judul' => __('Peserta Memilih Jadwal Kelas Anda'),
+                'ikon' => '📝',
+                'aksen' => 'biru',
+                'sapaan' => __('Shalom, Bapak/Ibu Admin Cabang!'),
+                'paragraf' => [
+                    __(':nama memilih jadwal kelas tutorial Anda dan sedang mengisi pertanyaan. Peserta resmi tergabung setelah persembahan selesai.', ['nama' => $peserta->name]),
+                ],
+                'detail' => [
+                    __('Peserta') => $peserta->name,
+                    __('Email peserta') => $peserta->email ?: '-',
+                ] + $this->detailKelas($kelas),
+                'tombol' => ['label' => __('Lihat Peserta Kelas'), 'url' => $this->rute('kom.kelas_tutor_cabang.index')],
+            ]));
+        }
+    }
+
+    /**
+     * 7. (4 Nov 2026) Peserta mengirim pertanyaan: email ke peserta (lanjut persembahan) dan ke admin
+     *    cabang (berisi pertanyaannya). Dipanggil PertanyaanUserController::storePertanyaan.
+     */
+    public function pertanyaanTerkirim(string $bookingId): void
+    {
+        if (! $this->aktif()) {
+            return;
+        }
+
+        $booking = KmdUserClassTutorial::with(['user', 'classTutorial.user', 'classTutorial.pengajar', 'classTutorial.modul', 'classTutorial.titikVideo', 'classTutorial.rayon'])->find($bookingId);
+        $kelas = optional($booking)->classTutorial;
+
+        if (! $booking || ! $kelas || ! $booking->user) {
+            return;
+        }
+
+        $peserta = $booking->user;
+        $pertanyaan = \App\Models\Kmd\KmdPertanyaanUser::where('user_id', $peserta->id)
+            ->where('kelas_tutorial_id', $kelas->id)
+            ->orderBy('created_at')
+            ->pluck('pertanyaan')
+            ->filter()
+            ->values();
+
+        if (filter_var($peserta->email, FILTER_VALIDATE_EMAIL) && $this->klaim("pertanyaan-terkirim:{$booking->id}:peserta")) {
+            $batas = $this->checkout->batasWaktu($booking)->setTimezone(self::ZONA);
+
+            $this->antre($peserta->email, $this->dalamBahasa($peserta->language_code, fn () => [
+                'subjek' => __('Pertanyaan Anda sudah kami terima 🙏'),
+                'judul' => __('Pertanyaan Terkirim'),
+                'ikon' => '💬',
+                'aksen' => 'biru',
+                'sapaan' => __('Shalom, :nama!', ['nama' => $peserta->name]),
+                'paragraf' => [
+                    __('Terima kasih, pertanyaan Anda sudah kami terima dan akan diteruskan ke pengajar.'),
+                    $booking->status_progress === 'paid'
+                        ? __('Anda sudah terdaftar di kelas ini. Sampai jumpa di kelas!')
+                        : __('Langkah terakhir: selesaikan persembahan sebelum pukul :jam WIB supaya tempat Anda di kelas tersimpan.', ['jam' => $batas->format('H.i')]),
+                ],
+                'detail' => $this->detailKelas($kelas),
+                'tombol' => $booking->status_progress === 'paid'
+                    ? ['label' => __('Buka Kelas Tutorial Saya'), 'url' => $this->rute('kom.peserta.kelas_tutorial')]
+                    : ['label' => __('Selesaikan Persembahan'), 'url' => $this->rute('kom.form.persembahan')],
+            ]));
+        }
+
+        $daftar = [];
+        foreach ($pertanyaan as $i => $teks) {
+            $daftar[__('Pertanyaan :n', ['n' => $i + 1])] = \Illuminate\Support\Str::limit((string) $teks, 300);
+        }
+
+        foreach ($this->unik($this->emailAdminCabang($kelas)) as $email) {
+            if (! $this->klaim("pertanyaan-terkirim:{$booking->id}:{$email}")) {
+                continue;
+            }
+
+            $this->antre($email, $this->dalamBahasa('id', fn () => [
+                'subjek' => __(':nama mengirim pertanyaan untuk kelas :topik', ['nama' => $peserta->name, 'topik' => $kelas->topic]),
+                'judul' => __('Pertanyaan Baru dari Peserta'),
+                'ikon' => '💬',
+                'aksen' => 'ungu',
+                'sapaan' => __('Shalom, Bapak/Ibu Admin Cabang!'),
+                'paragraf' => [
+                    __(':nama sudah mengisi pertanyaan dan sekarang menyelesaikan persembahan.', ['nama' => $peserta->name]),
+                ],
+                'detail' => [
+                    __('Peserta') => $peserta->name,
+                    __('Email peserta') => $peserta->email ?: '-',
+                ] + $daftar + $this->detailKelas($kelas),
+                'tombol' => ['label' => __('Lihat Peserta Kelas'), 'url' => $this->rute('kom.kelas_tutor_cabang.index')],
+            ]));
+        }
+    }
+
+    /**
+     * 8. (4 Nov 2026) Peserta menekan "Batalkan & pilih jadwal lain": email ke peserta dan admin cabang.
+     *    Booking sudah terhapus saat ini dipanggil, jadi data (beserta relasinya) dimuat SEBELUM dihapus
+     *    oleh PersembahanController::batalkanPendaftaran. Pembatalan otomatis (waktu habis) tidak memakai ini.
+     */
+    public function pendaftaranDibatalkan(KmdUserClassTutorial $booking): void
+    {
+        $kelas = $booking->classTutorial;
+        $peserta = $booking->user;
+
+        if (! $this->aktif() || ! $kelas || ! $peserta) {
+            return;
+        }
+
+        if (filter_var($peserta->email, FILTER_VALIDATE_EMAIL) && $this->klaim("batal:{$booking->id}:peserta")) {
+            $this->antre($peserta->email, $this->dalamBahasa($peserta->language_code, fn () => [
+                'subjek' => __('Pendaftaran kelas tutorial dibatalkan: :topik', ['topik' => $kelas->topic]),
+                'judul' => __('Pendaftaran Dibatalkan'),
+                'ikon' => '↩️',
+                'aksen' => 'oranye',
+                'sapaan' => __('Shalom, :nama!', ['nama' => $peserta->name]),
+                'paragraf' => [
+                    __('Pendaftaran Anda di kelas tutorial ini sudah dibatalkan sesuai permintaan Anda. Tidak ada persembahan yang ditagihkan.'),
+                    __('Anda bisa memilih jadwal kelas tutorial lain kapan saja.'),
+                ],
+                'detail' => $this->detailKelas($kelas),
+                'tombol' => ['label' => __('Pilih Jadwal Lain'), 'url' => $this->rute('kom.kelas_tutorial.index')],
+            ]));
+        }
+
+        foreach ($this->unik($this->emailAdminCabang($kelas)) as $email) {
+            if (! $this->klaim("batal:{$booking->id}:{$email}")) {
+                continue;
+            }
+
+            $this->antre($email, $this->dalamBahasa('id', fn () => [
+                'subjek' => __(':nama membatalkan pendaftaran kelas :topik', ['nama' => $peserta->name, 'topik' => $kelas->topic]),
+                'judul' => __('Peserta Membatalkan Pendaftaran'),
+                'ikon' => '↩️',
+                'aksen' => 'oranye',
+                'sapaan' => __('Shalom, Bapak/Ibu Admin Cabang!'),
+                'paragraf' => [
+                    __(':nama membatalkan pendaftaran di kelas tutorial Anda sebelum menyelesaikan persembahan. Kuota kelas tidak berubah.', ['nama' => $peserta->name]),
+                ],
+                'detail' => [
+                    __('Peserta') => $peserta->name,
+                    __('Email peserta') => $peserta->email ?: '-',
+                ] + $this->detailKelas($kelas),
+                'tombol' => ['label' => __('Lihat Peserta Kelas'), 'url' => $this->rute('kom.kelas_tutor_cabang.index')],
+            ]));
+        }
+    }
+
     /** 5. Pengingat kelas H-3, H-2, hari H, dan 1 jam sebelum mulai, ke peserta & pengajar. Mengembalikan jumlah email. */
     public function pengingatKelas(): int
     {

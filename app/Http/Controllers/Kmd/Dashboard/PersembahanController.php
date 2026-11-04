@@ -73,7 +73,20 @@ class PersembahanController extends Controller
             return redirect()->route('kom.kelas_tutorial.index');
         }
 
+        // 4 Nov 2026: data untuk email pembatalan dimuat sebelum booking dihapus
+        $progress->loadMissing(['user', 'classTutorial.user', 'classTutorial.pengajar', 'classTutorial.modul', 'classTutorial.titikVideo', 'classTutorial.rayon']);
+
         $hasil = $checkout->bersihkan($progress, true);
+
+        // 4 Nov 2026: email ke peserta & admin cabang (kelas tutorial saja, bukan diklat tutor).
+        // Lewat antrean; kalau gagal, pembatalan tetap berhasil.
+        if ($hasil === \App\Services\Kmd\CheckoutTutorialService::DIHAPUS && ! $progress->category_diklat) {
+            try {
+                app(\App\Services\Kmd\NotifikasiKelasService::class)->pendaftaranDibatalkan($progress);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         if ($hasil === \App\Services\Kmd\CheckoutTutorialService::TUNGGU) {
             return back()->with('error', __('Pembayaran Anda sedang diproses oleh bank, jadi pendaftaran belum bisa dibatalkan. Silakan tunggu beberapa menit.'));

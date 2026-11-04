@@ -114,6 +114,7 @@ class PertanyaanUserController extends Controller
         // (mis. proses sebelumnya terputus) → jangan tolak, cukup lanjutkan ke persembahan.
         if ($count >= $batas) {
             $this->lanjutKePersembahan($progressAktif);
+            $this->notifikasi($progressAktif);
 
             return response()->json([
                 'success' => true,
@@ -166,10 +167,23 @@ class PertanyaanUserController extends Controller
             $this->lanjutKePersembahan($progressAktif);
         });
 
+        // 4 Nov 2026: email ke peserta (lanjut persembahan) & admin cabang (isi pertanyaannya).
+        $this->notifikasi($progressAktif);
+
         return response()->json([
             'success' => true,
             'message' => __('Pertanyaan berhasil dikirim.')
         ]);
+    }
+
+    /** 4 Nov 2026: notifikasi pertanyaan terkirim (lewat antrean; gagal tidak mengganggu peserta). */
+    protected function notifikasi(KmdUserClassTutorial $progress): void
+    {
+        try {
+            app(\App\Services\Kmd\NotifikasiKelasService::class)->pertanyaanTerkirim((string) $progress->id);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /** kom_v02: pindah ke langkah persembahan & mulai hitung batas waktunya. */

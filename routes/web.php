@@ -755,6 +755,17 @@ Route::prefix('app')->group(function () {
                 Route::get('/{pengajarId}', 'show')->whereUuid('pengajarId')->name('show');
             });
 
+            // 3 Nov 2026: Admin KOM — kirim ulang email (verifikasi / reset password selalu dengan link baru)
+            Route::prefix('kirim-ulang-email')->controller(\App\Http\Controllers\Kmd\Superadmin\EmailResendController::class)->middleware(['auth:web', 'cekrolekom:superadmin'])->name('super_email_resend.')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::post('/kirim', 'sendManual')->name('send_manual');
+                Route::post('/user/{encryptedId}', 'sendToUser')->name('send_user');
+                Route::post('/gagal/kirim-semua', 'resendAllFailed')->name('resend_all_failed');
+                Route::post('/gagal/{uuid}', 'resendFailed')->whereUuid('uuid')->name('resend_failed');
+                Route::delete('/gagal/{uuid}', 'destroyFailed')->whereUuid('uuid')->name('destroy_failed');
+                Route::post('/antrean/{id}', 'resendPending')->whereNumber('id')->name('resend_pending');
+            });
+
         });
 
 

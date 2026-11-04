@@ -173,6 +173,7 @@
                 <li><a href="{{ route('kom.super_nginxlog.index') }}">{{ __('Statistik Pengunjung (Log Nginx)') }}</a></li>
                 --}}
                 <li><a href="{{ route('kom.super_user.index') }}">Daftar User</a></li>
+                <li><a href="{{ route('kom.super_email_resend.index') }}">{{ __('Kirim Ulang Email') }}</a></li>
                 <li><a href="{{ route('kom.inputMassal.index') }}">Input Massal</a></li>
                 <li><a href="{{ route('kom.super_books.index') }}">Input Kode Buku</a></li>
                 <li><a href="{{ route('kom.super_kom-modul.index') }}">Input Modul</a></li>

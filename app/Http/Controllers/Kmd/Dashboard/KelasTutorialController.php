@@ -330,6 +330,10 @@ class KelasTutorialController extends Controller
 
         Log::info('Progress berhasil dibuat', ['progress_id' => $progress->id]);
 
+        // 4 Nov 2026: email ke peserta (lanjut isi pertanyaan) & admin cabang. Lewat antrean, dan
+        // kalau gagal tidak mengganggu pendaftaran (pendaftaran sudah tersimpan di atas).
+        $this->notifikasi(fn ($n) => $n->pesertaMemilihJadwal((string) $progress->id));
+
         return response()->json([
             'success' => true,
             'message' => __('Berhasil ikut kelas, silakan lanjut ke pertanyaan.'),
@@ -676,6 +680,16 @@ class KelasTutorialController extends Controller
      * @param  string|null  $donasiId  diisi dari callback persembahan → peserta dikirimi email terima kasih + link Zoom
      * @return bool  true jika baru saja diproses, false jika sudah lunas sebelumnya
      */
+    /** 4 Nov 2026: jalankan notifikasi email tanpa pernah menggagalkan proses utama. */
+    protected function notifikasi(callable $kirim): void
+    {
+        try {
+            $kirim(app(\App\Services\Kmd\NotifikasiKelasService::class));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
     public function handlePaidStatus($userClassTutorialId, ?string $donasiId = null): bool
     {
         $diproses = \Illuminate\Support\Facades\DB::connection('mysql')->transaction(function () use ($userClassTutorialId) {

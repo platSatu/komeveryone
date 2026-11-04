@@ -89,6 +89,25 @@
                                     Edit
                                 </a>
 
+                                {{-- 3 Nov 2026: kirim ulang email (link baru). Pakai form terpisah di bawah tabel
+                                     (atribut form=...) karena tombol ini berada di dalam form mass action. --}}
+                                @if (filled($user->email))
+                                    @if (! $user->email_verified_at)
+                                        <button type="submit" form="kom-email-resend-form" class="btn btn-sm btn-info"
+                                            formaction="{{ route('kom.super_email_resend.send_user', Crypt::encryptString($user->id)) }}"
+                                            name="type" value="verifikasi" title="Kirim ulang link verifikasi (link baru)"
+                                            onclick="return confirm(@js('Kirim link verifikasi baru ke '.$user->email.'?'))">
+                                            <i class="bi bi-envelope-check"></i>
+                                        </button>
+                                    @endif
+                                    <button type="submit" form="kom-email-resend-form" class="btn btn-sm btn-outline-secondary"
+                                        formaction="{{ route('kom.super_email_resend.send_user', Crypt::encryptString($user->id)) }}"
+                                        name="type" value="reset_password" title="Kirim link reset password (link baru)"
+                                        onclick="return confirm(@js('Kirim link reset password baru ke '.$user->email.'?'))">
+                                        <i class="bi bi-key"></i>
+                                    </button>
+                                @endif
+
                                 <form action="{{ route('kom.super_user.destroy', Crypt::encryptString($user->id)) }}"
                                     method="POST"
                                     onsubmit="return confirm('Apakah Anda yakin ingin menghapus pengguna ini?');"
@@ -171,4 +190,9 @@
             </tbody>
         </table>
     </div>
+</form>
+
+{{-- 3 Nov 2026: form untuk tombol kirim ulang email di kolom Aksi (action diisi lewat formaction tombol) --}}
+<form id="kom-email-resend-form" method="POST" action="{{ route('kom.super_email_resend.index') }}" class="d-none">
+    @csrf
 </form>
