@@ -126,11 +126,11 @@
                                         <td class="text-center">{{ $row->total_kelas }}</td>
                                         <td>@include('a_kom_digital_pusat.superadmin.review_pengajar._bintang', ['nilai' => $row->rata_rata])</td>
                                         <td class="text-nowrap">{{ $row->review_terakhir ? \Carbon\Carbon::parse($row->review_terakhir)->translatedFormat('d M Y') : '-' }}</td>
-                                        <td class="text-right">
+                                        <td class="text-right text-nowrap">
                                             @if ($row->pengajar_id)
                                                 <a href="{{ route('kom.super_review_pengajar.show', array_merge(['pengajarId' => $row->pengajar_id], array_filter(\Illuminate\Support\Arr::only($filters, ['cabang_id', 'modul_id', 'date_from', 'date_to', 'jenis_tanggal'])))) }}"
-                                                   class="kom-rv-btn" style="padding:6px 12px;font-size:.8rem">
-                                                    <i class="fas fa-eye mr-1"></i>{{ __('Detail') }}
+                                                   class="kom-rv-btn kom-rv-btn-detail" style="padding:7px 16px;font-size:.85rem">
+                                                    <i class="fas fa-eye"></i><span>{{ __('Detail') }}</span>
                                                 </a>
                                             @endif
                                         </td>

@@ -17,6 +17,8 @@
     .kom-rv-filter .tombol { flex:0 0 auto; display:flex; gap:8px; }
     .kom-rv-btn { border:0; border-radius:12px; padding:10px 16px; font-weight:600; color:#fff; background:linear-gradient(135deg,#2f6fed,#5a5cf0); }
     .kom-rv-btn.abu { background:#eef2f8; color:#5d6a7e; }
+    /* 4 Nov 2026: tombol selalu satu baris (ikon + teks berdampingan, tidak menumpuk) */
+    a.kom-rv-btn, .kom-rv-btn-detail { display:inline-flex; align-items:center; justify-content:center; gap:6px; white-space:nowrap; line-height:1.2; }
     .kom-rv-btn:hover { filter:brightness(1.05); color:#fff; text-decoration:none; }
     .kom-rv-btn.abu:hover { color:#1c2b43; }
     .kom-rv-bar { display:flex; align-items:center; gap:12px; padding:6px 0; font-size:.86rem; color:#33415a; }
