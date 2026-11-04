@@ -431,13 +431,10 @@
                                                         </a>
 
                                                         {{-- Tombol Partisipan Zoom --}}
-                                                        @if (
-                                                                !empty($zoomData[$item->id]['registrants']) &&
-                                                                is_array($zoomData[$item->id]['registrants']) &&
-                                                                count($zoomData[$item->id]['registrants']) > 0
-                                                            )
+                                                        {{-- 4 Nov 2026: peserta Zoom diambil saat tombol diklik (halaman tidak menunggu Zoom) --}}
+                                                        @if ($item->zoom_meeting_id)
                                                             <button type="button" class="action-btn action-info"
-                                                                onclick='showZoomParticipants(@json($zoomData[$item->id]['registrants']))'
+                                                                onclick="muatPesertaZoom(this, '{{ route($ktRute.'zoomPeserta', Crypt::encryptString($item->id)) }}')"
                                                                 title="Lihat Peserta Zoom">
                                                                 <i class="fas fa-users"></i>
                                                             </button>
@@ -2162,6 +2159,20 @@
         }
     </script>
     <script>
+        // 4 Nov 2026: ambil peserta Zoom saat tombol diklik
+        function muatPesertaZoom(btn, url) {
+            if (btn.disabled) return;
+            btn.disabled = true;
+            fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+                .then(function (res) {
+                    if (!res.ok) throw new Error(res.d.message || 'Gagal mengambil peserta Zoom.');
+                    showZoomParticipants(res.d);
+                })
+                .catch(function (e) { alert(e.message || 'Gagal mengambil peserta Zoom.'); })
+                .finally(function () { btn.disabled = false; });
+        }
+
         function showZoomParticipants(data) {
             const list = document.getElementById('zoomParticipantsList');
             list.innerHTML = '';

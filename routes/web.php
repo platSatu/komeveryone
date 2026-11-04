@@ -343,6 +343,7 @@ Route::prefix('app')->group(function () {
                 Route::get('{id}/pertanyaan', 'showPertanyaan')->name('showPertanyaan');
                 Route::get('{id}/persembahan', 'showDonasi')->name('showDonasi');
                 Route::get('{id}/showReview', 'showReview')->name('showReview');
+                Route::get('{id}/zoom-peserta', 'zoomPeserta')->name('zoomPeserta'); // 4 Nov 2026: peserta Zoom diambil saat diklik
 
                 //Route::get('/addPesertaZoom', 'addPesertaZoom')->name('addPesertaZoom');
                 //Route::post('/{kelasId}/add-peserta', 'addPesertaZoomSubmit')->name('addPesertaZoom.submit');
@@ -559,6 +560,7 @@ Route::prefix('app')->group(function () {
                 Route::get('{id}/pertanyaan', 'showPertanyaan')->name('showPertanyaan');
                 Route::get('{id}/persembahan', 'showDonasi')->name('showDonasi');
                 Route::get('{id}/showReview', 'showReview')->name('showReview');
+                Route::get('{id}/zoom-peserta', 'zoomPeserta')->name('zoomPeserta'); // 4 Nov 2026: peserta Zoom diambil saat diklik
 
                 Route::post('/{kelasId}/add-peserta', 'addPesertaZoomSubmit')->name('addPesertaZoom.submit');
                 Route::get('/{kelasId}/add-peserta', 'addPesertaZoom')->name('addPesertaZoom');

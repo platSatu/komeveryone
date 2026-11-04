@@ -79,53 +79,64 @@ class ClassTutorialAdminCabangController extends Controller
     // }
     public function index(Request $request): View
     {
-        // 4 Nov 2026: Admin KOM (superadmin) melihat kelas tutorial SEMUA cabang (filter per cabang);
-        // admin cabang tetap hanya kelas miliknya, persis seperti sebelumnya.
+        // 4 Nov 2026 (performa): halaman TIDAK lagi memanggil API Zoom saat dibuka (dulu 2 panggilan per
+        // kelas: peserta + rekaman, rekamannya bahkan tidak ditampilkan) dan tidak lagi memuat semua
+        // pertanyaan (tidak dipakai di halaman ini). Peserta Zoom diambil saat tombolnya diklik (zoomPeserta).
+        $zoomData = [];
+        $pertanyaans = collect();
+
+        // Admin KOM (alamat /superadmin/kelas-tutorial): tampilan tabel Admin KOM, semua cabang.
+        if (request()->routeIs('kom.super_kelas_tutorial.*')) {
+            $rayonId = (string) $request->query('rayon_id', $request->query('cabang', ''));
+            $tab = $request->query('tab') === 'selesai' ? 'selesai' : 'aktif';
+            $data = $this->kelasTutorService->getAllForSuperadmin($rayonId ?: null, 15, $tab);
+            $jumlah = $this->kelasTutorService->hitungTabSuperadmin($rayonId ?: null);
+            $rayons = \App\Models\Kmd\Cabang::orderBy('name')->get(['id', 'name']);
+
+            return view('a_kom_digital_pusat.superadmin.kelastutorial.kelola', compact('data', 'rayons', 'rayonId', 'tab', 'jumlah'));
+        }
+
+        // Admin cabang (juga superadmin yang membuka /admin_cabang/kelas_tutorial): tampilan admin cabang.
         $isSuperadmin = KelasTutorService::isSuperadmin();
         $cabangDipilih = $isSuperadmin ? (string) $request->query('cabang', '') : '';
         $cabangs = $isSuperadmin ? \App\Models\Kmd\Cabang::orderBy('name')->get(['id', 'name']) : collect();
-
-        if ($isSuperadmin) {
-            $data = $this->kelasTutorService->getAllForSuperadmin($cabangDipilih ?: null);
-            $pertanyaans = $this->kelasTutorService->getPertanyaanByKelasIds($data->getCollection()->pluck('id'));
-        } else {
-            $data = $this->kelasTutorService->getAllByUser(Auth::id());
-            $pertanyaans = $this->kelasTutorService->getPertanyaanByKelasUser(Auth::id());
-        }
-
-        $zoomData = [];
-
-        foreach ($data as $kelas) {
-            if (!$kelas->zoom_meeting_id) {
-                $zoomData[$kelas->id] = [
-                    'registrants' => null,
-                    'recordings' => null,
-                ];
-                continue;
-            }
-
-            // kom_v02 (performa): data Zoom disimpan 10 menit supaya halaman tidak memanggil API Zoom
-            // setiap kali dibuka. Kalau Zoom gagal, tidak disimpan (dicoba lagi saat halaman dibuka lagi).
-            try {
-                $zoom = Cache::remember(self::zoomCacheKey($kelas->zoom_meeting_id), now()->addMinutes(10), fn () => [
-                    'registrants' => $this->kelasTutorService->getZoomRegistrants($kelas->zoom_meeting_id),
-                    'recordings' => $this->kelasTutorService->getZoomCloudRecordings($kelas->zoom_meeting_id),
-                ]);
-                $registrants = $zoom['registrants'];
-                $recordings = $zoom['recordings'];
-            } catch (\Exception $e) {
-                \Log::error("Gagal ambil data Zoom: " . $e->getMessage());
-                $registrants = null;
-                $recordings = null;
-            }
-
-            $zoomData[$kelas->id] = [
-                'registrants' => $registrants,
-                'recordings' => $recordings,
-            ];
-        }
+        $data = $isSuperadmin
+            ? $this->kelasTutorService->getAllForSuperadmin($cabangDipilih ?: null)
+            : $this->kelasTutorService->getAllByUser(Auth::id());
 
         return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.index', compact('data', 'zoomData', 'pertanyaans', 'isSuperadmin', 'cabangs', 'cabangDipilih'));
+    }
+
+    /**
+     * 4 Nov 2026: daftar peserta Zoom satu kelas (JSON), diambil saat tombol "Peserta Zoom" diklik.
+     * Disimpan 10 menit. Admin cabang hanya untuk kelas miliknya (lewat find()).
+     */
+    public function zoomPeserta(string $encryptedId)
+    {
+        try {
+            $kelas = $this->kelasTutorService->find($encryptedId);
+        } catch (DecryptException $e) {
+            return response()->json(['message' => 'ID tidak valid.'], 404);
+        }
+
+        if (! $kelas->zoom_meeting_id) {
+            return response()->json([]);
+        }
+
+        try {
+            $peserta = Cache::remember(self::zoomCacheKey($kelas->zoom_meeting_id).':peserta', now()->addMinutes(10),
+                fn () => $this->kelasTutorService->getZoomRegistrants($kelas->zoom_meeting_id));
+        } catch (\Exception $e) {
+            Log::error('Gagal ambil peserta Zoom: '.$e->getMessage());
+
+            return response()->json(['message' => 'Gagal mengambil peserta dari Zoom. Coba lagi sebentar lagi.'], 502);
+        }
+
+        return response()->json(collect($peserta)->map(fn ($p) => [
+            'first_name' => $p['first_name'] ?? '',
+            'last_name' => $p['last_name'] ?? '',
+            'email' => $p['email'] ?? '',
+        ])->values());
     }
 
     /** Kunci cache data Zoom (peserta & rekaman) per meeting. */
@@ -161,6 +172,7 @@ class ClassTutorialAdminCabangController extends Controller
                 $request->name
             );
             Cache::forget(self::zoomCacheKey($kelas->zoom_meeting_id)); // daftar peserta langsung terlihat
+            Cache::forget(self::zoomCacheKey($kelas->zoom_meeting_id).':peserta');
 
             return redirect()->route(KelasTutorService::awalanRute().'index')
                 ->with('success', 'Peserta berhasil ditambahkan ke Zoom meeting.');

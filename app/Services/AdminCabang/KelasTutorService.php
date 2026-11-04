@@ -78,14 +78,34 @@ class KelasTutorService
      * 4 Nov 2026: daftar kelas tutorial semua cabang untuk Admin KOM (bukan kelas Diklat Tutor),
      * bisa difilter per cabang. Sama seperti daftar admin cabang, hanya tanpa batas pemilik.
      */
-    public function getAllForSuperadmin(?string $cabangId = null, int $perPage = 10)
+    public function getAllForSuperadmin(?string $cabangId = null, int $perPage = 10, ?string $tab = null)
+    {
+        return $this->querySuperadmin($cabangId, $tab)
+            ->with(['pengajar', 'rayon', 'kelas', 'modul', 'user'])
+            ->when($tab === 'aktif', fn ($q) => $q->orderBy('start_time'))          // jadwal terdekat dulu
+            ->when($tab === 'selesai', fn ($q) => $q->orderByDesc('start_time'))    // yang terakhir dulu
+            ->when(! $tab, fn ($q) => $q->orderBy('created_at', 'desc'))
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /** Jumlah kelas per tab (Admin KOM). */
+    public function hitungTabSuperadmin(?string $cabangId = null): array
+    {
+        return [
+            'aktif' => $this->querySuperadmin($cabangId, 'aktif')->count(),
+            'selesai' => $this->querySuperadmin($cabangId, 'selesai')->count(),
+        ];
+    }
+
+    /** Kelas tutorial (bukan Diklat Tutor), opsional per cabang & per tab: aktif = status active, selesai = lainnya. */
+    private function querySuperadmin(?string $cabangId, ?string $tab)
     {
         return KmdClassTutorial::query()
             ->where(fn ($q) => $q->whereNull('category_diklat')->orWhere('category_diklat', ''))
             ->when($cabangId, fn ($q) => $q->where('rayon_id', $cabangId))
-            ->with(['pengajar', 'rayon', 'kelas', 'modul', 'user'])
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+            ->when($tab === 'aktif', fn ($q) => $q->where('status', 'active'))
+            ->when($tab === 'selesai', fn ($q) => $q->where(fn ($s) => $s->where('status', '!=', 'active')->orWhereNull('status')));
     }
 
     /** 4 Nov 2026: pertanyaan peserta (lunas) untuk daftar kelas tertentu — dipakai halaman Admin KOM. */
@@ -200,7 +220,7 @@ class KelasTutorService
             $response = Http::withToken($accessToken)
                 ->get("{$this->baseUrl}/meetings/{$meetingId}/registrants", $params);
 
-            \Log::info("Zoom Registrants Raw Response: " . $response->body());
+            // 4 Nov 2026: isi respons Zoom tidak lagi ditulis ke log (dulu tiap buka halaman → laravel.log membengkak)
 
             if (!$response->successful()) {
                 throw new \Exception('Gagal mengambil registrants Zoom: ' . $response->body());
@@ -287,6 +307,13 @@ class KelasTutorService
 
 
     protected function getAccessToken()
+    {
+        // 4 Nov 2026 (performa): token Zoom berlaku 1 jam → disimpan 50 menit, tidak diminta ulang tiap panggilan.
+        // Kalau gagal, tidak disimpan (exception diteruskan seperti sebelumnya).
+        return \Illuminate\Support\Facades\Cache::remember('kom:zoom-access-token', now()->addMinutes(50), fn () => $this->mintaAccessToken());
+    }
+
+    protected function mintaAccessToken()
     {
         $clientId = env('ZOOM_API_KEY');
         $clientSecret = env('ZOOM_API_SECRET');
