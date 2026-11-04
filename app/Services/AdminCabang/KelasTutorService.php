@@ -56,6 +56,36 @@ class KelasTutorService
             ->paginate($perPage);  // ⭐ Ganti dari ->get() ke ->paginate()
     }
 
+    /** 4 Nov 2026: Admin KOM (superadmin) memakai halaman Kelas Tutorial admin cabang untuk SEMUA cabang. */
+    public static function isSuperadmin(): bool
+    {
+        return optional(auth()->user())->role === 'superadmin';
+    }
+
+    /**
+     * 4 Nov 2026: daftar kelas tutorial semua cabang untuk Admin KOM (bukan kelas Diklat Tutor),
+     * bisa difilter per cabang. Sama seperti daftar admin cabang, hanya tanpa batas pemilik.
+     */
+    public function getAllForSuperadmin(?string $cabangId = null, int $perPage = 10)
+    {
+        return KmdClassTutorial::query()
+            ->where(fn ($q) => $q->whereNull('category_diklat')->orWhere('category_diklat', ''))
+            ->when($cabangId, fn ($q) => $q->where('rayon_id', $cabangId))
+            ->with(['pengajar', 'rayon', 'kelas', 'modul', 'user'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
+    }
+
+    /** 4 Nov 2026: pertanyaan peserta (lunas) untuk daftar kelas tertentu — dipakai halaman Admin KOM. */
+    public function getPertanyaanByKelasIds($kelasTutorialIds)
+    {
+        return KmdPertanyaanUser::with(['user', 'modul', 'kelasTutorial'])
+            ->whereIn('kelas_tutorial_id', collect($kelasTutorialIds)->all())
+            ->sudahLunas()
+            ->latest()
+            ->get();
+    }
+
     public function getPertanyaanByKelasUser(string $userId)
     {
         $kelasTutorialIds = KmdClassTutorial::where('user_id', $userId)->pluck('id');
@@ -230,8 +260,9 @@ class KelasTutorService
             throw $e;
         }
 
+        // 4 Nov 2026: Admin KOM (superadmin) boleh mengelola kelas tutorial semua cabang
         $tutorial = KmdClassTutorial::where('id', $id)
-            ->where('user_id', auth()->id())
+            ->when(! self::isSuperadmin(), fn ($q) => $q->where('user_id', auth()->id()))
             ->first();
 
         if (!$tutorial) {

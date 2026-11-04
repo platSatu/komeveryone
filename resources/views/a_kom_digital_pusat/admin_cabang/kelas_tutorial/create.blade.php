@@ -28,7 +28,22 @@
                             <input type="email" class="form-control" id="host_email" name="host_email" value="{{ old('host_email') }}" required>
                         </div> --}}
 
-                       
+                        {{-- 4 Nov 2026: Admin KOM memilih cabang dulu (kelas dibuat atas nama admin cabangnya) --}}
+                        @if (($adminCabangs ?? collect())->isNotEmpty() || \App\Services\AdminCabang\KelasTutorService::isSuperadmin())
+                            <div class="form-group">
+                                <label>Cabang <span class="text-danger">*</span></label>
+                                <select name="admin_cabang_id" class="form-control @error('admin_cabang_id') is-invalid @enderror" required>
+                                    <option value="">-- Pilih Cabang --</option>
+                                    @foreach ($adminCabangs as $admin)
+                                        <option value="{{ $admin->id }}" @selected(old('admin_cabang_id') == $admin->id)>
+                                            {{ optional($admin->cabang)->name ?? '-' }} — {{ $admin->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('admin_cabang_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <small class="text-muted">Kelas tampil di menu admin cabang ini, dan notifikasi peserta dikirim ke admin cabang ini.</small>
+                            </div>
+                        @endif
 
                         <div class="form-group">
                             <label>Kelas</label>

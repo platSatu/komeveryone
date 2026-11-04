@@ -29,6 +29,14 @@
                         @method('PUT')
 
 
+                        {{-- 4 Nov 2026: info cabang untuk Admin KOM (cabang tidak diubah dari sini) --}}
+                        @if (\App\Services\AdminCabang\KelasTutorService::isSuperadmin())
+                            <div class="alert alert-info py-2">
+                                Cabang: <strong>{{ optional($data->rayon)->name ?? '-' }}</strong>
+                                &middot; Admin cabang: <strong>{{ optional($data->user)->name ?? '-' }}</strong>
+                            </div>
+                        @endif
+
                         <div class="form-group">
                             <label>Kelas</label>
                             <select name="class_id" class="form-control" required>

@@ -12,7 +12,24 @@
                                 <i class="fas fa-chalkboard-teacher me-2 text-primary pt-1"></i>&nbsp;
                                 Kelas Tutorial
                             </h4>
-                            <p class="page-subtitle pb-1">Kelola semua jadwal kelas tutorial dan monitoring peserta</p>
+                            <p class="page-subtitle pb-1">
+                                @if ($isSuperadmin ?? false)
+                                    Admin KOM &middot; kelas tutorial semua cabang
+                                @else
+                                    Kelola semua jadwal kelas tutorial dan monitoring peserta
+                                @endif
+                            </p>
+                            {{-- 4 Nov 2026: Admin KOM — filter cabang (server, supaya semua halaman ikut tersaring) --}}
+                            @if ($isSuperadmin ?? false)
+                                <form method="GET" action="{{ route('kom.kelas_tutor_cabang.index') }}" class="mt-2">
+                                    <select name="cabang" class="modern-select" onchange="this.form.submit()" aria-label="Filter cabang">
+                                        <option value="">Semua Cabang</option>
+                                        @foreach ($cabangs as $c)
+                                            <option value="{{ $c->id }}" @selected(($cabangDipilih ?? '') == $c->id)>{{ $c->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </form>
+                            @endif
                         </div>
                         <div class="header-actions">
                             <button class="modern-btn modern-btn-ghost" onclick="refreshData()">

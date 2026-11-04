@@ -77,10 +77,21 @@ class ClassTutorialAdminCabangController extends Controller
 
     //     return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.index', compact('data', 'zoomData', 'pertanyaans'));
     // }
-    public function index(): View
+    public function index(Request $request): View
     {
-        $data = $this->kelasTutorService->getAllByUser(Auth::id());
-        $pertanyaans = $this->kelasTutorService->getPertanyaanByKelasUser(Auth::id());
+        // 4 Nov 2026: Admin KOM (superadmin) melihat kelas tutorial SEMUA cabang (filter per cabang);
+        // admin cabang tetap hanya kelas miliknya, persis seperti sebelumnya.
+        $isSuperadmin = KelasTutorService::isSuperadmin();
+        $cabangDipilih = $isSuperadmin ? (string) $request->query('cabang', '') : '';
+        $cabangs = $isSuperadmin ? \App\Models\Kmd\Cabang::orderBy('name')->get(['id', 'name']) : collect();
+
+        if ($isSuperadmin) {
+            $data = $this->kelasTutorService->getAllForSuperadmin($cabangDipilih ?: null);
+            $pertanyaans = $this->kelasTutorService->getPertanyaanByKelasIds($data->getCollection()->pluck('id'));
+        } else {
+            $data = $this->kelasTutorService->getAllByUser(Auth::id());
+            $pertanyaans = $this->kelasTutorService->getPertanyaanByKelasUser(Auth::id());
+        }
 
         $zoomData = [];
 
@@ -114,7 +125,7 @@ class ClassTutorialAdminCabangController extends Controller
             ];
         }
 
-        return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.index', compact('data', 'zoomData', 'pertanyaans'));
+        return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.index', compact('data', 'zoomData', 'pertanyaans', 'isSuperadmin', 'cabangs', 'cabangDipilih'));
     }
 
     /** Kunci cache data Zoom (peserta & rekaman) per meeting. */
@@ -264,6 +275,9 @@ class ClassTutorialAdminCabangController extends Controller
         $pengajars = $pengajarDiklat->pengajarsForCategory($category);
         $pengajarKosong = $pengajarDiklat->emptyMessage($category);
 
+        // 4 Nov 2026: Admin KOM memilih dulu cabang (admin cabang pemilik kelas)
+        $adminCabangs = KelasTutorService::isSuperadmin() ? $this->daftarAdminCabang() : collect();
+
         return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.create', compact(
             'pengajars',
             'moduls',
@@ -271,7 +285,8 @@ class ClassTutorialAdminCabangController extends Controller
             'selectedModul',
             'selectedModulId',
             'category',
-            'pengajarKosong'
+            'pengajarKosong',
+            'adminCabangs'
         ));
     }
 
@@ -307,9 +322,34 @@ public function getPengajarsByModul(Request $request, PengajarDiklatService $pen
     ]);
 }
 
+    /**
+     * 4 Nov 2026: pilihan "Cabang" untuk Admin KOM = akun admin cabang aktif beserta cabangnya.
+     * Kelas dibuat atas nama admin cabang itu, jadi muncul di menu admin cabang tersebut dan
+     * notifikasinya (peserta baru, pembatalan, dll.) sampai ke admin cabang yang benar.
+     */
+    private function daftarAdminCabang()
+    {
+        return KomUser::with('cabang:id,name')
+            ->where('role', 'admin_cabang')
+            ->whereNotNull('cabang_id')
+            ->whereIn('status', ['aktif', '1']) // sama dengan pengecekan status di menu Daftar User
+            ->get(['id', 'name', 'email', 'cabang_id'])
+            ->sortBy(fn ($u) => strtolower((optional($u->cabang)->name ?? '').' '.$u->name))
+            ->values();
+    }
+
     public function store(KelasTutorRequest $request, PengajarDiklatService $pengajarDiklat): RedirectResponse
     {
         $user = Auth::user();
+
+        // 4 Nov 2026: Admin KOM membuat kelas untuk cabang yang dipilih (atas nama admin cabangnya)
+        if (KelasTutorService::isSuperadmin()) {
+            $pemilik = $this->daftarAdminCabang()->firstWhere('id', (string) $request->input('admin_cabang_id'));
+            if (! $pemilik) {
+                return back()->withInput()->withErrors(['admin_cabang_id' => __('Pilih cabang tujuan kelas tutorial ini.')]);
+            }
+            $user = $pemilik;
+        }
 
         // 29 Okt 2026: pengajar wajib sudah lulus Diklat Tutor kategori modul ini
         // (dicek juga di server, bukan hanya di dropdown).
@@ -359,9 +399,10 @@ public function getPengajarsByModul(Request $request, PengajarDiklatService $pen
         try {
             $data = $this->kelasTutorService->find($encryptedId);
 
-            if ($data->user_id !== Auth::id()) {
+            if ($data->user_id !== Auth::id() && ! KelasTutorService::isSuperadmin()) {
                 abort(403, 'Unauthorized');
             }
+            $data->loadMissing(['user', 'rayon']); // 4 Nov 2026: info cabang di form edit Admin KOM
 
             $moduls = KmdModuls::with('kelas')->orderBy('kom_class_id')->orderBy('language_code')->orderBy('order')->get(); // kom_v02
             $kelas = KmdClass::all();

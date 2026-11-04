@@ -180,7 +180,9 @@
                 <li><a href="{{ route('kom.super_pertanyaan.index') }}">Daftar Pertanyaan</a></li>
                 <li><a href="{{ route('kom.super_jawaban.index') }}">Daftar Jawaban</a></li>
                 <li><a href="{{ route('kom.super_pertanyaan-video.index') }}">Pertanyaan di Video</a></li>
-                <li><a href="{{ route('kom.super_kelas_tutorial.index') }}">Kelas Tutorial</a></li>
+                {{-- 4 Nov 2026: Admin KOM memakai halaman Kelas Tutorial yang sama dengan admin cabang (semua cabang).
+                     Tabel lama tetap bisa dibuka: route('kom.super_kelas_tutorial.index') --}}
+                <li><a href="{{ route('kom.kelas_tutor_cabang.index') }}">Kelas Tutorial</a></li>
                 <li><a href="{{ route('kom.super_userclasstutorial.index') }}">User Kelas Tutorial</a></li>
                 <li><a href="{{ route('kom.super_pertanyaan_user.index') }}">Pertanyaan Peserta</a></li>
                 <li><a href="{{ route('kom.super_review_pengajar.index') }}">{{ __('Review Pengajar') }}</a></li>
