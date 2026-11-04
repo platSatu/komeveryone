@@ -419,6 +419,13 @@ public function getPengajarsByModul(Request $request, PengajarDiklatService $pen
                 ]);
             }
 
+            // 4 Nov 2026: kuota tidak boleh kurang dari peserta lunas + yang sedang mendaftar
+            try {
+                app(\App\Services\Kmd\KuotaTutorialService::class)->pastikanKuotaCukup($lama, $request->input('quota'));
+            } catch (\InvalidArgumentException $e) {
+                return redirect()->back()->withInput()->withErrors(['quota' => $e->getMessage()]);
+            }
+
             $this->kelasTutorService->editZoomMeeting($encryptedId, $request->validated());
 
             return redirect()->route('kom.kelas_tutor_cabang.index')

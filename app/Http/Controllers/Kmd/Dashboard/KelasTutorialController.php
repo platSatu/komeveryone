@@ -69,6 +69,10 @@ class KelasTutorialController extends Controller
         // Pagination, misal 9 per halaman
         $kelasTutorials = $query->orderBy('start_time')->paginate(9);
 
+        // 4 Nov 2026: kuota yang tampil = sisa_quota dikurangi tempat yang sedang ditahan (hanya tampilan, tidak disimpan)
+        $tersedia = app(\App\Services\Kmd\KuotaTutorialService::class)->tersediaBanyak($kelasTutorials->getCollection());
+        $kelasTutorials->getCollection()->each(fn ($kelas) => $kelas->kuota_tersedia = $tersedia[$kelas->id] ?? (int) $kelas->sisa_quota);
+
         // Ambil data rayon dan modul untuk filter dropdown
         $rayons = Cabang::all();
         $moduls = $modulQuery->get();
@@ -310,23 +314,39 @@ class KelasTutorialController extends Controller
                 return $this->jadwalPengganti($user, $kelasTutorial, $statusTitik['booking']);
         }
 
-        // Buat progress baru dengan status pending (belum bayar)
-        $progress = KmdUserClassTutorial::create([
-            'id' => (string) Str::uuid(),
-            'user_id' => $user->id,
-            'class_tutorial_id' => $kelasTutorial->id,
-            'class_id' => $kelasTutorial->class_id,
-            'modul_id' => $kelasTutorial->modul_id,
-            'video_id' => $kelasTutorial->video_id ?: null, // kom_v02: titik tutorial
-            'rayon_id' => $kelasTutorial->rayon_id,
-            'pengajar_id' => $kelasTutorial->pengajar_id,
-            'step' => 'pertanyaan',
-            'status_progress' => 'pending', // belum bayar
-            'status' => 'booked',
-            'date_booking' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // Buat progress baru dengan status pending (belum bayar).
+        // 4 Nov 2026: pendaftaran ini MENAHAN 1 tempat sampai lunas / batas waktunya habis
+        // (KuotaTutorialService). Dikunci per kelas supaya 2 peserta tidak berebut tempat terakhir.
+        $progress = \Illuminate\Support\Facades\DB::connection('mysql')->transaction(function () use ($user, $kelasTutorial) {
+            $kelas = KmdClassTutorial::lockForUpdate()->find($kelasTutorial->id);
+            if (! $kelas || app(\App\Services\Kmd\KuotaTutorialService::class)->tersedia($kelas) <= 0) {
+                return null;
+            }
+
+            return KmdUserClassTutorial::create([
+                'id' => (string) Str::uuid(),
+                'user_id' => $user->id,
+                'class_tutorial_id' => $kelasTutorial->id,
+                'class_id' => $kelasTutorial->class_id,
+                'modul_id' => $kelasTutorial->modul_id,
+                'video_id' => $kelasTutorial->video_id ?: null, // kom_v02: titik tutorial
+                'rayon_id' => $kelasTutorial->rayon_id,
+                'pengajar_id' => $kelasTutorial->pengajar_id,
+                'step' => 'pertanyaan',
+                'status_progress' => 'pending', // belum bayar
+                'status' => 'booked',
+                'date_booking' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        if (! $progress) {
+            return response()->json([
+                'success' => false,
+                'message' => __('Kuota kelas sudah penuh (sebagian tempat sedang dipakai peserta yang sedang menyelesaikan pendaftaran). Silakan pilih jadwal lain atau coba lagi nanti.'),
+            ], 422);
+        }
 
         Log::info('Progress berhasil dibuat', ['progress_id' => $progress->id]);
 
@@ -603,7 +623,8 @@ class KelasTutorialController extends Controller
     {
         $booking = \Illuminate\Support\Facades\DB::connection('mysql')->transaction(function () use ($user, $kelasTutorial, $bookingLama) {
             $kelas = KmdClassTutorial::lockForUpdate()->find($kelasTutorial->id);
-            if (! $kelas || $kelas->sisa_quota <= 0) {
+            // 4 Nov 2026: tempat yang sedang ditahan peserta lain ikut dihitung
+            if (! $kelas || app(\App\Services\Kmd\KuotaTutorialService::class)->tersedia($kelas) <= 0) {
                 return null;
             }
 

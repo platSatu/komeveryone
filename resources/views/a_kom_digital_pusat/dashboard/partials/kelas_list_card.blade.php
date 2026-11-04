@@ -18,8 +18,8 @@
                     <img src="{{ asset('kmd/kom100.jpg') }}"
                         alt="Thumbnail {{ $kelas->topic ?? __('Kelas Tutorial') }}">
                     <span class="kom-kt-badge"><i class="fas fa-flag-checkered mr-1"></i>{{ $kelas->label_titik }}</span>
-                    @if ($kelas->sisa_quota > 0)
-                        <span class="kom-kt-kuota"><i class="fas fa-users mr-1"></i>{{ __('Kuota Tersisa') }}: {{ $kelas->sisa_quota }}</span>
+                    @if (($kelas->kuota_tersedia ?? $kelas->sisa_quota) > 0)
+                        <span class="kom-kt-kuota"><i class="fas fa-users mr-1"></i>{{ __('Kuota Tersisa') }}: {{ ($kelas->kuota_tersedia ?? $kelas->sisa_quota) }}</span>
                     @else
                         <span class="kom-kt-kuota penuh"><i class="fas fa-times-circle mr-1"></i>{{ __('Kuota Penuh') }}</span>
                     @endif
@@ -46,7 +46,7 @@
                         @endif
                     </ul>
 
-                    @if ($kelas->sisa_quota > 0)
+                    @if (($kelas->kuota_tersedia ?? $kelas->sisa_quota) > 0)
                         <form action="{{ route('kom.kelas_tutorial.join') }}" method="POST"
                             class="mt-auto joinClassForm">
                             @csrf

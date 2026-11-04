@@ -63,7 +63,10 @@ class KmdClassTutorialService
         $data['notifikasi'] = $data['notifikasi'] ?? false;
         $data['sisa_quota'] = $data['sisa_quota'] ?? $tutorial->sisa_quota;
 
-        return $tutorial->update($data);
+        // 4 Nov 2026: sisa_quota ikut dihitung ulang kalau kuota diubah
+        app(\App\Services\Kmd\KuotaTutorialService::class)->simpanKelas($tutorial, $data);
+
+        return true;
     }
 
     public function delete(string $id): bool

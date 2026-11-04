@@ -573,7 +573,10 @@ class KelasTutorService
         $data['notifikasi'] = $data['notifikasi'] ?? false;
         $data['sisa_quota'] = $data['sisa_quota'] ?? $tutorial->sisa_quota;
 
-        return $tutorial->update($data);
+        // 4 Nov 2026: sisa_quota ikut dihitung ulang kalau kuota diubah
+        app(\App\Services\Kmd\KuotaTutorialService::class)->simpanKelas($tutorial, $data);
+
+        return true;
     }
 
     public function deleteZoomMeeting($meetingId)
@@ -624,6 +627,13 @@ class KelasTutorService
     $data['notifikasi'] = $data['notifikasi'] ?? false;
     $data['sisa_quota'] = $data['sisa_quota'] ?? $tutorial->sisa_quota;
 
+    // 4 Nov 2026: cek kuota minimal DULU (sebelum Zoom diubah), supaya kalau ditolak tidak setengah jalan
+    try {
+        app(\App\Services\Kmd\KuotaTutorialService::class)->pastikanKuotaCukup($tutorial, $data['quota'] ?? null);
+    } catch (\InvalidArgumentException $e) {
+        throw new \Exception($e->getMessage());
+    }
+
     if (!$tutorial->zoom_meeting_id) {
         throw new \Exception('Meeting Zoom belum dibuat untuk kelas ini.');
     }
@@ -669,9 +679,8 @@ class KelasTutorService
     }
 
     // Update database lokal
-    $tutorial->update($data);
-
-    return $tutorial;
+    // 4 Nov 2026: lewat KuotaTutorialService → sisa_quota ikut dihitung ulang kalau kuota diubah
+    return app(\App\Services\Kmd\KuotaTutorialService::class)->simpanKelas($tutorial, $data);
 }
 
 

@@ -86,6 +86,9 @@ class ClassTutorialController extends Controller
             $id = Crypt::decrypt($encryptedId);
             $this->service->update($id, $request->all());
             return redirect()->route('kom.super_kelas_tutorial.index')->with('success', 'Tutorial berhasil diperbarui.');
+        } catch (\InvalidArgumentException $e) {
+            // 4 Nov 2026: kuota lebih kecil dari peserta lunas + yang sedang mendaftar
+            return back()->withInput()->with('error', $e->getMessage());
         } catch (\Exception $e) {
             \Log::error('Gagal mengupdate tutorial: ' . $e->getMessage());
             return back()->withInput()->with('error', 'Terjadi kesalahan saat mengupdate data.');

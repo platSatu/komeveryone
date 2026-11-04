@@ -30,14 +30,14 @@
                     <td>{{ $kelas->rayon->name ?? '-' }}</td>
                     <td>{{ \Carbon\Carbon::parse($kelas->start_time)->translatedFormat('l, d F Y H:i') }}</td>
                     <td class="text-center">
-                        @if($kelas->sisa_quota > 0)
-                            <span class="kom-kt-chip biru">{{ $kelas->sisa_quota }}</span>
+                        @if(($kelas->kuota_tersedia ?? $kelas->sisa_quota) > 0)
+                            <span class="kom-kt-chip biru">{{ ($kelas->kuota_tersedia ?? $kelas->sisa_quota) }}</span>
                         @else
                             <span class="kom-kt-chip merah">{{ __('Penuh') }}</span>
                         @endif
                     </td>
                     <td class="text-right">
-                        @if($kelas->sisa_quota > 0)
+                        @if(($kelas->kuota_tersedia ?? $kelas->sisa_quota) > 0)
                             <form action="{{ route('kom.kelas_tutorial.join') }}" method="POST" class="joinClassForm d-inline">
                                 @csrf
                                 <input type="hidden" name="class_tutorial_id" value="{{ $kelas->id }}">

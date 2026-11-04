@@ -347,6 +347,13 @@ class PersembahanController extends Controller
             ], 409);
         }
 
+        // 4 Nov 2026: tidak ada refund → pembayaran hanya bisa dibuat kalau tempat peserta ini masih tersedia
+        if (! $progress->category_diklat && ! app(\App\Services\Kmd\KuotaTutorialService::class)->bolehBayar($progress)) {
+            return response()->json([
+                'error' => __('Maaf, kuota kelas ini sudah penuh sehingga persembahan tidak bisa diproses. Silakan batalkan dan pilih jadwal lain.'),
+            ], 409);
+        }
+
         if ($gateway === \App\Services\Payment\PaymentGatewaySetting::BIZBOS) {
             return $this->checkoutBizbos($user, $progress, $amount, $fee, $total, $checkout);
         }
