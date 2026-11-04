@@ -8,6 +8,9 @@
 @use('App\Services\Superadmin\EmailResendService', 'ER')
 @php
     $badge = [ER::TYPE_VERIFICATION => 'kom-er-tag biru', ER::TYPE_RESET => 'kom-er-tag ungu', ER::TYPE_OTHER => 'kom-er-tag abu'];
+    // 4 Nov 2026: tampilan 2 tab (Email gagal / Masih di antrean). Tab ikut di URL (?tab=) supaya
+    // tetap di tab yang sama setelah kirim ulang, hapus, atau pindah halaman.
+    $tab = in_array(request('tab'), ['gagal', 'antrean'], true) ? request('tab') : (request()->has('menunggu') ? 'antrean' : 'gagal');
 @endphp
 <div class="kom-page container-fluid px-0">
     @include('a_kom_digital_pusat.katalog._flash')
@@ -16,22 +19,12 @@
         <div class="kom-note kom-note-danger mb-3">@foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>
     @endif
 
-    <p class="kom-text mb-3">
-        Link <b>verifikasi</b> berlaku 10 menit dan link <b>reset password</b> 60 menit, jadi kirim ulang untuk dua jenis ini
-        selalu membuat <b>link baru</b> (link lama otomatis tidak berlaku). Email lain (undangan kelas, link Zoom, notifikasi)
-        dikirim ulang apa adanya. Semua email dikirim lewat antrean, biasanya sampai dalam 1&ndash;2 menit.
-    </p>
+    <p class="kom-text mb-3">Kirim ulang verifikasi / reset password selalu membuat <b>link baru</b>. Email dikirim lewat antrean, biasanya sampai dalam 1&ndash;2 menit.</p>
 
-    {{-- Ringkasan --}}
-    <div class="kom-er-stats mb-3">
-        <div class="kom-er-stat {{ $counts['failed'] ? 'merah' : '' }}"><small>Email gagal</small><strong>{{ number_format($counts['failed']) }}</strong></div>
-        <div class="kom-er-stat"><small>Masih di antrean</small><strong>{{ number_format($counts['pending']) }}</strong></div>
-    </div>
-
-    {{-- Kirim manual --}}
-    <div class="kom-card mb-3">
-        <h5 class="kom-card-title mb-3">Kirim ke email tertentu</h5>
-        <form method="POST" action="{{ route('kom.super_email_resend.send_manual') }}" class="kom-er-form" data-kirim>
+    {{-- Kirim manual (dilipat supaya halaman tidak panjang) --}}
+    <details class="kom-er-manual mb-3" @if ($errors->any() || old('email')) open @endif>
+        <summary><i class="bi bi-envelope-plus"></i> Kirim ke email tertentu</summary>
+        <form method="POST" action="{{ route('kom.super_email_resend.send_manual') }}" class="kom-er-form mt-3" data-kirim>
             @csrf
             <input type="email" name="email" value="{{ old('email') }}" class="form-control" placeholder="email@contoh.com" required>
             <select name="type" class="form-control">
@@ -41,12 +34,24 @@
             <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Kirim</button>
         </form>
         <small class="text-muted d-block mt-2">Email harus sudah terdaftar sebagai user. Verifikasi tidak dikirim kalau email user sudah terverifikasi.</small>
+    </details>
+
+    {{-- Tab --}}
+    <div class="kom-er-tabs" role="tablist">
+        <button type="button" role="tab" class="kom-er-tabbtn {{ $tab === 'gagal' ? 'aktif' : '' }}" data-tab="gagal" aria-selected="{{ $tab === 'gagal' ? 'true' : 'false' }}">
+            <i class="bi bi-x-octagon"></i> Email gagal terkirim
+            <span class="kom-er-count {{ $counts['failed'] ? 'merah' : '' }}">{{ number_format($counts['failed']) }}</span>
+        </button>
+        <button type="button" role="tab" class="kom-er-tabbtn {{ $tab === 'antrean' ? 'aktif' : '' }}" data-tab="antrean" aria-selected="{{ $tab === 'antrean' ? 'true' : 'false' }}">
+            <i class="bi bi-hourglass-split"></i> Masih di antrean
+            <span class="kom-er-count">{{ number_format($counts['pending']) }}</span>
+        </button>
     </div>
 
-    {{-- Email gagal --}}
-    <div class="kom-card mb-3">
+    {{-- Tab 1: Email gagal --}}
+    <div class="kom-card kom-er-pane mb-3" data-pane="gagal" role="tabpanel" @if ($tab !== 'gagal') hidden @endif>
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-3" style="gap:10px">
-            <h5 class="kom-card-title m-0">Email gagal terkirim</h5>
+            <small class="text-muted">Verifikasi &amp; reset password dikirim ulang dengan <b>link baru</b>; email lain dikirim apa adanya.</small>
             @if ($counts['failed'])
                 <div class="d-flex flex-wrap" style="gap:8px">
                     @foreach ([ER::TYPE_VERIFICATION => 'verifikasi', ER::TYPE_RESET => 'reset password'] as $type => $label)
@@ -94,12 +99,11 @@
                 </tbody>
             </table>
         </div>
-        {{ $failed->appends(request()->except('gagal'))->links('pagination::bootstrap-4') }}
+        {{ $failed->appends(['tab' => 'gagal'])->links('pagination::bootstrap-4') }}
     </div>
 
-    {{-- Antrean --}}
-    <div class="kom-card mb-3">
-        <h5 class="kom-card-title mb-1">Masih di antrean</h5>
+    {{-- Tab 2: Antrean --}}
+    <div class="kom-card kom-er-pane mb-3" data-pane="antrean" role="tabpanel" @if ($tab !== 'antrean') hidden @endif>
         <small class="text-muted d-block mb-3">Diproses otomatis tiap menit. Kalau link verifikasi / reset password di sini sudah lewat batas waktunya, klik <b>Kirim Link Baru</b>.</small>
 
         <div class="table-responsive">
@@ -134,16 +138,21 @@
                 </tbody>
             </table>
         </div>
-        {{ $pending->appends(request()->except('menunggu'))->links('pagination::bootstrap-4') }}
+        {{ $pending->appends(['tab' => 'antrean'])->links('pagination::bootstrap-4') }}
     </div>
 </div>
 
 <style>
-    .kom-er-stats { display:flex; flex-wrap:wrap; gap:12px; }
-    .kom-er-stat { background:#fff; border:1px solid #e6ebf2; border-radius:14px; padding:12px 18px; min-width:160px; }
-    .kom-er-stat small { display:block; color:#5b6576; }
-    .kom-er-stat strong { font-size:1.5rem; color:#1e3c72; }
-    .kom-er-stat.merah strong { color:#dc3545; }
+    .kom-er-manual { background:#fff; border:1px solid #e6ebf2; border-radius:14px; padding:12px 18px; }
+    .kom-er-manual summary { cursor:pointer; font-weight:600; color:#2a5298; }
+    .kom-er-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+    .kom-er-tabbtn { display:inline-flex; align-items:center; gap:8px; border:1px solid #e3e8f0; background:#fff; color:#5b6576;
+        border-radius:12px; padding:10px 16px; font-weight:600; cursor:pointer; }
+    .kom-er-tabbtn:hover { border-color:#9db8f2; }
+    .kom-er-tabbtn.aktif { background:#2a5298; border-color:#2a5298; color:#fff; }
+    .kom-er-count { background:#eef0f3; color:#5b6576; border-radius:999px; padding:1px 9px; font-size:.8rem; }
+    .kom-er-count.merah { background:#fdeeee; color:#dc3545; }
+    .kom-er-tabbtn.aktif .kom-er-count { background:rgba(255,255,255,.2); color:#fff; }
     .kom-er-form { display:flex; flex-wrap:wrap; gap:8px; }
     .kom-er-form input { flex:1 1 240px; }
     .kom-er-form select { flex:0 1 230px; }
@@ -154,6 +163,23 @@
     .kom-er-tag.abu  { background:#eef0f3; color:#5b6576; }
 </style>
 <script>
+    // Pindah tab tanpa memuat ulang halaman; tab disimpan di URL supaya tetap sama setelah aksi.
+    document.querySelectorAll('.kom-er-tabbtn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var tab = btn.dataset.tab;
+            document.querySelectorAll('.kom-er-tabbtn').forEach(function (b) {
+                b.classList.toggle('aktif', b === btn);
+                b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+            });
+            document.querySelectorAll('.kom-er-pane').forEach(function (p) { p.hidden = p.dataset.pane !== tab; });
+            try {
+                var url = new URL(window.location.href);
+                url.searchParams.set('tab', tab);
+                window.history.replaceState(null, '', url.toString());
+            } catch (e) {}
+        });
+    });
+
     // Konfirmasi (kalau ada) + cegah klik dobel.
     document.querySelectorAll('form[data-kirim]').forEach(function (form) {
         form.addEventListener('submit', function (e) {
