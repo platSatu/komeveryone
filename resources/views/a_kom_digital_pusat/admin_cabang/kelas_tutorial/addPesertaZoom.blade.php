@@ -17,7 +17,7 @@
                     @endif
 
                     {{-- Form Tambah Peserta --}}
-                    <form action="{{ route('kom.kelas_tutor_cabang.addPesertaZoom.submit', ['kelasId' => request('kelasId')]) }}" method="POST">
+                    <form action="{{ route($ktRute.'addPesertaZoom.submit', ['kelasId' => request('kelasId')]) }}" method="POST">
                         @csrf
 
                         <div class="form-group mb-3">

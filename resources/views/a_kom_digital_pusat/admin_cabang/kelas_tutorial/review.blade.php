@@ -58,7 +58,7 @@
                     </div>
 
                     {{-- Form Review --}}
-                    <form action="{{ route('kom.kelas_tutor_cabang.review.store', Crypt::encryptString($classTutorial->id)) }}" method="POST">
+                    <form action="{{ route($ktRute.'review.store', Crypt::encryptString($classTutorial->id)) }}" method="POST">
                         @csrf
                         
                         @foreach($userClassTutorials as $index => $userClass)
@@ -205,7 +205,7 @@
                         @endif
 
                         <div class="d-flex justify-content-between mt-4">
-                            <a href="{{ route('kom.kelas_tutor_cabang.index') }}" class="btn btn-secondary">
+                            <a href="{{ route($ktRute.'index') }}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left me-1"></i>&nbsp;&nbsp;Kembali
                             </a>
                             @if($userClassTutorials->isNotEmpty())

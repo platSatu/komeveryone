@@ -21,7 +21,7 @@
                             </p>
                             {{-- 4 Nov 2026: Admin KOM — filter cabang (server, supaya semua halaman ikut tersaring) --}}
                             @if ($isSuperadmin ?? false)
-                                <form method="GET" action="{{ route('kom.kelas_tutor_cabang.index') }}" class="mt-2">
+                                <form method="GET" action="{{ route($ktRute.'index') }}" class="mt-2">
                                     <select name="cabang" class="modern-select" onchange="this.form.submit()" aria-label="Filter cabang">
                                         <option value="">Semua Cabang</option>
                                         @foreach ($cabangs as $c)
@@ -36,7 +36,7 @@
                                 <i class="fas fa-sync-alt"></i>
                                 Refresh
                             </button>
-                            <a href="{{ route('kom.kelas_tutor_cabang.create') }}" class="modern-btn modern-btn-primary">
+                            <a href="{{ route($ktRute.'create') }}" class="modern-btn modern-btn-primary">
                                 <i class="fas fa-plus"></i>
                                 Tambah Kelas
                             </a>
@@ -307,7 +307,7 @@
                                                         </a>
 
                                                         <form
-                                                            action="{{ route('kom.kelas_tutor_cabang.end-meeting', $item->id) }}"
+                                                            action="{{ route($ktRute.'end-meeting', $item->id) }}"
                                                             method="POST"
                                                             onsubmit="return confirm('Yakin ingin mengakhiri meeting?')">
                                                             @csrf
@@ -396,7 +396,7 @@
                                                 <div class="table-actions">
                                                     <div class="action-group">
                                                         @if($item->zoom_meeting_id)
-                                                            <a href="{{ route('kom.kelas_tutor_cabang.addPesertaZoom', ['kelasId' => $item->id]) }}" 
+                                                            <a href="{{ route($ktRute.'addPesertaZoom', ['kelasId' => $item->id]) }}" 
                                                                 class="action-btn action-info" title="Undang Peserta Zoom">
                                                                 <i class="fas fa-plus"></i>
                                                             </a>
@@ -406,26 +406,26 @@
                                                         @endif
                                                         {{-- Tombol Edit --}}
                                                         {{-- Tombol Lihat Pertanyaan --}}
-                                                        <a href="{{ route('kom.kelas_tutor_cabang.showPertanyaan', Crypt::encryptString($item->id)) }}"
+                                                        <a href="{{ route($ktRute.'showPertanyaan', Crypt::encryptString($item->id)) }}"
                                                             class="action-btn action-info" title="Lihat Pertanyaan Peserta">
                                                             <i class="fas fa-question-circle"></i>
                                                         </a>
 
-                                                        <a href="{{ route('kom.kelas_tutor_cabang.showDonasi', Crypt::encryptString($item->id)) }}"
+                                                        <a href="{{ route($ktRute.'showDonasi', Crypt::encryptString($item->id)) }}"
                                                             class="action-btn action-info" title="Lihat Persembahan Peserta">
                                                             <i class="fas fa-donate"></i>
                                                         </a>
 
 
                                                         {{-- Tombol Absensi --}}
-                                                        <a href="{{ route('kom.kelas_tutor_cabang.absensi', Crypt::encryptString($item->id)) }}"
+                                                        <a href="{{ route($ktRute.'absensi', Crypt::encryptString($item->id)) }}"
                                                             class="action-btn action-info" title="Absensi">
                                                             <i class="fas fa-check"></i>
                                                         </a>
 
 
 
-                                                        <a href="{{ route('kom.kelas_tutor_cabang.showReview', Crypt::encryptString($item->id)) }}"
+                                                        <a href="{{ route($ktRute.'showReview', Crypt::encryptString($item->id)) }}"
                                                             class="action-btn action-info" title="Review">
                                                             <i class="fas fa-star"></i>
                                                         </a>
@@ -462,13 +462,13 @@
                                                         @endforeach
                                                         @endif --}}
 
-                                                        <a href="{{ route('kom.kelas_tutor_cabang.edit', Crypt::encryptString($item->id)) }}"
+                                                        <a href="{{ route($ktRute.'edit', Crypt::encryptString($item->id)) }}"
                                                             class="action-btn action-warning" title="Edit">
                                                             <i class="fas fa-edit"></i>
                                                         </a>
                                                         {{-- Tombol Hapus --}}
                                                         <form
-                                                            action="{{ route('kom.kelas_tutor_cabang.destroy', Crypt::encryptString($item->id)) }}"
+                                                            action="{{ route($ktRute.'destroy', Crypt::encryptString($item->id)) }}"
                                                             method="POST">
                                                             @csrf
                                                             @method('DELETE')

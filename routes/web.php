@@ -536,16 +536,35 @@ Route::prefix('app')->group(function () {
                 Route::post('/create', 'storeMassal')->name('store');
             });
 
-            Route::prefix('kelas-tutorial')->controller(ClassTutorialController::class)->name('super_kelas_tutorial.')->group(function () {
+            // 4 Nov 2026: Admin KOM — Kelas Tutorial dengan fungsi yang SAMA dengan admin cabang (semua cabang):
+            // buat kelas (pilih cabang), absensi, undang peserta, pertanyaan, persembahan, review.
+            // Controller & tampilan sama dengan /admin_cabang/kelas_tutorial; link di halaman mengikuti alamat ini.
+            // (Tabel lama: ClassTutorialController — tidak dipakai lagi.)
+            Route::prefix('kelas-tutorial')->controller(ClassTutorialAdminCabangController::class)->name('super_kelas_tutorial.')->middleware(['auth:web', 'cekrolekom:superadmin'])->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('/create', 'create')->name('create');
                 Route::post('/', 'store')->name('store');
-                Route::get('/{id}', 'show')->name('show');
                 Route::get('/{id}/edit', 'edit')->name('edit');
                 Route::put('/{id}', 'update')->name('update');
                 Route::delete('/{id}', 'destroy')->name('destroy');
-                Route::get('/zoom/meetings/{zoomMeetingId}/join', 'join')->name('meetings.join');
+                Route::post('/kelas-tutorial/{id}/end-meeting', 'endMeeting')->name('end-meeting');
+                Route::get('/zoom/meetings/{zoomMeetingId}/join', 'join')->name('join');
                 Route::post('/zoom/meetings/signature', 'generateSignature')->name('meetings.signature');
+
+                Route::get('/{id}/absensi', 'absensi')->name('absensi');
+                Route::get('/{id}/review', 'review')->name('review');
+                Route::post('{id}/absensi', 'absensiStore')->name('absensi.store');
+                Route::post('{id}/review', 'reviewStore')->name('review.store');
+
+                Route::get('{id}/pertanyaan', 'showPertanyaan')->name('showPertanyaan');
+                Route::get('{id}/persembahan', 'showDonasi')->name('showDonasi');
+                Route::get('{id}/showReview', 'showReview')->name('showReview');
+
+                Route::post('/{kelasId}/add-peserta', 'addPesertaZoomSubmit')->name('addPesertaZoom.submit');
+                Route::get('/{kelasId}/add-peserta', 'addPesertaZoom')->name('addPesertaZoom');
+
+                Route::get('/api/pengajars', 'getPengajarsByModul')->name('api.pengajars.byModul');
+                Route::get('/api/titik-tutorial', 'getTitikByModul')->name('api.titik.byModul');
             });
 
             Route::prefix('daftar-pertanyaan')->controller(QuestionController::class)->name('super_pertanyaan.')->group(function () {

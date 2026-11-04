@@ -43,7 +43,7 @@
 
         modul.addEventListener('change', function () {
             pengajar.innerHTML = '<option value="">Memuat pengajar...</option>';
-            fetch('{{ route('kom.kelas_tutor_cabang.api.pengajars.byModul') }}?modul_id=' + encodeURIComponent(modul.value), {
+            fetch('{{ route($ktRute.'api.pengajars.byModul') }}?modul_id=' + encodeURIComponent(modul.value), {
                 headers: { 'Accept': 'application/json' }
             })
                 .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })

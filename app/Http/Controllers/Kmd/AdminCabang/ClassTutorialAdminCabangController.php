@@ -162,7 +162,7 @@ class ClassTutorialAdminCabangController extends Controller
             );
             Cache::forget(self::zoomCacheKey($kelas->zoom_meeting_id)); // daftar peserta langsung terlihat
 
-            return redirect()->route('kom.kelas_tutor_cabang.index')
+            return redirect()->route(KelasTutorService::awalanRute().'index')
                 ->with('success', 'Peserta berhasil ditambahkan ke Zoom meeting.');
         } catch (\Exception $e) {
             \Log::error('Gagal registrasi peserta ke Zoom: ' . $e->getMessage());
@@ -362,7 +362,7 @@ public function getPengajarsByModul(Request $request, PengajarDiklatService $pen
         try {
             $tutorial = $this->kelasTutorService->create($user->id, $request->all());
 
-            return redirect()->route('kom.kelas_tutor_cabang.index')
+            return redirect()->route(KelasTutorService::awalanRute().'index')
                 ->with('success', 'Tutorial dan Zoom meeting berhasil dibuat.');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Gagal membuat tutorial: ' . $e->getMessage()])
@@ -469,7 +469,7 @@ public function getPengajarsByModul(Request $request, PengajarDiklatService $pen
 
             $this->kelasTutorService->editZoomMeeting($encryptedId, $request->validated());
 
-            return redirect()->route('kom.kelas_tutor_cabang.index')
+            return redirect()->route(KelasTutorService::awalanRute().'index')
                 ->with('success', 'Kelas tutorial berhasil diperbarui dan Zoom meeting sudah diupdate.');
         } catch (DecryptException $e) {
             return redirect()->back()
@@ -535,10 +535,10 @@ public function getPengajarsByModul(Request $request, PengajarDiklatService $pen
 
             return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.absensi', $data);
         } catch (DecryptException $e) {
-            return redirect()->route('kom.kelas_tutor_cabang.index')
+            return redirect()->route(KelasTutorService::awalanRute().'index')
                 ->with('error', 'ID tidak valid.');
         } catch (\Exception $e) {
-            return redirect()->route('kom.kelas_tutor_cabang.index')
+            return redirect()->route(KelasTutorService::awalanRute().'index')
                 ->with('error', 'Data kelas tidak ditemukan: ' . $e->getMessage());
         }
     }
@@ -557,7 +557,7 @@ public function getPengajarsByModul(Request $request, PengajarDiklatService $pen
 
             Log::info('Absensi stored successfully', ['classTutorialId' => $classTutorialId]);
 
-            return redirect()->route('kom.kelas_tutor_cabang.index')
+            return redirect()->route(KelasTutorService::awalanRute().'index')
                 ->with('success', 'Data absensi berhasil disimpan.');
         } catch (DecryptException $e) {
             Log::error('DecryptException: ' . $e->getMessage());
@@ -587,11 +587,11 @@ public function getPengajarsByModul(Request $request, PengajarDiklatService $pen
             return view('a_kom_digital_pusat.admin_cabang.kelas_tutorial.review', $data);
         } catch (DecryptException $e) {
             \Log::error('Decrypt error', ['error' => $e->getMessage()]);
-            return redirect()->route('kom.kelas_tutor_cabang.index')
+            return redirect()->route(KelasTutorService::awalanRute().'index')
                 ->with('error', 'ID tidak valid.');
         } catch (\Exception $e) {
             \Log::error('General error in review', ['error' => $e->getMessage()]);
-            return redirect()->route('kom.kelas_tutor_cabang.index')
+            return redirect()->route(KelasTutorService::awalanRute().'index')
                 ->with('error', 'Data kelas tidak ditemukan: ' . $e->getMessage());
         }
     }
@@ -604,7 +604,7 @@ public function getPengajarsByModul(Request $request, PengajarDiklatService $pen
 
             $this->kelasService->storeReview($classTutorialId, $request->validated());
 
-            return redirect()->route('kom.kelas_tutor_cabang.index')
+            return redirect()->route(KelasTutorService::awalanRute().'index')
                 ->with('success', 'Data review pengajar berhasil disimpan.');
         } catch (DecryptException $e) {
             return redirect()->back()

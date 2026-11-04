@@ -7,7 +7,7 @@
 
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h4 class="card-title">Edit Jadwal Kelas Tutorial</h4>
-                    <a href="{{ route('kom.kelas_tutor_cabang.index') }}" class="btn btn-secondary btn-sm">Kembali</a>
+                    <a href="{{ route($ktRute.'index') }}" class="btn btn-secondary btn-sm">Kembali</a>
                 </div>
 
                 <div class="card-body">
@@ -24,7 +24,7 @@
                     @if (session('error'))
                         <div class="alert alert-danger mb-3">{{ session('error') }}</div>
                     @endif
-                    <form action="{{ route('kom.kelas_tutor_cabang.update', Crypt::encryptString($data->id)) }}" method="POST">
+                    <form action="{{ route($ktRute.'update', Crypt::encryptString($data->id)) }}" method="POST">
                         @csrf
                         @method('PUT')
 

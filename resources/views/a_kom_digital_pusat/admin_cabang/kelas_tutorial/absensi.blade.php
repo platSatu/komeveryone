@@ -60,7 +60,7 @@
 
                     {{-- Form Absensi --}}
                     <form
-                        action="{{ route('kom.kelas_tutor_cabang.absensi.store', Crypt::encryptString($classTutorial->id)) }}"
+                        action="{{ route($ktRute.'absensi.store', Crypt::encryptString($classTutorial->id)) }}"
                         method="POST">
                         @csrf
 
@@ -179,7 +179,7 @@
                         </div>
 
                         <div class="d-flex justify-content-between mt-4">
-                            <a href="{{ route('kom.kelas_tutor_cabang.index') }}" class="btn btn-secondary">
+                            <a href="{{ route($ktRute.'index') }}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left me-1"></i>&nbsp;&nbsp; Kembali
                             </a>
                             <button type="submit" class="btn btn-primary">

@@ -16,11 +16,11 @@
 
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h4 class="card-title">Tambah Jadwal Kelas Tutorial</h4>
-                    <a href="{{ route('kom.kelas_tutor_cabang.index') }}" class="btn btn-secondary btn-sm">Kembali</a>
+                    <a href="{{ route($ktRute.'index') }}" class="btn btn-secondary btn-sm">Kembali</a>
                 </div>
 
                 <div class="card-body">
-                    <form action="{{ route('kom.kelas_tutor_cabang.store') }}" method="POST">
+                    <form action="{{ route($ktRute.'store') }}" method="POST">
                         @csrf
 
                         {{-- <div class="form-group">

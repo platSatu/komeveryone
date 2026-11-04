@@ -23,6 +23,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // 4 Nov 2026: awalan route halaman Kelas Tutorial (admin cabang / Admin KOM), lihat KelasTutorService::awalanRute()
+        \Illuminate\Support\Facades\View::composer('a_kom_digital_pusat.admin_cabang.kelas_tutorial.*', function ($view) {
+            $view->with('ktRute', \App\Services\AdminCabang\KelasTutorService::awalanRute());
+        });
     }
 }

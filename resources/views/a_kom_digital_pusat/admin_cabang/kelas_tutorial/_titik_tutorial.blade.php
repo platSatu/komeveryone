@@ -32,7 +32,7 @@
 
         modul.addEventListener('change', function () {
             titik.innerHTML = '<option value="">{{ __('Memuat...') }}</option>';
-            fetch('{{ route('kom.kelas_tutor_cabang.api.titik.byModul') }}?modul_id=' + encodeURIComponent(modul.value), {
+            fetch('{{ route($ktRute.'api.titik.byModul') }}?modul_id=' + encodeURIComponent(modul.value), {
                 headers: { 'Accept': 'application/json' }
             })
                 .then(function (r) { return r.json(); })

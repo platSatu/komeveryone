@@ -63,6 +63,18 @@ class KelasTutorService
     }
 
     /**
+     * 4 Nov 2026: halaman Kelas Tutorial dipakai di 2 alamat dengan fungsi yang sama:
+     *   /app/admin_cabang/kelas_tutorial  (route kom.kelas_tutor_cabang.*)  → admin cabang
+     *   /app/superadmin/kelas-tutorial    (route kom.super_kelas_tutorial.*) → Admin KOM
+     * Semua link / redirect di halaman itu memakai awalan route dari alamat yang sedang dibuka,
+     * jadi Admin KOM tetap berada di /superadmin/... selama bekerja.
+     */
+    public static function awalanRute(): string
+    {
+        return request()->routeIs('kom.super_kelas_tutorial.*') ? 'kom.super_kelas_tutorial.' : 'kom.kelas_tutor_cabang.';
+    }
+
+    /**
      * 4 Nov 2026: daftar kelas tutorial semua cabang untuk Admin KOM (bukan kelas Diklat Tutor),
      * bisa difilter per cabang. Sama seperti daftar admin cabang, hanya tanpa batas pemilik.
      */
