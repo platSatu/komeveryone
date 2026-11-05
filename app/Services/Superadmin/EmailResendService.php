@@ -110,10 +110,54 @@ class EmailResendService
             ->through(fn ($row) => $this->describe($row, 'pending'));
     }
 
-    /** @return array{failed: int, pending: int} */
+    /** @return array{failed: int, pending: int, sent_today: int} */
     public function counts(): array
     {
-        return ['failed' => $this->failedQuery()->count(), 'pending' => $this->pendingQuery()->count()];
+        return [
+            'failed' => $this->failedQuery()->count(),
+            'pending' => $this->pendingQuery()->count(),
+            // 5 Nov 2026: jumlah email terkirim hari ini (tab Riwayat Terkirim)
+            'sent_today' => $this->historyReady()
+                ? \App\Models\Kmd\KomEmailLog::where('status', \App\Models\Kmd\KomEmailLog::TERKIRIM)->where('terkirim_at', '>=', today())->count()
+                : 0,
+        ];
+    }
+
+    // ------------------------------------------------------------------ riwayat (5 Nov 2026)
+
+    /** Tabel kom_email_log sudah dibuat (php artisan migrate)? */
+    public function historyReady(): bool
+    {
+        return \Illuminate\Support\Facades\Schema::connection('mysql')->hasTable('kom_email_log');
+    }
+
+    /**
+     * Riwayat semua email aplikasi, terbaru dulu. Filter: email/judul, status, rentang tanggal.
+     *
+     * @param  array{cari?: ?string, status?: ?string, dari?: ?string, sampai?: ?string}  $filter
+     */
+    public function historyPage(array $filter, int $perPage = 25): LengthAwarePaginator
+    {
+        if (! $this->historyReady()) {
+            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
+        }
+
+        $cari = trim((string) ($filter['cari'] ?? ''));
+
+        return \App\Models\Kmd\KomEmailLog::query()
+            ->when($cari !== '', fn ($q) => $q->where(fn ($w) => $w->where('penerima', 'like', '%'.$cari.'%')->orWhere('judul', 'like', '%'.$cari.'%')))
+            ->when(isset(\App\Models\Kmd\KomEmailLog::STATUS_LABEL[$filter['status'] ?? '']), fn ($q) => $q->where('status', $filter['status']))
+            ->when($filter['dari'] ?? null, fn ($q, $d) => $q->where('created_at', '>=', \Illuminate\Support\Carbon::parse($d)->startOfDay()))
+            ->when($filter['sampai'] ?? null, fn ($q, $d) => $q->where('created_at', '<=', \Illuminate\Support\Carbon::parse($d)->endOfDay()))
+            ->orderByDesc('id')
+            ->paginate($perPage, ['*'], 'riwayat')
+            ->withQueryString();
+    }
+
+    /** Nama jenis email yang dibaca manusia (dipakai juga di tab Riwayat). */
+    public static function labelFor(string $class): string
+    {
+        return self::LABELS[$class] ?? class_basename($class ?: 'Email');
     }
 
     // ------------------------------------------------------------------ kirim ulang

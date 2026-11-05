@@ -10,7 +10,10 @@
     $badge = [ER::TYPE_VERIFICATION => 'kom-er-tag biru', ER::TYPE_RESET => 'kom-er-tag ungu', ER::TYPE_OTHER => 'kom-er-tag abu'];
     // 4 Nov 2026: tampilan 2 tab (Email gagal / Masih di antrean). Tab ikut di URL (?tab=) supaya
     // tetap di tab yang sama setelah kirim ulang, hapus, atau pindah halaman.
-    $tab = in_array(request('tab'), ['gagal', 'antrean'], true) ? request('tab') : (request()->has('menunggu') ? 'antrean' : 'gagal');
+    // 5 Nov 2026: tab ke-3 "Riwayat Terkirim" (semua email yang dicatat di kom_email_log)
+    $tab = in_array(request('tab'), ['gagal', 'antrean', 'terkirim'], true) ? request('tab')
+        : (request()->has('riwayat') ? 'terkirim' : (request()->has('menunggu') ? 'antrean' : 'gagal'));
+    $statusBadge = [\App\Models\Kmd\KomEmailLog::TERKIRIM => 'kom-er-tag hijau', \App\Models\Kmd\KomEmailLog::GAGAL => 'kom-er-tag merah', \App\Models\Kmd\KomEmailLog::ANTRE => 'kom-er-tag abu'];
 @endphp
 <div class="kom-page container-fluid px-0">
     @include('a_kom_digital_pusat.katalog._flash')
@@ -45,6 +48,10 @@
         <button type="button" role="tab" class="kom-er-tabbtn {{ $tab === 'antrean' ? 'aktif' : '' }}" data-tab="antrean" aria-selected="{{ $tab === 'antrean' ? 'true' : 'false' }}">
             <i class="bi bi-hourglass-split"></i> Masih di antrean
             <span class="kom-er-count">{{ number_format($counts['pending']) }}</span>
+        </button>
+        <button type="button" role="tab" class="kom-er-tabbtn {{ $tab === 'terkirim' ? 'aktif' : '' }}" data-tab="terkirim" aria-selected="{{ $tab === 'terkirim' ? 'true' : 'false' }}">
+            <i class="bi bi-send-check"></i> Riwayat terkirim
+            <span class="kom-er-count" title="Terkirim hari ini">{{ number_format($counts['sent_today']) }} hari ini</span>
         </button>
     </div>
 
@@ -140,6 +147,62 @@
         </div>
         {{ $pending->appends(['tab' => 'antrean'])->links('pagination::bootstrap-4') }}
     </div>
+
+    {{-- Tab 3: Riwayat terkirim (5 Nov 2026) --}}
+    <div class="kom-card kom-er-pane mb-3" data-pane="terkirim" role="tabpanel" @if ($tab !== 'terkirim') hidden @endif>
+        @unless ($historyReady)
+            <div class="kom-note kom-note-danger mb-3">Tabel riwayat belum dibuat. Jalankan <code>php artisan migrate</code> di server.</div>
+        @endunless
+
+        <form method="GET" class="kom-er-filter mb-2">
+            <input type="hidden" name="tab" value="terkirim">
+            <input type="text" name="cari" value="{{ request('cari') }}" class="form-control" maxlength="100" placeholder="Cari email peserta atau judul email">
+            <select name="status" class="form-control">
+                <option value="">Semua status</option>
+                @foreach (\App\Models\Kmd\KomEmailLog::STATUS_LABEL as $value => $label)
+                    <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+            <input type="date" name="dari" value="{{ request('dari') }}" class="form-control" title="Dari tanggal">
+            <input type="date" name="sampai" value="{{ request('sampai') }}" class="form-control" title="Sampai tanggal">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Cari</button>
+            @if (request()->hasAny(['cari', 'status', 'dari', 'sampai']))
+                <a href="{{ route('kom.super_email_resend.index', ['tab' => 'terkirim']) }}" class="btn btn-outline-secondary" title="Hapus filter"><i class="bi bi-x-lg"></i></a>
+            @endif
+        </form>
+        <small class="text-muted d-block mb-3">
+            Semua email aplikasi tercatat otomatis sejak fitur ini aktif. <b>Terkirim</b> = sudah diterima server email
+            (belum tentu dibuka peserta / tidak masuk spam). Isi email tidak disimpan, hanya judulnya.
+        </small>
+
+        <div class="table-responsive">
+            <table class="table table-sm kom-er-table">
+                <thead>
+                    <tr><th>Waktu</th><th>Jenis</th><th>Penerima</th><th>Judul</th><th>Status</th><th>Terkirim pada</th></tr>
+                </thead>
+                <tbody>
+                    @forelse ($history as $log)
+                        <tr>
+                            <td class="text-nowrap">{{ $log->created_at?->format('d M Y H:i') }}</td>
+                            <td><span class="kom-er-tag abu">{{ ER::labelFor($log->jenis) }}</span></td>
+                            <td class="text-break">{{ $log->penerima }}</td>
+                            <td><small class="text-break">{{ \Illuminate\Support\Str::limit($log->judul, 70) ?: '-' }}</small></td>
+                            <td>
+                                <span class="{{ $statusBadge[$log->status] ?? 'kom-er-tag abu' }}">{{ \App\Models\Kmd\KomEmailLog::STATUS_LABEL[$log->status] ?? $log->status }}</span>
+                                @if ($log->error)
+                                    <small class="d-block text-danger text-break" title="{{ $log->error }}">{{ \Illuminate\Support\Str::limit($log->error, 60) }}</small>
+                                @endif
+                            </td>
+                            <td class="text-nowrap">{{ $log->terkirim_at?->format('d M Y H:i') ?? '-' }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="text-center text-muted py-4">Belum ada riwayat email{{ request()->hasAny(['cari', 'status', 'dari', 'sampai']) ? ' yang cocok dengan filter' : '' }}.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        {{ $history->appends(['tab' => 'terkirim'])->links('pagination::bootstrap-4') }}
+    </div>
 </div>
 
 <style>
@@ -161,6 +224,12 @@
     .kom-er-tag.biru { background:#e8effb; color:#2a5298; }
     .kom-er-tag.ungu { background:#f1eafb; color:#6f42c1; }
     .kom-er-tag.abu  { background:#eef0f3; color:#5b6576; }
+    .kom-er-tag.hijau { background:#e7f6ec; color:#198754; }
+    .kom-er-tag.merah { background:#fdeeee; color:#dc3545; }
+    .kom-er-filter { display:flex; flex-wrap:wrap; gap:8px; }
+    .kom-er-filter input[type=text] { flex:1 1 240px; }
+    .kom-er-filter select { flex:0 1 170px; }
+    .kom-er-filter input[type=date] { flex:0 1 160px; }
 </style>
 <script>
     // Pindah tab tanpa memuat ulang halaman; tab disimpan di URL supaya tetap sama setelah aksi.

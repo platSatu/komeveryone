@@ -26,11 +26,21 @@ class EmailResendController extends Controller
     {
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        // 5 Nov 2026: tab ke-3 "Riwayat Terkirim" (tabel kom_email_log) + filternya
+        $filter = $request->validate([
+            'cari' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'string', 'max:20'],
+            'dari' => ['nullable', 'date'],
+            'sampai' => ['nullable', 'date'],
+        ]);
+
         return view('a_kom_digital_pusat.superadmin.email_resend.index', [
             'failed' => $this->emails->failedPage(),
             'pending' => $this->emails->pendingPage(),
+            'history' => $this->emails->historyPage($filter),
+            'historyReady' => $this->emails->historyReady(),
             'counts' => $this->emails->counts(),
         ]);
     }
