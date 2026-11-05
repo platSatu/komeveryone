@@ -657,8 +657,11 @@ public function updatePertanyaanSaya(Request $request, $id)
                 'tanggalCetak' => now()->format('d-m-Y'),
 
                 // Tambahan informasi
-                'class_tutorial_id' => $classTutorialId,
-                'class_tutorial_created_at' => $classTutorialCreatedAt,
+                // 5 Nov 2026: dulu variabelnya tidak dibuat (sisa kode lama) -> error "Undefined variable"
+                // untuk semua peserta yang sudah lulus. Tanggal "Jakarta, ..." = booking tutorial terakhir
+                // seperti kode lama, cadangan tanggal terbit sertifikat.
+                'class_tutorial_id' => optional($classTutorial)->id,
+                'class_tutorial_created_at' => optional($classTutorial)->created_at ?? $sertifikat->date_publish,
             ]);
 
         } catch (\Exception $e) {
