@@ -105,11 +105,6 @@
                             </select>
                         </div>
 
-                        <div class="form-group">
-                            <label>Deskripsi</label>
-                            <textarea name="description" class="form-control" rows="3">{{ old('description', $data->description) }}</textarea>
-                        </div>
-
                         <div class="form-group form-check">
                             <input type="checkbox" name="notifikasi" class="form-check-input" value="1"
                                 {{ old('notifikasi', $data->notifikasi) ? 'checked' : '' }}>

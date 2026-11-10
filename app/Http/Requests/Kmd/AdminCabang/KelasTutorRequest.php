@@ -53,7 +53,6 @@ class KelasTutorRequest extends FormRequest
             'quota' => 'required|integer|min:1',
             'jml_ikut' => 'nullable|integer|min:0',
             'sisa_quota' => 'nullable|integer|min:0',
-            'description' => 'nullable|string',
             'status' => 'required|string',
             
             'rayon_id' => 'nullable|uuid',

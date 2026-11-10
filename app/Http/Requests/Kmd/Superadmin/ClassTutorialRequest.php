@@ -28,7 +28,6 @@ class ClassTutorialRequest extends FormRequest
         'class_id' => ['required', new CustomDbRule('mysql2', 'kmd_classes', 'id', 'exists')],
         'modul_id' => ['required', new CustomDbRule('mysql2', 'kmd_moduls', 'id', 'exists')],
         'quota' => ['required', 'integer', 'min:1'],
-        'description' => ['nullable', 'string', 'max:1000'],
         'status' => ['required', 'in:active,inactive'],
         'link_zoom' => ['nullable', 'url'],
     ];
